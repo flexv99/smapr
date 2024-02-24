@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div>
+      Map:
+      <div id="map"></div>
+    </div>
+    <script src="https://d3js.org/d3-array.v2.min.js"></script>
+    <script src="https://d3js.org/d3-geo.v2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-tile@1"></script>
+    <script src="https://d3js.org/d3-dsv.v2.min.js"></script>
+    <script src="https://d3js.org/d3-fetch.v2.min.js"></script>
+    <script src="https://unpkg.com/pbf@3.0.5/dist/pbf.js"></script>
+
+    <script src="https://bundle.run/@mapbox/vector-tile@1.3.1"></script>
+    <script>
+      let VectorTile = _mapbox_vectorTile.VectorTile;
+    </script>
+    <script>
+      height = 600;
+      width = 954;
+      
+      zoom = 23;
+      center = [11.893096, 46.615577];
+
+      projection = d3
+        .geoMercator()
+        .center(center)
+        .scale(Math.pow(2, zoom) / (2 * Math.PI))
+        .translate([width / 2, height / 2])
+        .precision(0);
+
+      path = d3.geoPath(projection);
+
+      tile = d3
+        .tile()
+        .size([width, height])
+        .scale(projection.scale() * 2 * Math.PI)
+        .translate(projection([0, 0]));
+
+      function filter({ features }, test) {
+        return { type: "FeatureCollection", features: features.filter(test) };
+      }
+
+      function geojson([x, y, z], layer, filter = () => true) {
+        if (!layer) return;
+        const features = [];
+        for (let i = 0; i < layer.length; ++i) {
+          const f = layer.feature(i).toGeoJSON(x, y, z);
+          if (filter.call(null, f, i, features)) features.push(f);
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      tiles_pr = Promise.all(
+        tile().map(async (d) => {
+          d.layers = new VectorTile(
+            new Pbf(
+              await d3.buffer(
+                `http://0.0.0.0:3000/planet_osm_line/${d[2]}/${d[0]}/${d[1]}`
+              )
+            )
+          ).layers;
+          return d;
+        })
+      );
+
+      tiles_pr.then(function (tiles) {
+        console.log(tiles);
+        map = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${tiles.map(
+          (d) => `
+    <path fill="#eee" d="${path(
+      geojson(d, d.layers.planet_osm_line, (d) => !d.properties.boundary)
+    )}"></path>
+    <path fill="none" stroke="#aaa" d="${path(
+      geojson(d, d.layers.water, (d) => d.properties.boundary)
+    )}"></path>
+    <path fill="none" stroke="#000" stroke-width="0.75" d="${path(
+      geojson(d, d.layers.roads)
+    )}"></path>
+    `
+        )}
+    </svg>`;
+
+        document.getElementById("map").innerHTML = map;
+      });
+    </script>
+  </body>
+</html>
