@@ -45,7 +45,7 @@ const tile = d3
   .scale(projection.scale() * 2 * Math.PI)
   .translate(projection([0, 0]));
 
-function geojson([x, y, z], layer) {
+const geojson = ([x, y, z], layer) => {
   if (!layer) return;
   const features = [];
   for (let i = 0; i < layer.length; ++i) {
@@ -54,10 +54,19 @@ function geojson([x, y, z], layer) {
   }
   return { type: "FeatureCollection", features };
 }
-const isIterable = (object) =>
-  object != null && typeof object[Symbol.iterator] === "function";
 
 const tiles_promises = Promise.all(
+  tile().map(async (d) => {
+    d.layers = new VectorTile(
+      new Pbf(
+        await d3.buffer(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`)
+      )
+    ).layers;
+    return d;
+  })
+);
+
+const line_tiles_promises = Promise.all(
   tile().map(async (d) => {
     d.layers = new VectorTile(
       new Pbf(
@@ -70,7 +79,6 @@ const tiles_promises = Promise.all(
 
 tiles_promises.then((tiles) => {
   tiles.map((d) => {
-    console.log(d);
     const background = g
       .selectAll("g.background")
       .append("rect")
@@ -79,43 +87,28 @@ tiles_promises.then((tiles) => {
       .attr("width", 100)
       .attr("height", 60);
 
-    const streets = g
-      .selectAll("g.streets")
+    const polygons = g
+      .selectAll("g.polygons")
+      .data(d)
+      .enter()
+      .append("path")
+      .style("fill", "brown")
+      .attr("d", path(geojson(d, d.layers.polygons)))
+      .style("stroke-width", 0.5)
+      .style("stroke", "#fff");
+  });
+});
+
+line_tiles_promises.then((tiles) => {
+  tiles.map((d) => {
+    const routes = g
+      .selectAll("g.routes")
       .data(d)
       .enter()
       .append("path")
       .style("fill", "none")
       .attr("d", path(geojson(d, d.layers.lines)))
-      .style("stroke-width", 1)
-      .style("stroke", roadsStroke);
-
-    // const earth = g
-    //   .selectAll("g.earth")
-    //   .data(layer.landcover._features)
-    //   .enter()
-    //   .append("path")
-    //   .style("fill", "#090909")
-    //   .style("fill-opacity", 1)
-    //   .attr("d", path);
-
-    // const roads = g
-    //   .selectAll("g.roads")
-    //   .data(layer.transportation._features)
-    //   .enter()
-    //   .append("path")
-    //   .attr("d", path)
-    //   .style("fill", "none")
-    //   .style("stroke-width", 0.35)
-    //   .style("stroke", roadsStroke);
-
-    // const buildings = g
-    //   .selectAll("g.buildings2")
-    //   .data(layer.building._features)
-    //   .enter()
-    //   .append("path")
-    //   .style("fill", "red")
-    //   .attr("d", path)
-    //   .style("stroke-width", 0.1)
-    //   .style("stroke", "#fff");
+      .style("stroke-width", 1.0)
+      .style("stroke", "green");
   });
 });
