@@ -9,7 +9,7 @@ import qualified Data.Typeable as Prelude'
 import qualified GHC.Generics as Prelude'
 import qualified Data.Data as Prelude'
 import qualified Text.ProtocolBuffers.Header as P'
-import qualified Vector_tile.Tile.Layer as Vector_tile.Tile
+import qualified Proto.Vector_tile.Tile.Layer as Vector_tile.Tile
 
 data Tile = Tile{layers :: !(P'.Seq Vector_tile.Tile.Layer), ext'field :: !(P'.ExtField)}
             deriving (Prelude'.Show, Prelude'.Eq, Prelude'.Ord, Prelude'.Typeable, Prelude'.Data, Prelude'.Generic)

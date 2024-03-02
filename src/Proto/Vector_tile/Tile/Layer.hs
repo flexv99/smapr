@@ -9,8 +9,8 @@ import qualified Data.Typeable as Prelude'
 import qualified GHC.Generics as Prelude'
 import qualified Data.Data as Prelude'
 import qualified Text.ProtocolBuffers.Header as P'
-import qualified Vector_tile.Tile.Feature as Vector_tile.Tile
-import qualified Vector_tile.Tile.Value as Vector_tile.Tile
+import qualified Proto.Vector_tile.Tile.Feature as Vector_tile.Tile
+import qualified Proto.Vector_tile.Tile.Value as Vector_tile.Tile
 
 data Layer = Layer{version :: !(P'.Word32), name :: !(P'.Utf8), features :: !(P'.Seq Vector_tile.Tile.Feature),
                    keys :: !(P'.Seq P'.Utf8), values :: !(P'.Seq Vector_tile.Tile.Value), extent :: !(P'.Maybe P'.Word32),

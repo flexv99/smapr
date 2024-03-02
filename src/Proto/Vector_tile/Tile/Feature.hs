@@ -9,7 +9,7 @@ import qualified Data.Typeable as Prelude'
 import qualified GHC.Generics as Prelude'
 import qualified Data.Data as Prelude'
 import qualified Text.ProtocolBuffers.Header as P'
-import qualified Vector_tile.Tile.GeomType as Vector_tile.Tile
+import qualified Proto.Vector_tile.Tile.GeomType as Vector_tile.Tile
 
 data Feature = Feature{id :: !(P'.Maybe P'.Word64), tags :: !(P'.Seq P'.Word32), type' :: !(P'.Maybe Vector_tile.Tile.GeomType),
                        geometry :: !(P'.Seq P'.Word32)}
