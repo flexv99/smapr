@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, DataKinds, DeriveDataTypeable, DeriveGeneric, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings
  #-}
 {-# OPTIONS_GHC  -w #-}
-module Vector_tile (protoInfo, fileDescriptorProto) where
+module Proto.Vector_tile (protoInfo, fileDescriptorProto) where
 import Prelude ((+), (/), (++), (.))
 import qualified Prelude as Prelude'
 import qualified Data.List as Prelude'

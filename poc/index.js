@@ -53,10 +53,11 @@ const geojson = ([x, y, z], layer) => {
     features.push(f);
   }
   return { type: "FeatureCollection", features };
-}
+};
 
 const tiles_promises = Promise.all(
   tile().map(async (d) => {
+    console.log(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`);
     d.layers = new VectorTile(
       new Pbf(
         await d3.buffer(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`)
