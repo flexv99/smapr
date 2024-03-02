@@ -45,5 +45,5 @@ getTileUnserialized :: Coord -> IO (Response ByteString)
 getTileUnserialized c = get (tilerequestUrl c)
 
 getTile :: Coord -> IO (Maybe Tile)
-getTile c = get (tilerequestUrl c) >>=
+getTile c = getTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
