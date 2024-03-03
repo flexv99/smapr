@@ -102,6 +102,7 @@ tiles_promises.then((tiles) => {
 
 line_tiles_promises.then((tiles) => {
   tiles.map((d) => {
+    console.log(d);
     const routes = g
       .selectAll("g.routes")
       .data(d)
