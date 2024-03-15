@@ -7,7 +7,7 @@ import Graphics.Svg
 
 type Point = (Int, Int)
 
-data CommandA = MoveTo | LineTo | ClosePath deriving Show
+data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
   { cmd :: CommandA
@@ -27,7 +27,7 @@ decodeCommand c = Command { cmd = cType, count = paramC}
     cType = toCommandA (c .&. 0x7)
     paramC = c `shiftR` 3
 
--- params:
+-- parameters:
 -- number of params is determined by command cound multiplied by parameter count
 -- moveTo has a parameter count of 2
 -- lineTo has a parameter count of 2
