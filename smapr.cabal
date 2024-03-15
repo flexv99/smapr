@@ -29,6 +29,8 @@ library
                     , Proto.Vector_tile.Tile.GeomType
                     , Proto.Vector_tile.Tile.Layer
                     , Proto.Vector_tile.Tile.Value
+                    , Renderer.Lines
+                    , Renderer.Helper
                     , ApiClient
 
     -- Modules included in this library but not exported.
@@ -43,12 +45,14 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>= 4.16.4.0
+    build-depends:    base >=4.7 && <5
                     , protocol-buffers
                     , protocol-buffers-descriptor
                     , wreq
                     , lens
                     , bytestring
+                    , svg-builder
+                    , time
 
     hs-source-dirs:   src
     default-language: Haskell2010
@@ -62,7 +66,7 @@ executable smapr
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base ^>= 4.16.4.0
+        base >=4.7 && <5
         , smapr
 
     hs-source-dirs:   app
