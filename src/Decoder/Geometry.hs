@@ -14,10 +14,6 @@ data Command = Command
   , count :: Int
   } deriving Show
 
--- https://protobuf.dev/programming-guides/encoding/#signed-ints
-decodeZigzag :: Int -> Int
-decodeZigzag n = shiftR n 1 `xor` (-(n .&. 1))
-
 -- command:
 -- 3 bits
 toCommandA :: Int -> CommandA
@@ -45,6 +41,7 @@ parametersCount = ap ((*) . forAction . cmd) count -- ap promotes function appli
     forAction LineTo = 2
     forAction _      = 0
 
+-- https://protobuf.dev/programming-guides/encoding/#signed-ints
 decodeParam :: Int -> Int
 decodeParam p = (p `shiftR` 1) `xor` (-(p .&. 1))
 
