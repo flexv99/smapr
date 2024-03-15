@@ -55,6 +55,12 @@ splitCommands c = let (taken, rest) = splitAt toBeSplitted c in
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
+decodeCommands :: [Int] -> [(Command, [Int])]
+decodeCommands r = map (\c -> singleDecoder c) (splitCommands r)
+  where
+    singleDecoder (l:ls) = (decodeCommand l, map (decodeParam) ls)
+
+
 testLine :: [Int]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]
 
