@@ -12,7 +12,7 @@ data CommandA = MoveTo | LineTo | ClosePath deriving Show
 data Command = Command
   { cmd :: CommandA
   , count :: Int
-  }
+  } deriving Show
 
 -- https://protobuf.dev/programming-guides/encoding/#signed-ints
 decodeZigzag :: Int -> Int
@@ -29,7 +29,7 @@ decodeCommand :: Int -> Command
 decodeCommand c = Command { cmd = cType, count = paramC}
   where
     cType = toCommandA (c .&. 0x7)
-    paramC = c `shift` 3
+    paramC = c `shiftR` 3
 
 -- params:
 -- number of params is determined by command cound multiplied by parameter count
@@ -46,10 +46,14 @@ parametersCount = ap ((*) . forAction . cmd) count -- ap promotes function appli
     forAction _      = 0
 
 decodeParam :: Int -> Int
-decodeParam p = (p `shift` 1) `xor` (-(p .&. 1))
+decodeParam p = (p `shiftR` 1) `xor` (-(p .&. 1))
 
-decodeLine :: [Int] -> [Command]
-decodeLine = undefined
+splitCommands :: [Int] -> [[Int]]
+splitCommands [] = []
+splitCommands c = let (taken, rest) = splitAt toBeSplitted c in
+  if length taken == 0 then [] else taken : splitCommands rest
+  where
+    toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
 testLine :: [Int]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]
