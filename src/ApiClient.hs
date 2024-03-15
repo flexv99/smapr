@@ -17,7 +17,7 @@ data Coord = Coord
   } deriving Show
 
 baseUrl :: String
-baseUrl = "http://0.0.0.0:3000/lines"
+baseUrl = "http://0.0.0.0:3000/routes"
 
 -- helpers0
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b

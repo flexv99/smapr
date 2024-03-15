@@ -29,6 +29,7 @@ library
                     , Proto.Vector_tile.Tile.GeomType
                     , Proto.Vector_tile.Tile.Layer
                     , Proto.Vector_tile.Tile.Value
+                    , Decoder.Geometry
                     , Renderer.Lines
                     , Renderer.Helper
                     , ApiClient
