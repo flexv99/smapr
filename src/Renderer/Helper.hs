@@ -8,8 +8,10 @@ testPath :: String -> FilePath
 testPath context = "/Users/felixvalentini/personal_site/smapr/test/" ++ context  ++ ".svg":: FilePath
 
 dateTimeStr :: IO String
-dateTimeStr = getCurrentTime >>= \currentTime -> return $ formatTime defaultTimeLocale "%Y-%m-%d_%H:%M:%S" currentTime
+dateTimeStr = getCurrentTime >>=
+  \currentTime -> return $ formatTime defaultTimeLocale "%Y-%m-%d_%H:%M:%S" currentTime
 
 
 writeSvg :: Element -> IO ()
-writeSvg svg = dateTimeStr >>= \d -> renderToFile (testPath d) svg
+writeSvg svg = dateTimeStr >>=
+  \d -> renderToFile (testPath d) svg
