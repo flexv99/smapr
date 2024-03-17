@@ -1,19 +1,30 @@
-module Decoder.Geometry where
+module Decoder.Geometry
+  (Geometry(..)
+  , CommandA(..)
+  , decodeCommands
+  , geometryCommand
+  ) where
 
 import Data.Bits
 import Control.Monad
 import Proto.Vector_tile
 import Graphics.Svg
+import GHC.Float (int2Double)
 
-type Point = (Int, Int)
+type Point = (Double, Double)
 
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
   { cmd :: CommandA
   , count :: Int
-  } deriving Show
+  } deriving (Show, Eq)
 
+data Geometry = Geometry
+  { command :: Command
+  , parameters :: [Point]
+  }
+ deriving (Show, Eq)
 -- command:
 -- 3 bits
 toCommandA :: Int -> CommandA
@@ -22,7 +33,10 @@ toCommandA 2 = LineTo    -- [010]
 toCommandA _ = ClosePath -- [111]
 
 decodeCommand :: Int -> Command
-decodeCommand c = Command { cmd = cType, count = paramC}
+decodeCommand c = Command
+  { cmd = cType
+  , count = paramC
+  }
   where
     cType = toCommandA (c .&. 0x7)
     paramC = c `shiftR` 3
@@ -42,8 +56,8 @@ parametersCount = ap ((*) . forAction . cmd) count -- ap promotes function appli
     forAction _      = 0
 
 -- https://protobuf.dev/programming-guides/encoding/#signed-ints
-decodeParam :: Int -> Int
-decodeParam p = (p `shiftR` 1) `xor` (-(p .&. 1))
+decodeParam :: Int -> Double
+decodeParam p = int2Double $ (p `shiftR` 1) `xor` (-(p .&. 1))
 
 splitCommands :: [Int] -> [[Int]]
 splitCommands [] = []
@@ -52,11 +66,25 @@ splitCommands c = let (taken, rest) = splitAt toBeSplitted c in
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
-decodeCommands :: [Int] -> [(Command, [Int])]
+decodeCommands :: [Int] -> [Geometry]
 decodeCommands r = map (\c -> singleDecoder c) (splitCommands r)
   where
-    singleDecoder (l:ls) = (decodeCommand l, map (decodeParam) ls)
+    -- sumTuple (x, y) (x', y') = (x + x', y + y') 
+    singleDecoder (l:ls) = Geometry
+      { command = decodeCommand l
+      , parameters = tuplify $ map (decodeParam) ls
+      }
 
+-- TODO need to sum to get the actual coodinates
+getGeometry :: [Int] -> [Geometry]
+getGeometry c = undefined
+
+geometryCommand :: Geometry -> CommandA
+geometryCommand = cmd . command
+
+tuplify :: [a] -> [(a, a)]
+tuplify [] = []
+tuplify x  = zip x (tail x)
 
 testLine :: [Int]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]

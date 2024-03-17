@@ -54,6 +54,7 @@ library
                     , bytestring
                     , svg-builder
                     , time
+                    , text
 
     hs-source-dirs:   src
     default-language: Haskell2010
