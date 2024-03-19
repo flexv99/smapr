@@ -66,6 +66,7 @@ splitCommands c = let (taken, rest) = splitAt toBeSplitted c in
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
+-- TODO need to sum to get the actual coodinates
 decodeCommands :: [Int] -> [Geometry]
 decodeCommands r = map (\c -> singleDecoder c) (splitCommands r)
   where
@@ -75,16 +76,13 @@ decodeCommands r = map (\c -> singleDecoder c) (splitCommands r)
       , parameters = tuplify $ map (decodeParam) ls
       }
 
--- TODO need to sum to get the actual coodinates
-getGeometry :: [Int] -> [Geometry]
-getGeometry c = undefined
-
 geometryCommand :: Geometry -> CommandA
 geometryCommand = cmd . command
 
 tuplify :: [a] -> [(a, a)]
-tuplify [] = []
-tuplify x  = zip x (tail x)
+tuplify []        = []
+tuplify [x]       = error "cannot create tuple of one elem."
+tuplify (x:x':xs) = (x, x') : tuplify xs
 
 testLine :: [Int]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]
