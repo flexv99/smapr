@@ -10,7 +10,7 @@ import qualified Data.Text as T
 svg :: Element -> Element
 svg content =
   doctype
-  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "1000", Height_ <<- "1000"]
+  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "100%", Height_ <<- "100%"]
 
 contents :: Element
 contents =

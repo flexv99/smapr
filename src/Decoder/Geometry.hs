@@ -83,7 +83,7 @@ toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
 toAbsoluteCoords _ []         = []
 toAbsoluteCoords point (x:xs) = Geometry
   { command = command x
-  , parameters = sumFirst $ relativeParams (parameters x)
+  , parameters = relativeParams $ sumFirst (parameters x)
   } : toAbsoluteCoords (last (relativeParams (parameters x))) xs
   where
     sumFirst []              = []
