@@ -55,61 +55,68 @@ const geojson = ([x, y, z], layer) => {
   return { type: "FeatureCollection", features };
 };
 
-const tiles_promises = Promise.all(
-  tile().map(async (d) => {
-    console.log(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`);
-    d.layers = new VectorTile(
-      new Pbf(
-        await d3.buffer(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`)
-      )
-    ).layers;
-    return d;
-  })
-);
+// const tiles_promises = Promise.all(
+//   tile().map(async (d) => {
+//     console.log(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`);
+//     d.layers = new VectorTile(
+//       new Pbf(
+//         await d3.buffer(`http://0.0.0.0:3000/polygons/${d[2]}/${d[0]}/${d[1]}`)
+//       )
+//     ).layers;
+//     return d;
+//   })
+// );
 
 const line_tiles_promises = Promise.all(
   tile().map(async (d) => {
     d.layers = new VectorTile(
       new Pbf(
-        await d3.buffer(`http://0.0.0.0:3000/lines/${d[2]}/${d[0]}/${d[1]}`)
+        await d3.buffer(`http://0.0.0.0:3000/routes/${d[2]}/${d[0]}/${d[1]}`)
       )
     ).layers;
     return d;
   })
 );
 
-tiles_promises.then((tiles) => {
-  tiles.map((d) => {
-    const background = g
-      .selectAll("g.background")
-      .append("rect")
-      .style("fill", "#262626")
-      .style("fill-opacity", 0.35)
-      .attr("width", 100)
-      .attr("height", 60);
+// tiles_promises.then((tiles) => {
+//   tiles.map((d) => {
+//     const background = g
+//       .selectAll("g.background")
+//       .append("rect")
+//       .style("fill", "#262626")
+//       .style("fill-opacity", 0.35)
+//       .attr("width", 100)
+//       .attr("height", 60);
 
-    const polygons = g
-      .selectAll("g.polygons")
-      .data(d)
-      .enter()
-      .append("path")
-      .style("fill", "brown")
-      .attr("d", path(geojson(d, d.layers.polygons)))
-      .style("stroke-width", 0.5)
-      .style("stroke", "#fff");
-  });
-});
+//     const polygons = g
+//       .selectAll("g.polygons")
+//       .data(d)
+//       .enter()
+//       .append("path")
+//       .style("fill", "brown")
+//       .attr("d", path(geojson(d, d.layers.polygons)))
+//       .style("stroke-width", 0.5)
+//       .style("stroke", "#fff");
+//   });
+// });
 
 line_tiles_promises.then((tiles) => {
   tiles.map((d) => {
-    console.log(d);
+      console.log(d);
+      const background = g
+       .selectAll("g.background")
+       .append("rect")
+       .style("fill", "#262626")
+       .style("fill-opacity", 0.35)
+       .attr("width", 100)
+       .attr("height", 60);
     const routes = g
       .selectAll("g.routes")
       .data(d)
       .enter()
       .append("path")
       .style("fill", "none")
-      .attr("d", path(geojson(d, d.layers.lines)))
+      .attr("d", path(geojson(d, d.layers.routes)))
       .style("stroke-width", 1.0)
       .style("stroke", "green");
   });
