@@ -25,6 +25,10 @@ data Geometry = Geometry
   , parameters :: [Point]
   }
  deriving (Show, Eq)
+
+coordsOrigin :: Point
+coordsOrigin = (0.0, 0.0)
+
 -- command:
 -- 3 bits
 toCommandA :: Int -> CommandA
@@ -61,27 +65,38 @@ decodeParam p = int2Double $ (p `shiftR` 1) `xor` (-(p .&. 1))
 
 splitCommands :: [Int] -> [[Int]]
 splitCommands [] = []
-splitCommands c = let (taken, rest) = splitAt toBeSplitted c in
+splitCommands c  = let (taken, rest) = splitAt toBeSplitted c in
   if length taken == 0 then [] else taken : splitCommands rest
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
 -- TODO need to sum to get the actual coodinates
 decodeCommands :: [Int] -> [Geometry]
-decodeCommands r = map (\c -> singleDecoder c) (splitCommands r)
+decodeCommands r = toAbsoluteCoords coordsOrigin $ map (\c -> singleDecoder c) (splitCommands r)
   where
-    -- sumTuple (x, y) (x', y') = (x + x', y + y') 
     singleDecoder (l:ls) = Geometry
       { command = decodeCommand l
       , parameters = tuplify $ map (decodeParam) ls
       }
 
+toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
+toAbsoluteCoords _ []         = []
+toAbsoluteCoords point (x:xs) = Geometry
+  { command = command x
+  , parameters = sumFirst $ relativeParams (parameters x)
+  } : toAbsoluteCoords (last (relativeParams (parameters x))) xs
+  where
+    sumFirst []              = []
+    sumFirst (y:ys)          = sumTuple point y : ys
+    relativeParams p         = scanl1 sumTuple p
+    sumTuple (x, y) (x', y') = (x + x', y + y')
+    
 geometryCommand :: Geometry -> CommandA
 geometryCommand = cmd . command
 
 tuplify :: [a] -> [(a, a)]
 tuplify []        = []
-tuplify [x]       = error "cannot create tuple of one elem."
+tuplify [x]       = error "cannot tuplify single emelent"
 tuplify (x:x':xs) = (x, x') : tuplify xs
 
 testLine :: [Int]
