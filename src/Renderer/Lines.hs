@@ -3,7 +3,7 @@
 module Renderer.Lines where
 
 import Graphics.Svg
-import Renderer.Helper
+import Util
 import Decoder.Geometry
 import qualified Data.Text as T
 

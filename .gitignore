@@ -1,3 +1,4 @@
 dist-newstyle
 .DS_Store
 test/
+smapr.cfg
