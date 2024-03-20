@@ -1,5 +1,5 @@
 module Decoder.Geometry
-  (Geometry(..)
+  ( Geometry(..)
   , CommandA(..)
   , decodeCommands
   , geometryCommand
@@ -28,6 +28,9 @@ data Geometry = Geometry
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
+
+geometryCommand :: Geometry -> CommandA
+geometryCommand = cmd . command
 
 -- command:
 -- 3 bits
@@ -90,9 +93,6 @@ toAbsoluteCoords point (x:xs) = Geometry
     sumFirst (y:ys)          = sumTuple point y : ys
     relativeParams p         = scanl1 sumTuple p
     sumTuple (x, y) (x', y') = (x + x', y + y')
-    
-geometryCommand :: Geometry -> CommandA
-geometryCommand = cmd . command
 
 tuplify :: [a] -> [(a, a)]
 tuplify []        = []
