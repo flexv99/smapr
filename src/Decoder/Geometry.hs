@@ -7,9 +7,10 @@ module Decoder.Geometry
 
 import Data.Bits
 import Control.Monad
+import GHC.Float (int2Double)
+import GHC.Word
 import Proto.Vector_tile
 import Graphics.Svg
-import GHC.Float (int2Double)
 
 type Point = (Double, Double)
 
@@ -99,6 +100,6 @@ tuplify []        = []
 tuplify [x]       = error "cannot tuplify single emelent"
 tuplify (x:x':xs) = (x, x') : tuplify xs
 
-testLine :: [Int]
+testLine :: [Word32]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]
 

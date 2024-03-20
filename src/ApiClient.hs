@@ -3,10 +3,15 @@
 module ApiClient where
 
 import GHC.Float
+import GHC.Word
+import Data.Sequence
+import Data.Foldable
 import Network.Wreq
 import Data.ByteString.Lazy.Internal
 import Text.ProtocolBuffers (messageGet)
 import Proto.Vector_tile.Tile (Tile(..))
+import Proto.Vector_tile.Tile.Layer (Layer(..))
+import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Control.Lens ((^.))
 import Util
 
@@ -50,3 +55,6 @@ getTileUnserialized c = do
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
+
+tileFeatures :: Tile -> [[Word32]]
+tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
