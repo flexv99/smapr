@@ -40,8 +40,8 @@ tilerequestUrl base c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show
 testCoord :: Coord
 testCoord = Coord 46.615521 11.893506 14
 
-transformRawTile :: ByteString -> Maybe Tile
-transformRawTile raw = case messageGet raw of
+transfromRawTile :: ByteString -> Maybe Tile
+transfromRawTile raw = case messageGet raw of
     Left   _        -> Nothing
     Right (tile, _) -> Just tile
 
@@ -54,7 +54,7 @@ getTileUnserialized c = do
 
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
-  (\t -> return (transformRawTile (t ^. responseBody)))
+  (\t -> return (transfromRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
