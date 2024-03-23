@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Decoder.Geometry
   ( Geometry(..)
   , CommandA(..)
@@ -5,10 +7,12 @@ module Decoder.Geometry
   , geometryCommand
   ) where
 
-import Data.Bits
-import Control.Monad
-import GHC.Float (int2Double)
 import GHC.Word
+import GHC.ST (runST, ST)
+import Data.Bits
+import Data.Array.ST (newArray, readArray, MArray, STUArray)
+import Data.Array.Base (castSTUArray)
+import Control.Monad
 import Proto.Vector_tile
 import Graphics.Svg
 
@@ -18,7 +22,7 @@ data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
   { cmd :: CommandA
-  , count :: Int
+  , count :: Word32
   } deriving (Show, Eq)
 
 data Geometry = Geometry
@@ -35,12 +39,12 @@ geometryCommand = cmd . command
 
 -- command:
 -- 3 bits
-toCommandA :: Int -> CommandA
+toCommandA :: Word32 -> CommandA
 toCommandA 1 = MoveTo    -- [001]
 toCommandA 2 = LineTo    -- [010]
 toCommandA _ = ClosePath -- [111]
 
-decodeCommand :: Int -> Command
+decodeCommand :: Word32 -> Command
 decodeCommand c = Command
   { cmd = cType
   , count = paramC
@@ -55,29 +59,30 @@ decodeCommand c = Command
 -- lineTo has a parameter count of 2
 -- closePath has a paramete count of 0
 
-parametersCount :: Command -> Int
+parametersCount :: Command -> Word32
 parametersCount = ap ((*) . forAction . cmd) count -- ap promotes function application
   where
-    forAction :: CommandA -> Int
+    forAction :: CommandA -> Word32
     forAction MoveTo = 2
     forAction LineTo = 2
     forAction _      = 0
 
 -- https://protobuf.dev/programming-guides/encoding/#signed-ints
-decodeParam :: Int -> Double
-decodeParam p = int2Double $ (p `shiftR` 1) `xor` (-(p .&. 1))
+decodeParam :: Word32 -> Double
+decodeParam p = wordToDouble $ (p `shiftR` 1) `xor` (-(p .&. 1))
 
-splitCommands :: [Int] -> [[Int]]
+splitCommands :: [Word32] -> [[Word32]]
 splitCommands [] = []
 splitCommands c  = let (taken, rest) = splitAt toBeSplitted c in
   if length taken == 0 then [] else taken : splitCommands rest
   where
-    toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
+    toBeSplitted = fromIntegral $ parametersCount $ decodeCommand $ head c + 1
 
 -- TODO need to sum to get the actual coodinates
-decodeCommands :: [Int] -> [Geometry]
+decodeCommands :: [Word32] -> [Geometry]
 decodeCommands r = toAbsoluteCoords coordsOrigin $ map (\c -> singleDecoder c) (splitCommands r)
   where
+    singleDecoder :: [Word32] -> Geometry
     singleDecoder (l:ls) = Geometry
       { command = decodeCommand l
       , parameters = tuplify $ map (decodeParam) ls
@@ -99,6 +104,15 @@ tuplify :: [a] -> [(a, a)]
 tuplify []        = []
 tuplify [x]       = error "cannot tuplify single emelent"
 tuplify (x:x':xs) = (x, x') : tuplify xs
+
+-- https://gitlab.haskell.org/ghc/ghc/-/issues/2209
+wordToDouble :: Word32 -> Double
+wordToDouble x = runST (cast x)
+
+{-# INLINE cast #-}
+cast :: (MArray (STUArray s) a (ST s),
+         MArray (STUArray s) b (ST s)) => a -> ST s b
+cast x = newArray (0 :: Int, 0) x >>= castSTUArray >>= flip readArray 0
 
 testLine :: [Word32]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]

@@ -3,9 +3,10 @@
 module Renderer.Lines where
 
 import Graphics.Svg
+import qualified Data.Text as T
+import ApiClient
 import Util
 import Decoder.Geometry
-import qualified Data.Text as T
 
 svg :: Element -> Element
 svg content =

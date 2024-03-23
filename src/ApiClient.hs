@@ -4,6 +4,8 @@ module ApiClient where
 
 import GHC.Float
 import GHC.Word
+import Control.Monad
+import Control.Applicative
 import Data.Sequence
 import Data.Foldable
 import Network.Wreq
@@ -20,6 +22,29 @@ data Coord = Coord
   , lon :: Double
   , zoom :: Double
   } deriving Show
+
+newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+
+instance Monad m => Monad (MaybeT m) where
+  return  = MaybeT . return . Just
+  x >>= f = MaybeT $ do val <- runMaybeT x
+                        case val of
+                          Just val -> runMaybeT $ f val
+                          Nothing  -> return Nothing
+
+instance Monad m => Applicative (MaybeT m) where
+    pure = return
+    (<*>) = ap
+
+instance Monad m => Functor (MaybeT m) where
+    fmap = liftM
+
+instance Monad m => Alternative (MaybeT m) where
+    empty   = MaybeT $ return Nothing
+    x <|> y = MaybeT $ do maybe_value <- runMaybeT x
+                          case maybe_value of
+                               Nothing    -> runMaybeT y
+                               Just _     -> return maybe_value
 
 host :: IO (String)
 host = smaprConfig >>= return . baseUrl
@@ -58,3 +83,5 @@ getTile c = getTileUnserialized c >>=
 
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
+
+-- getTile testCoord >>= \t -> return $ liftM tileFeatures t
