@@ -38,7 +38,7 @@ tilerequestUrl base c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show
     y = lat2tileY (lat c) (zoom c)
 
 testCoord :: Coord
-testCoord = Coord 46.615521 11.893506 14
+testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
 
 transfromRawTile :: ByteString -> Maybe Tile
 transfromRawTile raw = case messageGet raw of
@@ -52,6 +52,8 @@ getTileUnserialized c = do
   let base = (baseUrl conf) ++ (linesPath conf)
   get (tilerequestUrl base c)
 
+-- ref: https://github.com/d3/d3-geo/blob/main/src/projection/index.js
+-- https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
   (\t -> return (transfromRawTile (t ^. responseBody)))
