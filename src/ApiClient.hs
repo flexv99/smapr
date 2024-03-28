@@ -4,7 +4,7 @@ module ApiClient where
 
 import GHC.Float
 import GHC.Word
-import Data.Sequence
+import qualified Data.Sequence as S
 import Data.Foldable
 import Network.Wreq
 import Data.ByteString.Lazy.Internal
@@ -75,5 +75,8 @@ getNextzenTile c = getNextzenTileUnserialized c >>=
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
 
+getLayers :: String -> Tile -> S.Seq Layer
+getLayers lName t = S.filter (\x -> uToString (name x) == lName) $ layers t
+
 filterLayerByName :: String -> Tile -> [[Word32]]
-filterLayerByName lName t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ Prelude.filter (\x -> uToString (name x) == lName) $ toList $ layers t
+filterLayerByName lName t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ getLayers lName t

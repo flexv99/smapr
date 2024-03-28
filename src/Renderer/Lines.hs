@@ -2,12 +2,13 @@
 
 module Renderer.Lines where
 
-import Graphics.Svg
+import Control.Monad
 import qualified Data.Text as T
 import Util
 import ApiClient
 import Decoder.Geometry
 import Proto.Vector_tile.Tile (Tile(..))
+import Graphics.Svg
 
 svg :: Element -> Element
 svg content =
@@ -31,7 +32,13 @@ geoToSvgPath g = case geometryCommand g of
 
 testSvg :: IO (Maybe Element)
 testSvg = do
-  tile <- getTile testCoord
+  tile <- getNextzenTile testCoord
   let features = concat <$> map (decodeCommands . map fromIntegral) <$> tileFeatures <$> tile
   return $ svg <$> renderCommands <$> features
-  
+
+
+saveTestSvg :: IO ()
+saveTestSvg = testSvg >>= unwrap
+  where
+    unwrap (Just s) = writeSvg s
+    unwrap _        = putStrLn "Got nothing"
