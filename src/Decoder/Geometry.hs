@@ -100,6 +100,5 @@ tuplify []        = []
 tuplify [x]       = error "cannot tuplify single emelent"
 tuplify (x:x':xs) = (x, x') : tuplify xs
 
-testLine :: [Word32]
+testLine :: [Int]
 testLine = [9, 4, 4, 18, 0, 16, 16, 0]
-

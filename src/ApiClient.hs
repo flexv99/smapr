@@ -9,6 +9,7 @@ import Data.Foldable
 import Network.Wreq
 import Data.ByteString.Lazy.Internal
 import Text.ProtocolBuffers (messageGet)
+import Text.ProtocolBuffers.Basic (uToString)
 import Proto.Vector_tile.Tile (Tile(..))
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Proto.Vector_tile.Tile.Feature (Feature(..))
@@ -37,6 +38,12 @@ tilerequestUrl base c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show
     x = lon2tileX (lon c) (zoom c)
     y = lat2tileY (lat c) (zoom c)
 
+nextzenTileUrl :: Coord -> String
+nextzenTileUrl c = "https://tile.nextzen.org/tilezen/vector/v1/512/all/" ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++".mvt?api_key=7XFjV18IQoaikMVTD9PUEg"
+  where
+    x = lon2tileX (lon c) (zoom c)
+    y = lat2tileY (lat c) (zoom c)
+
 testCoord :: Coord
 testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
 
@@ -52,11 +59,22 @@ getTileUnserialized c = do
   let base = (baseUrl conf) ++ (linesPath conf)
   get (tilerequestUrl base c)
 
+getNextzenTileUnserialized :: Coord -> IO (Response ByteString)
+getNextzenTileUnserialized c = do
+  get (nextzenTileUrl c)
+
 -- ref: https://github.com/d3/d3-geo/blob/main/src/projection/index.js
 -- https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
   (\t -> return (transfromRawTile (t ^. responseBody)))
 
+getNextzenTile :: Coord -> IO (Maybe Tile)
+getNextzenTile c = getNextzenTileUnserialized c >>=
+  (\t -> return (transfromRawTile (t ^. responseBody)))
+
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
+
+filterLayerByName :: String -> Tile -> [[Word32]]
+filterLayerByName lName t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ Prelude.filter (\x -> uToString (name x) == lName) $ toList $ layers t
