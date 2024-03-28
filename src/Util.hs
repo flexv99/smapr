@@ -5,6 +5,8 @@ module Util
   ( smaprConfig
   , writeSvg
   , Sconf(..)
+  , LocalApi(..)
+  , NextzenApi(..)
   )
 where
 
@@ -15,19 +17,43 @@ import Data.Time.Format (formatTime, defaultTimeLocale)
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as C
 
-data Sconf = Sconf
-  { baseUrl :: String
+data LocalApi = LocalApi
+  { localBaseUrl :: String
   , linesPath :: String
+  } deriving (Show, Generic)
+
+data NextzenApi = NextzenApi
+  { nBaseUrl :: String
+  , apiKey :: String
+  , format :: String
+  } deriving (Show, Generic)
+
+data Sconf = Sconf
+  { localApi :: LocalApi
+  , nextzenApi :: NextzenApi
   , testDestinationPath :: String
   } deriving (Show, Generic)
 
+makeLocalApiConf :: C.Config -> IO (Maybe LocalApi)
+makeLocalApiConf conf = do
+  localBaseUrl   <- C.lookup conf "api.base_url" :: IO (Maybe String)
+  linesPath      <- C.lookup conf "api.lines_path" :: IO (Maybe String)
+  return $ LocalApi <$> localBaseUrl <*> linesPath
+
+makeNextzenApiConf :: C.Config -> IO (Maybe NextzenApi)
+makeNextzenApiConf conf = do
+  nBaseUrl   <- C.lookup conf "nextzen_api.base_url" :: IO (Maybe String)
+  apiKey     <- C.lookup conf "nextzen_api.api_key" :: IO (Maybe String)
+  format     <- C.lookup conf "nextzen_api.format" :: IO (Maybe String)
+  return $ NextzenApi <$> nBaseUrl <*> apiKey <*> format
+
 makeSconf :: C.Config -> IO (Maybe Sconf)
 makeSconf conf = do
-  baseUrl             <- C.lookup conf "api.base_url" :: IO (Maybe String)
-  linesPath           <- C.lookup conf "api.lines_path" :: IO (Maybe String)
-  testDestinationPath <- C.lookup conf "test_dest_path" :: IO (Maybe String)
-  return $ Sconf <$> baseUrl
-                 <*> linesPath
+  localApi             <- makeLocalApiConf conf :: IO (Maybe LocalApi)
+  nextzenApi           <- makeNextzenApiConf conf :: IO (Maybe NextzenApi)
+  testDestinationPath  <- C.lookup conf "test_dest_path" :: IO (Maybe String)
+  return $ Sconf <$> localApi
+                 <*> nextzenApi
                  <*> testDestinationPath
 
 smaprConfig :: IO (Sconf)

@@ -22,9 +22,6 @@ data Coord = Coord
   , zoom :: Double
   } deriving Show
 
-host :: IO (String)
-host = smaprConfig >>= return . baseUrl
-
 -- helpers0
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lon2tileX lon z = floor((lon + 180.0) / 360.0 * (2.0 ** z))
@@ -32,15 +29,17 @@ lon2tileX lon z = floor((lon + 180.0) / 360.0 * (2.0 ** z))
 lat2tileY :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lat2tileY lat z = floor((1.0 - log(tan(lat * pi / 180.0) + 1.0 / cos(lat * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
 
-tilerequestUrl :: String -> Coord -> String
-tilerequestUrl base c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y
+tilerequestUrl :: LocalApi -> Coord -> String
+tilerequestUrl l c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y
   where
+    base = localBaseUrl l ++ linesPath l
     x = lon2tileX (lon c) (zoom c)
     y = lat2tileY (lat c) (zoom c)
 
-nextzenTileUrl :: Coord -> String
-nextzenTileUrl c = "https://tile.nextzen.org/tilezen/vector/v1/512/all/" ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++".mvt?api_key=7XFjV18IQoaikMVTD9PUEg"
+nextzenTileUrl :: NextzenApi -> Coord -> String
+nextzenTileUrl n c = nBaseUrl n ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++".mvt?api_key=7XFjV18IQoaikMVTD9PUEg"
   where
+    suffix = "." ++ format n ++ "?api_key=" ++ apiKey n
     x = lon2tileX (lon c) (zoom c)
     y = lat2tileY (lat c) (zoom c)
 
@@ -56,12 +55,12 @@ transfromRawTile raw = case messageGet raw of
 getTileUnserialized :: Coord -> IO (Response ByteString)
 getTileUnserialized c = do
   conf <- smaprConfig
-  let base = (baseUrl conf) ++ (linesPath conf)
-  get (tilerequestUrl base c)
+  get (tilerequestUrl (localApi conf) c)
 
 getNextzenTileUnserialized :: Coord -> IO (Response ByteString)
 getNextzenTileUnserialized c = do
-  get (nextzenTileUrl c)
+  conf <- smaprConfig
+  get (nextzenTileUrl (nextzenApi conf) c)
 
 -- ref: https://github.com/d3/d3-geo/blob/main/src/projection/index.js
 -- https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js
