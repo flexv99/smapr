@@ -1,3 +1,5 @@
+// Protocol Version 1
+
 package vector_tile;
 
 option optimize_for = LITE_RUNTIME;
@@ -65,6 +67,7 @@ message Tile {
                 // Dictionary encoding for values
                 repeated Value values = 4;
 
+                // The bounding box in this tile spans from 0..4095 units
                 // Although this is an "optional" field it is required by the specification.
                 // See https://github.com/mapbox/vector-tile-spec/issues/47
                 optional uint32 extent = 5 [ default = 4096 ];
