@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Decoder.Geometry
   ( Geometry(..)
   , CommandA(..)
@@ -10,6 +12,7 @@ import Control.Monad
 import GHC.Float (int2Double)
 import GHC.Word
 import Proto.Vector_tile
+import Data.Aeson
 import Graphics.Svg
 
 type Point = (Double, Double)
@@ -24,8 +27,15 @@ data Command = Command
 data Geometry = Geometry
   { command :: Command
   , parameters :: [Point]
-  }
- deriving (Show, Eq)
+  } deriving (Show, Eq)  
+
+instance ToJSON Geometry where
+  toJSON (Geometry command parameters) =
+        object ["command" .= command, "parameters" .= parameters]
+
+instance ToJSON Command where
+  toJSON (Command cmd count) =
+        object ["cmd" .= show cmd, "count" .= count]
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
@@ -74,9 +84,8 @@ splitCommands c  = let (taken, rest) = splitAt toBeSplitted c in
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
--- TODO need to sum to get the actual coodinates
 decodeCommands :: [Int] -> [Geometry]
-decodeCommands r = toAbsoluteCoords coordsOrigin $ map (\c -> singleDecoder c) (splitCommands r)
+decodeCommands r = toAbsoluteCoords coordsOrigin $ map (singleDecoder) (splitCommands r)
   where
     singleDecoder (l:ls) = Geometry
       { command = decodeCommand l
@@ -85,10 +94,11 @@ decodeCommands r = toAbsoluteCoords coordsOrigin $ map (\c -> singleDecoder c) (
 
 toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
 toAbsoluteCoords _ []         = []
-toAbsoluteCoords point (x:xs) = Geometry
-  { command = command x
-  , parameters = relativeParams $ sumFirst (parameters x)
-  } : toAbsoluteCoords (last (relativeParams (parameters x))) xs
+toAbsoluteCoords point (x:xs) =
+  let geo = Geometry
+        { command = command x
+        , parameters = relativeParams $ sumFirst (parameters x)
+        } in geo : toAbsoluteCoords (last (parameters geo)) xs
   where
     sumFirst []              = []
     sumFirst (y:ys)          = sumTuple point y : ys
