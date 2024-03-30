@@ -18,9 +18,10 @@ svg content =
 renderCommands :: [Geometry] -> Element
 renderCommands g =
   path_ [
-  Fill_     <<- "None"
-  , Stroke_ <<- "#ffffff"
-  , D_      <<- ( T.intercalate " " $ map (geoToSvgPath) g )
+  Fill_           <<- "None"
+  , Stroke_       <<- "#ffffff"
+  , Stroke_width_ <<- "4"
+  , D_            <<- ( T.intercalate " " $ map (geoToSvgPath) g )
         ]
 
 geoToSvgPath :: Geometry -> T.Text
@@ -32,7 +33,7 @@ geoToSvgPath g = case geometryCommand g of
 
 testSvg :: IO (Maybe Element)
 testSvg = do
-  tile <- getNextzenTile testCoord
+  tile <- getTile testCoord
   let features = concat <$> map (decodeCommands . map fromIntegral) <$> tileFeatures <$> tile
   return $ svg <$> renderCommands <$> features
 
