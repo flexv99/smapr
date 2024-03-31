@@ -30,13 +30,11 @@ geoToSvgPath g = case geometryCommand g of
   LineTo    -> T.intercalate " " $ map (\(x, y) -> lA x y) (parameters g)
   ClosePath -> z
 
-
 testSvg :: IO (Maybe Element)
 testSvg = do
   tile <- getTile testCoord
   let features = concat <$> map (decodeCommands . map fromIntegral) <$> tileFeatures <$> tile
   return $ svg <$> renderCommands <$> features
-
 
 saveTestSvg :: IO ()
 saveTestSvg = testSvg >>= unwrap
