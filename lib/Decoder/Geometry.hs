@@ -2,8 +2,15 @@
 
 module Decoder.Geometry
   ( Geometry(..)
+  , Command(..)
   , CommandA(..)
   , decodeCommands
+  , decodeCommand
+  , toAbsoluteCoords
+  , coordsOrigin
+  , splitCommands
+  , decodeParam
+  , tuplify
   , geometryCommand
   ) where
 
@@ -84,28 +91,6 @@ splitCommands c  = let (taken, rest) = splitAt toBeSplitted c in
   where
     toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
 
-decodeCommands :: [Int] -> [Geometry]
-decodeCommands r = toAbsoluteCoords coordsOrigin $ concat $ map pointOfClosePath $ map (\x -> map (singleDecoder) x) (splitOnSingle $ splitCommands r)
-  where
-    singleDecoder (l:ls) = Geometry
-      { command = decodeCommand l
-      , parameters = tuplify $ map (decodeParam) ls
-      }
-
--- todo resolve closing path issue
-toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
-toAbsoluteCoords _ []         = []
-toAbsoluteCoords point (x:xs) =
-  let geo = Geometry
-        { command = command x
-        , parameters = relativeParams $ sumFirst (parameters x)
-        } in geo : toAbsoluteCoords (last (parameters geo)) xs
-  where
-    sumFirst []              = []
-    sumFirst (y:ys)          = sumTuple point y : ys
-    relativeParams p         = scanl1 sumTuple p
-    sumTuple (x, y) (x', y') = (x + x', y + y')
-
 tuplify :: [a] -> [(a, a)]
 tuplify []        = []
 tuplify [x]       = error "cannot tuplify single emelent"
@@ -117,27 +102,18 @@ testLine = [9, 4, 4, 18, 0, 16, 16, 0]
 testPolygon :: [Int]
 testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
 
--- criteria inner/outer polygon
--- https://en.wikipedia.org/wiki/Shoelace_formula
--- p1 = (1, 6), p2 = (3, 1), p3 = (7, 2)
--- |1 3|    |3 7|   |7  1|
--- |   | +  |   | + |    | -- matrix multp.
--- |6 1|    |1 2|   |2  6|
--- res is negative: inner polygon
--- splitPolygons :: [[Int]] -> [[[Int]]]
--- splitPolygons (x:xs) =
---   where
---     toBeSplitted =
+decodeCommands :: [Int] -> [Geometry]
+decodeCommands = undefined
 
-splitOnSingle :: [[a]] -> [[[a]]]
-splitOnSingle [] = []
-splitOnSingle ([]:ys) = splitOnSingle ys
-splitOnSingle (y:ys)  = let (as, b) = span (\z -> length z > 1) (y:ys)
-                        in if length b == 0
-                              then [as]
-                              else (as <> [head b]) : splitOnSingle (tail b)
-
-pointOfClosePath :: [Geometry] -> [Geometry]
-pointOfClosePath geo = map (\ g -> if (cmd $ command g) == ClosePath then
-                           Geometry {command = command g, parameters = parameters $ head geo}
-                               else g) geo
+toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
+toAbsoluteCoords _ []         = []
+toAbsoluteCoords point (x:xs) =
+  let geo = Geometry
+        { command = command x
+        , parameters = relativeParams $ sumFirst (parameters x)
+        } in geo : toAbsoluteCoords (last (parameters geo)) xs
+  where
+    sumFirst []              = []
+    sumFirst (y:ys)          = sumTuple point y : ys
+    relativeParams           = scanl1 sumTuple
+    sumTuple (x, y) (x', y') = (x + x', y + y')

@@ -30,6 +30,9 @@ library
                     , Proto.Vector_tile.Tile.Layer
                     , Proto.Vector_tile.Tile.Value
                     , Decoder.Geometry
+                    , Decoder.Line
+                    , Decoder.Polygon
+                    , Decoder.Point
                     , Renderer.Lines
                     , Util
                     , ApiClient
