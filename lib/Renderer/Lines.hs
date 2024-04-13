@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import Util
 import ApiClient
 import Decoder.Geometry
+import qualified Decoder.Polygon as P
 import Proto.Vector_tile.Tile (Tile(..))
 import Graphics.Svg
 
@@ -33,11 +34,15 @@ geoToSvgPath g = case geometryCommand g of
 testSvg :: IO (Maybe Element)
 testSvg = do
   tile <- getTile testCoord
-  let features = concat <$> map (decodeCommands . map fromIntegral) <$> tileFeatures <$> tile
+  let features = concat <$> map (P.decodeCommands . map fromIntegral) <$> tileFeatures <$> tile
+  return $ svg <$> renderCommands <$> features
+
+
+polyTestSvg :: IO (Maybe Element)
+polyTestSvg = do
+  tile <- getNextzenTile testCoord
+  let features = concat <$> map (P.decodeCommands . map fromIntegral) <$> filterLayerByName "buildings" <$> tile
   return $ svg <$> renderCommands <$> features
 
 saveTestSvg :: IO ()
-saveTestSvg = testSvg >>= unwrap
-  where
-    unwrap (Just s) = writeSvg s
-    unwrap _        = putStrLn "Got nothing"
+saveTestSvg = testSvg >>= maybe (putStrLn "got nothing") writeSvg
