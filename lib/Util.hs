@@ -31,6 +31,7 @@ data NextzenApi = NextzenApi
 data Sconf = Sconf
   { localApi :: LocalApi
   , nextzenApi :: NextzenApi
+  , testTilePath :: String
   , testDestinationPath :: String
   } deriving (Show, Generic)
 
@@ -52,8 +53,10 @@ makeSconf conf = do
   localApi             <- makeLocalApiConf conf :: IO (Maybe LocalApi)
   nextzenApi           <- makeNextzenApiConf conf :: IO (Maybe NextzenApi)
   testDestinationPath  <- C.lookup conf "test_dest_path" :: IO (Maybe String)
+  testTilePath         <- C.lookup conf "test_tile_path" :: IO (Maybe String)
   return $ Sconf <$> localApi
                  <*> nextzenApi
+                 <*> testTilePath
                  <*> testDestinationPath
 
 smaprConfig :: IO (Sconf)

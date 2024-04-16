@@ -7,7 +7,9 @@ import GHC.Word
 import qualified Data.Sequence as S
 import Data.Foldable
 import Network.Wreq
+import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Lazy.Internal
+import qualified Data.ByteString as B
 import Text.ProtocolBuffers (messageGet)
 import Text.ProtocolBuffers.Basic (uToString)
 import Proto.Vector_tile.Tile (Tile(..))
@@ -46,8 +48,8 @@ nextzenTileUrl n c = nBaseUrl n ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ s
 testCoord :: Coord
 testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
 
-transfromRawTile :: ByteString -> Maybe Tile
-transfromRawTile raw = case messageGet raw of
+transformRawTile :: ByteString -> Maybe Tile
+transformRawTile raw = case messageGet raw of
     Left   _        -> Nothing
     Right (tile, _) -> Just tile
 
@@ -66,11 +68,11 @@ getNextzenTileUnserialized c = do
 -- https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
-  (\t -> return (transfromRawTile (t ^. responseBody)))
+  (\t -> return (transformRawTile (t ^. responseBody)))
 
 getNextzenTile :: Coord -> IO (Maybe Tile)
 getNextzenTile c = getNextzenTileUnserialized c >>=
-  (\t -> return (transfromRawTile (t ^. responseBody)))
+  (\t -> return (transformRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
@@ -80,3 +82,10 @@ getLayers lName t = S.filter (\x -> uToString (name x) == lName) $ layers t
 
 filterLayerByName :: String -> Tile -> [[Word32]]
 filterLayerByName lName t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ getLayers lName t
+
+fakerTile :: IO (Maybe Tile)
+fakerTile = do
+  conf <- smaprConfig
+  let fp = testTilePath conf :: FilePath
+  rawTile <- B.readFile fp
+  return $ transformRawTile $ BL.fromStrict rawTile

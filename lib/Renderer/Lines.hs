@@ -25,6 +25,15 @@ renderCommands g =
   , D_            <<- ( T.intercalate " " $ map (geoToSvgPath) g )
         ]
 
+renderBuildingCommands :: [Geometry] -> Element
+renderBuildingCommands g =
+  path_ [
+  Fill_           <<- "#f54242"
+  , Stroke_       <<- "#ffffff"
+  , Stroke_width_ <<- "4"
+  , D_            <<- ( T.intercalate " " $ map (geoToSvgPath) g )
+        ]
+
 geoToSvgPath :: Geometry -> T.Text
 geoToSvgPath g = case geometryCommand g of
   MoveTo    -> T.intercalate " " $ map (\(x, y) -> mA x y) (parameters g)
@@ -42,7 +51,7 @@ polyTestSvg :: IO (Maybe Element)
 polyTestSvg = do
   tile <- getNextzenTile testCoord
   let features = concat <$> map (P.decodeCommands . map fromIntegral) <$> filterLayerByName "buildings" <$> tile
-  return $ svg <$> renderCommands <$> features
+  return $ svg <$> renderBuildingCommands <$> features
 
 saveTestSvg :: IO ()
 saveTestSvg = testSvg >>= maybe (putStrLn "got nothing") writeSvg
