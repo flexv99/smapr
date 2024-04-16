@@ -64,8 +64,6 @@ getNextzenTileUnserialized c = do
   conf <- smaprConfig
   get (nextzenTileUrl (nextzenApi conf) c)
 
--- ref: https://github.com/d3/d3-geo/blob/main/src/projection/index.js
--- https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
@@ -75,13 +73,13 @@ getNextzenTile c = getNextzenTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]
-tileFeatures t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ layers t
+tileFeatures t = map (toList . geometry) $ head $ map (toList . features) $ toList $ layers t
 
 getLayers :: String -> Tile -> S.Seq Layer
 getLayers lName t = S.filter (\x -> uToString (name x) == lName) $ layers t
 
 filterLayerByName :: String -> Tile -> [[Word32]]
-filterLayerByName lName t = map (toList . geometry) $ head $ map (\x -> toList $ features x) $ toList $ getLayers lName t
+filterLayerByName lName t = map (toList . geometry) $ head $ map (toList . features) $ toList $ getLayers lName t
 
 fakerTile :: IO (Maybe Tile)
 fakerTile = do
