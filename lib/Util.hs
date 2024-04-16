@@ -59,7 +59,7 @@ makeSconf conf = do
                  <*> testTilePath
                  <*> testDestinationPath
 
-smaprConfig :: IO (Sconf)
+smaprConfig :: IO Sconf
 smaprConfig = do
   loadedConf <- C.load [C.Required "smapr.cfg"]
   sConf      <- makeSconf loadedConf
@@ -67,8 +67,8 @@ smaprConfig = do
     Nothing   -> error "invalid config file"
     Just conf -> return conf
 
-testPath :: String -> IO (FilePath)
-testPath context = smaprConfig >>= \conf -> return ((testDestinationPath conf) ++ context  ++ ".svg" :: FilePath)
+testPath :: String -> IO FilePath
+testPath context = smaprConfig >>= \conf -> return (testDestinationPath conf ++ context  ++ ".svg" :: FilePath)
 
 dateTimeStr :: IO String
 dateTimeStr = getCurrentTime >>=
