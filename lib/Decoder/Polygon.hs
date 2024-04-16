@@ -25,10 +25,11 @@ splitOnSingle [] = []
 splitOnSingle ([]:ys) = splitOnSingle ys
 splitOnSingle (y:ys)  = let (as, b) = span (\z -> length z > 1) (y:ys)
                         in if null b
-                              then [as]
-                              else (as <> [head b]) : splitOnSingle (tail b)
+                           then [as]
+                           else (as <> [head b]) : splitOnSingle (tail b)
 
+-- TODO: don't applty toAbsoluteCoords on closing paths
 pointOfClosePath :: [Geometry] -> [Geometry]
-pointOfClosePath geo = map (\ g -> if (cmd (command g)) == ClosePath
+pointOfClosePath geo = map (\g -> if (cmd (command g)) == ClosePath
                              then Geometry {command = command g, parameters = parameters $ head geo}
                              else g) geo
