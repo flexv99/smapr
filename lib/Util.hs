@@ -4,6 +4,8 @@
 module Util
   ( smaprConfig
   , writeSvg
+  , testPath
+  , dateTimeStr
   , Sconf(..)
   , LocalApi(..)
   , NextzenApi(..)

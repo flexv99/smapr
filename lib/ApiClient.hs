@@ -39,7 +39,7 @@ tilerequestUrl l c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x 
     y = lat2tileY (lat c) (zoom c)
 
 nextzenTileUrl :: NextzenApi -> Coord -> String
-nextzenTileUrl n c = nBaseUrl n ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ suffix
+nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ suffix
   where
     suffix = "." ++ format n ++ "?api_key=" ++ apiKey n
     x = lon2tileX (lon c) (zoom c)

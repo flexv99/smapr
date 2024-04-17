@@ -34,6 +34,7 @@ library
                     , Decoder.Polygon
                     , Decoder.Point
                     , Renderer.Lines
+                    , Renderer.Polygons
                     , Util
                     , ApiClient
 
@@ -56,6 +57,9 @@ library
                     , lens
                     , bytestring
                     , svg-builder
+                    , diagrams
+                    , diagrams-lib
+                    , diagrams-svg
                     , time
                     , text
                     , configurator
