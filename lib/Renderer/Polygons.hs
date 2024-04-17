@@ -23,10 +23,10 @@ import qualified Decoder.Polygon as P
 -- ref: https://hackage.haskell.org/package/diagrams-lib-1.4.6.1/docs/Diagrams-Path.html#v:pathFromTrailAt
 
 -- ClosedPath needs closeLine which needs to know the trail that needs to be closed though
---ref: https://hackage.haskell.org/package/diagrams-lib-1.4.6.1/docs/Diagrams-Trail.html#v:closeLine
+-- ref: https://hackage.haskell.org/package/diagrams-lib-1.4.6.1/docs/Diagrams-Trail.html#v:closeLine
 
 geoToTrail :: Geometry -> Trail' Line V2 Double
-geoToTrail (Geometry (Command LineTo _) p) = lineFromOffsets $ map r2 p
+geoToTrail (Geometry (Command LineTo _) p) = lineFromOffsets $ map r2 p 
 gooToTrail _ = emptyTrail
 
 myCircle :: Diagram B
@@ -39,3 +39,23 @@ renderTile = do
   path <- testPath dateString
   putStrLn path
   renderSVG path sz myCircle
+
+render2DVector :: Diagram B -> IO ()
+render2DVector v = do
+  let sz = mkSizeSpec2D (Just 512) (Just 512)
+  dateStr <- dateTimeStr
+  path <- testPath dateStr
+  putStrLn path
+  renderSVG path sz $ v # showOrigin
+
+splitAtMove :: [Geometry] -> [[Geometry]]
+splitAtMove xs = filter (not . null) $ f xs []
+    where f [] agg = [agg]
+          f (y : ys) agg = if ((MoveTo ==) . cmd . command) y
+                           then agg : (f ys [y])
+                           else f ys (agg ++ [y])
+
+testSplit = do
+  t <- fakerTile
+  let water = concatMap (P.decodeCommands . map fromIntegral) . filterLayerByName "water" <$> t
+  return $ splitAtMove <$> water
