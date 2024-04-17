@@ -14,7 +14,7 @@ import Graphics.Svg
 svg :: Element -> Element
 svg content =
   doctype
-  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "512px", Height_ <<- "512px"]
+  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "100%", Height_ <<- "100%"]
 
 renderCommands :: [Geometry] -> Element
 renderCommands g =
