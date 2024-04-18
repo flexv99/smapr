@@ -56,3 +56,5 @@ toAbsoluteCoords' point acc (x:xs) =
 testPolygon :: [Int]
 testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
 
+instance MapGeometry PolygonG where
+  decode = decPolygon
