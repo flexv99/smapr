@@ -5,7 +5,6 @@ module Decoder.Geometry
   , Point
   , Command(..)
   , CommandA(..)
-  , PolygonG(..)
   , MapGeometry(..)
   , decodeCommands
   , decodeCommand
@@ -38,12 +37,6 @@ data Command = Command
 data GeoAction = GeoAction
   { command :: Command
   , parameters :: [Point]
-  } deriving (Show, Eq)
-
-data PolygonG = PolygonG
-  { pMoveTo :: GeoAction
-  , pLineTo :: [GeoAction]
-  , closePath :: GeoAction
   } deriving (Show, Eq)
 
 data PointG = PointG

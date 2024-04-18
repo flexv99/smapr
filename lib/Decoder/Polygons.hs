@@ -4,6 +4,12 @@ module Decoder.Polygons
 
 import Decoder.Geometry
 
+data PolygonG = PolygonG
+  { pMoveTo :: GeoAction
+  , pLineTo :: GeoAction
+  , pClosePath :: GeoAction
+  } deriving (Show, Eq)
+
 -- criteria inner/outer polygon
 -- https://en.wikipedia.org/wiki/Shoelace_formula
 -- p1 = (1, 6), p2 = (3, 1), p3 = (7, 2)
@@ -18,7 +24,7 @@ excludeFstLst [x] = []
 excludeFstLst xs  = tail (init xs)
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
-decodePolygonCommands r = map test $ splitAtMove $ map singleDecoder (splitCommands r)
+decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
       { command = decodeCommand l
@@ -34,7 +40,18 @@ decPolygon :: [Int] -> [PolygonG]
 decPolygon = map actionToPolygonG . decodePolygonCommands
  where
   actionToPolygonG :: [GeoAction] -> PolygonG
-  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = excludeFstLst g, closePath = last g }
+  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
+
+absolutePolygonG :: PolygonG -> PolygonG
+absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
+                              , pLineTo = GeoAction { command = command $ pLineTo p, parameters = progSumLineTo }
+                              , pClosePath = GeoAction { command = command $ pClosePath p, parameters = [closePath] }
+                              }
+  where
+    sumTuple (x, y) (x', y') = (x + x', y + y')
+    sumMoveTo = foldl1 sumTuple (parameters $ pMoveTo p)
+    progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ pLineTo p)
+    closePath = last $ parameters $ pMoveTo p
 
 test :: [GeoAction] -> [GeoAction]
 test = toAbsoluteCoords' coordsOrigin []
