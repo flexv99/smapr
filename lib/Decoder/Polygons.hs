@@ -35,7 +35,7 @@ testPolygon = [ 9 ,0 ,0 ,26 ,20 ,0 ,0 ,20 ,19 ,0 ,15 ,9 ,22 ,2 ,26 ,18 ,0 ,0 ,18
 
 
 test :: Point -> [GeoAction] -> [GeoAction]
-test point actions = toAbsoluteCoords' point [] actions
+test point = toAbsoluteCoords' point []
 
 toAbsoluteCoords' :: Point -> [GeoAction] -> [GeoAction] -> [GeoAction]
 toAbsoluteCoords' _ acc [] = acc
