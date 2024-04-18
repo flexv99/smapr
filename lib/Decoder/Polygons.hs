@@ -23,6 +23,9 @@ excludeFstLst []  = []
 excludeFstLst [x] = []
 excludeFstLst xs  = tail (init xs)
 
+sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+sumTuple (x, y) (x', y') = (x + x', y + y')
+
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
@@ -32,10 +35,10 @@ decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
       }
 
 decPolygon :: [Int] -> [PolygonG]
-decPolygon = map actionToPolygonG . decodePolygonCommands
+decPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
  where
   actionToPolygonG :: [GeoAction] -> PolygonG
-  actionToPolygonG g = absolutePolygonG $ PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
+  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
 
 absolutePolygonG :: PolygonG -> PolygonG
 absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
@@ -43,7 +46,6 @@ absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
                               , pClosePath = GeoAction { command = command $ pClosePath p, parameters = [closePath] }
                               }
   where
-    sumTuple (x, y) (x', y') = (x + x', y + y')
     sumMoveTo = foldl1 sumTuple (parameters $ pMoveTo p)
     progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ pLineTo p)
     closePath = last $ parameters $ pMoveTo p
@@ -53,3 +55,15 @@ testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18,
 
 instance MapGeometry PolygonG where
   decode = decPolygon
+
+relativeMoveTo :: [PolygonG] -> [PolygonG]
+relativeMoveTo = f []
+  where
+    f _ []        = []
+    f acc (p:ps)  = if not $ null acc
+                    then PolygonG { pMoveTo = newMoveTo p acc, pLineTo = pLineTo p, pClosePath = pClosePath p} : f (p : acc) ps
+                    else p : f (p : acc) ps
+    prev          = head
+    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith sumTuple (parameters $ pMoveTo p) [sumLineTo c]}
+    sumLineTo c   = foldl1 sumTuple (parameters $ pLineTo $ prev c)
+
