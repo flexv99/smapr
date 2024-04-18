@@ -1,4 +1,6 @@
-module Decoder.Polygons where
+module Decoder.Polygons 
+( decPolygon
+) where
 
 import Decoder.Geometry
 
@@ -9,10 +11,21 @@ import Decoder.Geometry
 -- |   | +  |   | + |    | -- matrix multp.
 -- |6 1|    |1 2|   |2  6|
 -- res is negative: inner polygon
+excludeFstLst :: [a] -> [a]
+excludeFstLst []  = []
+excludeFstLst [x] = []
+excludeFstLst xs  = tail (init xs)
 
+decodeLineCommands :: [Int] -> [[GeoAction]]
+decodeLineCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ map singleDecoder (splitCommands r)
+  where
+    singleDecoder (l:ls) = GeoAction
+      { command = decodeCommand l
+      , parameters = tuplify $ map decodeParam ls
+      }
 
-decodeCommands :: [Int] -> [GeoAction]
-decodeCommands r = toAbsoluteCoords coordsOrigin $ concat $ map pointOfClosePath $ map (\x -> map (singleDecoder) x) (splitOnSingle $ splitCommands r)
+decodePolygonCommands :: [Int] -> [[GeoAction]]
+decodePolygonCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ concat $  map (\x -> map (singleDecoder) x) (splitOnSingle $ splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
   
@@ -29,9 +42,12 @@ splitOnSingle (y:ys)  = let (as, b) = span (\z -> length z > 1) (y:ys)
                            then [as]
                            else (as <> [head b]) : splitOnSingle (tail b)
 
--- TODO: don't applty toAbsoluteCoords on closing paths
-pointOfClosePath :: [GeoAction] -> [GeoAction]
-pointOfClosePath geo = map (\g -> if (cmd (command g)) == ClosePath
-                             then GeoAction
-                           {command = command g, parameters = parameters $ head geo}
-                             else g) geo
+
+decPolygon :: [Int] -> [PolygonG]
+decPolygon = map actionToPolygonG . decodePolygonCommands
+ where
+  actionToPolygonG :: [GeoAction] -> PolygonG
+  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = excludeFstLst g, closePath = last g }
+
+testPolygon :: [Int]
+testPolygon = [ 9 ,0 ,0 ,26 ,20 ,0 ,0 ,20 ,19 ,0 ,15 ,9 ,22 ,2 ,26 ,18 ,0 ,0 ,18 ,17 ,0 ,15 ,9 ,4 ,13 ,26 ,0 ,8 ,8 ,0 ,0 ,7 ,15 ]

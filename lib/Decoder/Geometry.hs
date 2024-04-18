@@ -4,6 +4,8 @@ module Decoder.Geometry
   ( GeoAction(..)
   , Command(..)
   , CommandA(..)
+  , PolygonG(..)
+  , MapGeometry(..)
   , decodeCommands
   , decodeCommand
   , toAbsoluteCoords
@@ -12,6 +14,7 @@ module Decoder.Geometry
   , decodeParam
   , tuplify
   , geometryCommand
+  , splitAtMove
   ) where
 
 import Data.Bits
@@ -34,7 +37,17 @@ data Command = Command
 data GeoAction = GeoAction
   { command :: Command
   , parameters :: [Point]
-  } deriving (Show, Eq)  
+  } deriving (Show, Eq)
+
+data PolygonG = PolygonG
+  { pMoveTo :: GeoAction
+  , pLineTo :: [GeoAction]
+  , closePath :: GeoAction
+  } deriving (Show, Eq)
+
+data PointG = PointG
+  { pMoveT :: GeoAction
+  } deriving (Show, Eq)
 
 instance ToJSON GeoAction where
   toJSON (GeoAction command parameters) =
@@ -43,6 +56,9 @@ instance ToJSON GeoAction where
 instance ToJSON Command where
   toJSON (Command cmd count) =
         object ["cmd" .= show cmd, "count" .= count]
+
+class MapGeometry a where
+  decode :: [Int] -> [a]
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
@@ -118,3 +134,11 @@ toAbsoluteCoords point (x:xs) =
     sumFirst (y:ys)          = sumTuple point y : ys
     relativeParams           = scanl1 sumTuple
     sumTuple (x, y) (x', y') = (x + x', y + y')
+
+splitAtMove :: [GeoAction] -> [[GeoAction]]
+splitAtMove xs = filter (not . null) $ f xs []
+    where f [] agg = [agg]
+          f (y : ys) agg = if ((MoveTo ==) . cmd . command) y
+                           then agg : (f ys [y])
+                           else f ys (agg ++ [y])
+

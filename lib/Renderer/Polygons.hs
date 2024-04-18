@@ -48,13 +48,6 @@ render2DVector v = do
   putStrLn path
   renderSVG path sz $ v # showOrigin
 
-splitAtMove :: [GeoAction] -> [[GeoAction]]
-splitAtMove xs = filter (not . null) $ f xs []
-    where f [] agg = [agg]
-          f (y : ys) agg = if ((MoveTo ==) . cmd . command) y
-                           then agg : (f ys [y])
-                           else f ys (agg ++ [y])
-
 testSplit = do
   t <- fakerTile
   let water = concatMap (P.decodeCommands . map fromIntegral) . filterLayerByName "water" <$> t
