@@ -31,16 +31,11 @@ decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
       , parameters = tuplify $ map decodeParam ls
       }
 
-singleDecoder (l:ls) = GeoAction
-      { command = decodeCommand l
-      , parameters = tuplify $ map decodeParam ls
-      }
-
 decPolygon :: [Int] -> [PolygonG]
 decPolygon = map actionToPolygonG . decodePolygonCommands
  where
   actionToPolygonG :: [GeoAction] -> PolygonG
-  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
+  actionToPolygonG g = absolutePolygonG $ PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
 
 absolutePolygonG :: PolygonG -> PolygonG
 absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
@@ -52,23 +47,6 @@ absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
     sumMoveTo = foldl1 sumTuple (parameters $ pMoveTo p)
     progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ pLineTo p)
     closePath = last $ parameters $ pMoveTo p
-
-test :: [GeoAction] -> [GeoAction]
-test = toAbsoluteCoords' coordsOrigin []
-
-toAbsoluteCoords' :: Point -> [GeoAction] -> [GeoAction] -> [GeoAction]
-toAbsoluteCoords' _ acc [] = []
-toAbsoluteCoords' point acc (x:xs) =
-  let geoAction = GeoAction
-        { command = command x
-        , parameters = sumFirst (parameters x)
-        }
-  in geoAction : toAbsoluteCoords' (last $ parameters geoAction) (geoAction : acc) xs
-  where
-    sumFirst []              = parameters $ last acc
-    sumFirst (y:ys)          = relativeParams $ sumTuple point y : ys
-    relativeParams           = scanl1 sumTuple
-    sumTuple (x, y) (x', y') = (x + x', y + y')
 
 testPolygon :: [Int]
 testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
