@@ -1,4 +1,4 @@
-module Decoder.Polygons 
+module Decoder.Polygons
 ( decPolygon
 ) where
 
@@ -25,13 +25,19 @@ decodeLineCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ map singleD
       }
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
-decodePolygonCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ concat $  map (\x -> map (singleDecoder) x) (splitOnSingle $ splitCommands r)
+decodePolygonCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ concatMap (pointOfClosePath . map singleDecoder) (splitOnSingle $ splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
-  
+
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
+
+pointOfClosePath :: [GeoAction] -> [GeoAction]
+pointOfClosePath geo = map (\g -> if (cmd (command g)) == ClosePath
+                             then GeoAction
+                           {command = command g, parameters = parameters $ head geo}
+                             else g) geo
 
 
 splitOnSingle :: [[a]] -> [[[a]]]
