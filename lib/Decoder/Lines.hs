@@ -1,11 +1,11 @@
-module Decoder.Line where
+module Decoder.Lines where
 
 import Decoder.Geometry
 
-decodeLineCommands :: [Int] -> [Geometry]
+decodeLineCommands :: [Int] -> [GeoAction]
 decodeLineCommands r = toAbsoluteCoords coordsOrigin $ map (singleDecoder) (splitCommands r)
   where
-    singleDecoder (l:ls) = Geometry
+    singleDecoder (l:ls) = GeoAction
       { command = decodeCommand l
       , parameters = tuplify $ map (decodeParam) ls
       }

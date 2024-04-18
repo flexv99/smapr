@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Decoder.Geometry
-  ( Geometry(..)
+  ( GeoAction(..)
   , Command(..)
   , CommandA(..)
   , decodeCommands
@@ -31,13 +31,13 @@ data Command = Command
   , count :: Int
   } deriving (Show, Eq)
 
-data Geometry = Geometry
+data GeoAction = GeoAction
   { command :: Command
   , parameters :: [Point]
   } deriving (Show, Eq)  
 
-instance ToJSON Geometry where
-  toJSON (Geometry command parameters) =
+instance ToJSON GeoAction where
+  toJSON (GeoAction command parameters) =
         object ["command" .= command, "parameters" .= parameters]
 
 instance ToJSON Command where
@@ -47,7 +47,7 @@ instance ToJSON Command where
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
 
-geometryCommand :: Geometry -> CommandA
+geometryCommand :: GeoAction -> CommandA
 geometryCommand = cmd . command
 
 -- command:
@@ -102,13 +102,14 @@ testLine = [9, 4, 4, 18, 0, 16, 16, 0]
 testPolygon :: [Int]
 testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
 
-decodeCommands :: [Int] -> [Geometry]
+decodeCommands :: [Int] -> [GeoAction]
 decodeCommands = undefined
 
-toAbsoluteCoords :: Point -> [Geometry] -> [Geometry]
+toAbsoluteCoords :: Point -> [GeoAction] -> [GeoAction]
 toAbsoluteCoords _ []         = []
 toAbsoluteCoords point (x:xs) =
-  let geo = Geometry
+  let geo = GeoAction
+
         { command = command x
         , parameters = relativeParams $ sumFirst (parameters x)
         } in geo : toAbsoluteCoords (last (parameters geo)) xs

@@ -7,7 +7,7 @@ import qualified Data.Text as T
 import Util
 import ApiClient
 import Decoder.Geometry
-import qualified Decoder.Polygon as P
+import qualified Decoder.Polygons as P
 import Proto.Vector_tile.Tile (Tile(..))
 import Graphics.Svg
 
@@ -16,7 +16,7 @@ svg content =
   doctype
   <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "100%", Height_ <<- "100%"]
 
-renderCommands :: [Geometry] -> Element
+renderCommands :: [GeoAction] -> Element
 renderCommands g =
   path_ [
   Fill_           <<- "None"
@@ -25,7 +25,7 @@ renderCommands g =
   , D_            <<- T.intercalate " " ( map geoToSvgPath g )
         ]
 
-renderBuildingCommands :: [Geometry] -> Element
+renderBuildingCommands :: [GeoAction] -> Element
 renderBuildingCommands g =
   path_ [
   Fill_           <<- "#f54242"
@@ -34,7 +34,7 @@ renderBuildingCommands g =
   , D_            <<- T.intercalate " " ( map geoToSvgPath g )
         ]
 
-geoToSvgPath :: Geometry -> T.Text
+geoToSvgPath :: GeoAction -> T.Text
 geoToSvgPath g = case geometryCommand g of
   MoveTo    -> T.intercalate " " $ map (uncurry mA) (parameters g)
   LineTo    -> T.intercalate " " $ map (uncurry lA) (parameters g)

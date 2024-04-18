@@ -1,4 +1,4 @@
-module Decoder.Polygon where
+module Decoder.Polygons where
 
 import Decoder.Geometry
 
@@ -11,10 +11,11 @@ import Decoder.Geometry
 -- res is negative: inner polygon
 
 
-decodeCommands :: [Int] -> [Geometry]
+decodeCommands :: [Int] -> [GeoAction]
 decodeCommands r = toAbsoluteCoords coordsOrigin $ concat $ map pointOfClosePath $ map (\x -> map (singleDecoder) x) (splitOnSingle $ splitCommands r)
   where
-    singleDecoder (l:ls) = Geometry
+    singleDecoder (l:ls) = GeoAction
+  
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
@@ -29,7 +30,8 @@ splitOnSingle (y:ys)  = let (as, b) = span (\z -> length z > 1) (y:ys)
                            else (as <> [head b]) : splitOnSingle (tail b)
 
 -- TODO: don't applty toAbsoluteCoords on closing paths
-pointOfClosePath :: [Geometry] -> [Geometry]
+pointOfClosePath :: [GeoAction] -> [GeoAction]
 pointOfClosePath geo = map (\g -> if (cmd (command g)) == ClosePath
-                             then Geometry {command = command g, parameters = parameters $ head geo}
+                             then GeoAction
+                           {command = command g, parameters = parameters $ head geo}
                              else g) geo
