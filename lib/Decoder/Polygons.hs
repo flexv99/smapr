@@ -30,10 +30,6 @@ decPolygon = map actionToPolygonG . decodePolygonCommands
   actionToPolygonG :: [GeoAction] -> PolygonG
   actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = excludeFstLst g, closePath = last g }
 
-testPolygon :: [Int]
-testPolygon = [ 9 ,0 ,0 ,26 ,20 ,0 ,0 ,20 ,19 ,0 ,15 ,9 ,22 ,2 ,26 ,18 ,0 ,0 ,18 ,17 ,0 ,15 ,9 ,4 ,13 ,26 ,0 ,8 ,8 ,0 ,0 ,7 ,15 ]
-
-
 test :: Point -> [GeoAction] -> [GeoAction]
 test point = toAbsoluteCoords' point []
 
@@ -50,3 +46,7 @@ toAbsoluteCoords' point acc (x:xs) =
     sumFirst (y:ys)          = sumTuple point y : ys
     relativeParams           = scanl1 sumTuple
     sumTuple (x, y) (x', y') = (x + x', y + y')
+
+testPolygon :: [Int]
+testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
+
