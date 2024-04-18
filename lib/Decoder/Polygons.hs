@@ -11,15 +11,21 @@ import Decoder.Geometry
 -- |   | +  |   | + |    | -- matrix multp.
 -- |6 1|    |1 2|   |2  6|
 -- res is negative: inner polygon
+-- TODO new move to from a polygon is relative to the last line to 
 excludeFstLst :: [a] -> [a]
 excludeFstLst []  = []
 excludeFstLst [x] = []
 excludeFstLst xs  = tail (init xs)
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
-decodePolygonCommands r = map (test coordsOrigin) $ splitAtMove $ map singleDecoder (splitCommands r)
+decodePolygonCommands r = map test $ splitAtMove $ map singleDecoder (splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
+      { command = decodeCommand l
+      , parameters = tuplify $ map decodeParam ls
+      }
+
+singleDecoder (l:ls) = GeoAction
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
@@ -30,20 +36,20 @@ decPolygon = map actionToPolygonG . decodePolygonCommands
   actionToPolygonG :: [GeoAction] -> PolygonG
   actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = excludeFstLst g, closePath = last g }
 
-test :: Point -> [GeoAction] -> [GeoAction]
-test point = toAbsoluteCoords' point []
+test :: [GeoAction] -> [GeoAction]
+test = toAbsoluteCoords' coordsOrigin []
 
 toAbsoluteCoords' :: Point -> [GeoAction] -> [GeoAction] -> [GeoAction]
-toAbsoluteCoords' _ acc [] = acc
+toAbsoluteCoords' _ acc [] = []
 toAbsoluteCoords' point acc (x:xs) =
   let geoAction = GeoAction
         { command = command x
-        , parameters = relativeParams $ sumFirst (parameters x)
+        , parameters = sumFirst (parameters x)
         }
-  in geoAction : toAbsoluteCoords' (last (parameters geoAction)) (geoAction : acc) xs
+  in geoAction : toAbsoluteCoords' (last $ parameters geoAction) (geoAction : acc) xs
   where
     sumFirst []              = parameters $ last acc
-    sumFirst (y:ys)          = sumTuple point y : ys
+    sumFirst (y:ys)          = relativeParams $ sumTuple point y : ys
     relativeParams           = scanl1 sumTuple
     sumTuple (x, y) (x', y') = (x + x', y + y')
 
