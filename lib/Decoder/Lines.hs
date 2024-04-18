@@ -10,7 +10,7 @@ data LineG = LineG
   } deriving (Show, Eq)
 
 decodeLineCommands :: [Int] -> [[GeoAction]]
-decodeLineCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ map (singleDecoder) (splitCommands r)
+decodeLineCommands = splitAtMove . toAbsoluteCoords coordsOrigin . map singleDecoder . splitCommands
   where
     singleDecoder (l:ls) = GeoAction
       { command = decodeCommand l

@@ -2,6 +2,7 @@
 
 module Decoder.Geometry
   ( GeoAction(..)
+  , Point
   , Command(..)
   , CommandA(..)
   , PolygonG(..)
@@ -103,9 +104,9 @@ decodeParam p = int2Double $ (p `shiftR` 1) `xor` (-(p .&. 1))
 splitCommands :: [Int] -> [[Int]]
 splitCommands [] = []
 splitCommands c  = let (taken, rest) = splitAt toBeSplitted c in
-  if length taken == 0 then [] else taken : splitCommands rest
+  if null taken then [] else taken : splitCommands rest
   where
-    toBeSplitted = (parametersCount $ decodeCommand $ head c) + 1
+    toBeSplitted = parametersCount (decodeCommand $ head c) + 1
 
 tuplify :: [a] -> [(a, a)]
 tuplify []        = []
@@ -125,12 +126,11 @@ toAbsoluteCoords :: Point -> [GeoAction] -> [GeoAction]
 toAbsoluteCoords _ []         = []
 toAbsoluteCoords point (x:xs) =
   let geo = GeoAction
-
         { command = command x
         , parameters = relativeParams $ sumFirst (parameters x)
         } in geo : toAbsoluteCoords (last (parameters geo)) xs
   where
-    sumFirst []              = []
+    sumFirst []              = [point]
     sumFirst (y:ys)          = sumTuple point y : ys
     relativeParams           = scanl1 sumTuple
     sumTuple (x, y) (x', y') = (x + x', y + y')
@@ -139,6 +139,7 @@ splitAtMove :: [GeoAction] -> [[GeoAction]]
 splitAtMove xs = filter (not . null) $ f xs []
     where f [] agg = [agg]
           f (y : ys) agg = if ((MoveTo ==) . cmd . command) y
-                           then agg : (f ys [y])
+                           then agg : f ys [y]
                            else f ys (agg ++ [y])
 
+  

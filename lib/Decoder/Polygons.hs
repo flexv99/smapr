@@ -16,38 +16,13 @@ excludeFstLst []  = []
 excludeFstLst [x] = []
 excludeFstLst xs  = tail (init xs)
 
-decodeLineCommands :: [Int] -> [[GeoAction]]
-decodeLineCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ map singleDecoder (splitCommands r)
-  where
-    singleDecoder (l:ls) = GeoAction
-      { command = decodeCommand l
-      , parameters = tuplify $ map decodeParam ls
-      }
-
 decodePolygonCommands :: [Int] -> [[GeoAction]]
-decodePolygonCommands r = splitAtMove $ toAbsoluteCoords coordsOrigin $ concatMap (pointOfClosePath . map singleDecoder) (splitOnSingle $ splitCommands r)
+decodePolygonCommands r = map (test coordsOrigin) $ splitAtMove $ map singleDecoder (splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
-
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
-
-pointOfClosePath :: [GeoAction] -> [GeoAction]
-pointOfClosePath geo = map (\g -> if (cmd (command g)) == ClosePath
-                             then GeoAction
-                           {command = command g, parameters = parameters $ head geo}
-                             else g) geo
-
-
-splitOnSingle :: [[a]] -> [[[a]]]
-splitOnSingle [] = []
-splitOnSingle ([]:ys) = splitOnSingle ys
-splitOnSingle (y:ys)  = let (as, b) = span (\z -> length z > 1) (y:ys)
-                        in if null b
-                           then [as]
-                           else (as <> [head b]) : splitOnSingle (tail b)
-
 
 decPolygon :: [Int] -> [PolygonG]
 decPolygon = map actionToPolygonG . decodePolygonCommands
@@ -57,3 +32,21 @@ decPolygon = map actionToPolygonG . decodePolygonCommands
 
 testPolygon :: [Int]
 testPolygon = [ 9 ,0 ,0 ,26 ,20 ,0 ,0 ,20 ,19 ,0 ,15 ,9 ,22 ,2 ,26 ,18 ,0 ,0 ,18 ,17 ,0 ,15 ,9 ,4 ,13 ,26 ,0 ,8 ,8 ,0 ,0 ,7 ,15 ]
+
+
+test :: Point -> [GeoAction] -> [GeoAction]
+test point actions = toAbsoluteCoords' point [] actions
+
+toAbsoluteCoords' :: Point -> [GeoAction] -> [GeoAction] -> [GeoAction]
+toAbsoluteCoords' _ acc [] = acc
+toAbsoluteCoords' point acc (x:xs) =
+  let geoAction = GeoAction
+        { command = command x
+        , parameters = relativeParams $ sumFirst (parameters x)
+        }
+  in geoAction : toAbsoluteCoords' (last (parameters geoAction)) (geoAction : acc) xs
+  where
+    sumFirst []              = parameters $ last acc
+    sumFirst (y:ys)          = sumTuple point y : ys
+    relativeParams           = scanl1 sumTuple
+    sumTuple (x, y) (x', y') = (x + x', y + y')
