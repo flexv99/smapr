@@ -1,14 +1,25 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Decoder.Polygons
 ( decPolygon
 ) where
 
 import Decoder.Geometry
+import Data.Aeson
 
 data PolygonG = PolygonG
   { pMoveTo :: GeoAction
   , pLineTo :: GeoAction
   , pClosePath :: GeoAction
   } deriving (Show, Eq)
+
+
+instance ToJSON PolygonG where
+  toJSON (PolygonG pMoveTo pLineTo pClosePath) =
+        object ["move_to" .= pMoveTo, "line_to" .= pLineTo, "close_path" .= pClosePath]
+
+  toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
+        pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo <> "close_path" .= pClosePath
 
 -- criteria inner/outer polygon
 -- https://en.wikipedia.org/wiki/Shoelace_formula
@@ -25,6 +36,9 @@ excludeFstLst xs  = tail (init xs)
 
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
+
+sumTuple3 :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b) -> (a, b)
+sumTuple3 (x, y) (x', y') (x'', y'')= (x + x' + x'', y + y' + y'')
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
@@ -63,7 +77,7 @@ relativeMoveTo = f []
     f acc (p:ps)  = if not $ null acc
                     then PolygonG { pMoveTo = newMoveTo p acc, pLineTo = pLineTo p, pClosePath = pClosePath p} : f (p : acc) ps
                     else p : f (p : acc) ps
-    prev          = head
-    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith sumTuple (parameters $ pMoveTo p) [sumLineTo c]}
+    prev          = last
+    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith3 sumTuple3 (parameters $ pMoveTo p) [sumLineTo c] [sumMoveTo c] }
     sumLineTo c   = foldl1 sumTuple (parameters $ pLineTo $ prev c)
-
+    sumMoveTo c   = foldl1 sumTuple (parameters $ pMoveTo $ prev c)
