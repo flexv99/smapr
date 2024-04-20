@@ -30,10 +30,6 @@ instance ToJSON PolygonG where
 -- |6 1|    |1 2|   |2  6|
 -- res is negative: inner polygon
 -- TODO new move to from a polygon is relative to the last line to 
-excludeFstLst :: [a] -> [a]
-excludeFstLst []  = []
-excludeFstLst [x] = []
-excludeFstLst xs  = tail (init xs)
 
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
@@ -62,12 +58,6 @@ absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
     progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ pLineTo p)
     closePath = last $ parameters $ pMoveTo p
 
-testPolygon :: [Int]
-testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
-
-instance MapGeometry PolygonG where
-  decode = decPolygon
-
 relativeMoveTo :: [PolygonG] -> [PolygonG]
 relativeMoveTo = f []
   where
@@ -82,3 +72,7 @@ sumMoveToAndLineTo polygons =
     let extractPoints geoAction = if cmd (command geoAction) == MoveTo || cmd (command geoAction) == LineTo then parameters geoAction else []
         allPoints = concatMap (\polygon -> extractPoints (pMoveTo polygon) ++ extractPoints (pLineTo polygon)) polygons
     in foldl' sumTuple (0, 0) allPoints
+
+instance MapGeometry PolygonG where
+  decode = decPolygon
+
