@@ -38,9 +38,6 @@ excludeFstLst xs  = tail (init xs)
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
-sumTuple3 :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b) -> (a, b)
-sumTuple3 (x, y) (x', y') (x'', y'')= (x + x' + x'', y + y' + y'')
-
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
@@ -81,7 +78,7 @@ relativeMoveTo = f []
     newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith sumTuple (parameters $ pMoveTo p) [sumMoveToAndLineTo c]}
 
 sumMoveToAndLineTo :: [PolygonG] -> Point
-sumMoveToAndLineTo polygons = 
+sumMoveToAndLineTo polygons =
     let extractPoints geoAction = if cmd (command geoAction) == MoveTo || cmd (command geoAction) == LineTo then parameters geoAction else []
-        allPoints = concatMap (\polygon -> (extractPoints (pMoveTo polygon)) ++ (extractPoints (pLineTo polygon))) polygons
-    in foldl' (\(x1, y1) (x2, y2) -> (x1 + x2, y1 + y2)) (0, 0) allPoints
+        allPoints = concatMap (\polygon -> extractPoints (pMoveTo polygon) ++ extractPoints (pLineTo polygon)) polygons
+    in foldl' sumTuple (0, 0) allPoints
