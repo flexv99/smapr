@@ -6,6 +6,7 @@ module Decoder.Polygons
 
 import Decoder.Geometry
 import Data.Aeson
+import Data.List
 
 data PolygonG = PolygonG
   { pMoveTo :: GeoAction
@@ -75,9 +76,12 @@ relativeMoveTo = f []
   where
     f _ []        = []
     f acc (p:ps)  = if not $ null acc
-                    then PolygonG { pMoveTo = newMoveTo p acc, pLineTo = pLineTo p, pClosePath = pClosePath p} : f (p : acc) ps
+                    then PolygonG { pMoveTo = newMoveTo p acc, pLineTo = pLineTo p, pClosePath = pClosePath p } : f (p : acc) ps
                     else p : f (p : acc) ps
-    prev          = last
-    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith3 sumTuple3 (parameters $ pMoveTo p) [sumLineTo c] [sumMoveTo c] }
-    sumLineTo c   = foldl1 sumTuple (parameters $ pLineTo $ prev c)
-    sumMoveTo c   = foldl1 sumTuple (parameters $ pMoveTo $ prev c)
+    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith sumTuple (parameters $ pMoveTo p) [sumMoveToAndLineTo c]}
+
+sumMoveToAndLineTo :: [PolygonG] -> Point
+sumMoveToAndLineTo polygons = 
+    let extractPoints geoAction = if cmd (command geoAction) == MoveTo || cmd (command geoAction) == LineTo then parameters geoAction else []
+        allPoints = concatMap (\polygon -> (extractPoints (pMoveTo polygon)) ++ (extractPoints (pLineTo polygon))) polygons
+    in foldl' (\(x1, y1) (x2, y2) -> (x1 + x2, y1 + y2)) (0, 0) allPoints
