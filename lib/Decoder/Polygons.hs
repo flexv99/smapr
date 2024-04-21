@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Decoder.Polygons
-( decPolygon
+( PolygonG(..)
+, decPolygon
 ) where
 
 import Decoder.Geometry

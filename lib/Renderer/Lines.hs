@@ -4,12 +4,16 @@ module Renderer.Lines where
 
 import Control.Monad
 import qualified Data.Text as T
+import qualified Diagrams.Prelude as D
+import qualified Diagrams.TwoD.Size as D
+import qualified Diagrams.Backend.SVG as D
+import qualified Diagrams.Trail as D
+import Graphics.Svg
 import Util
 import ApiClient
 import Decoder.Geometry
-import qualified Decoder.Polygons as P
+import Decoder.Lines
 import Proto.Vector_tile.Tile (Tile(..))
-import Graphics.Svg
 
 svg :: Element -> Element
 svg content =
@@ -40,18 +44,45 @@ geoToSvgPath g = case geometryCommand g of
   LineTo    -> T.intercalate " " $ map (uncurry lA) (parameters g)
   ClosePath -> z
 
-testSvg :: IO (Maybe Element)
-testSvg = do
-  tile <- fakerTile
-  let features = concatMap (P.decodeCommands . map fromIntegral) . tileFeatures <$> tile
-  return (svg . renderCommands <$> features)
+-- testSvg :: IO (Maybe Element)
+-- testSvg = do
+--   tile <- fakerTile
+--   let features = concatMap (P.decodeCommands . map fromIntegral) . tileFeatures <$> tile
+--   return (svg . renderCommands <$> features)
 
 
-polyTestSvg :: IO (Maybe Element)
-polyTestSvg = do
-  tile <- getNextzenTile testCoord
-  let features = concatMap (P.decodeCommands . map fromIntegral) . filterLayerByName "buildings" <$> tile
-  return (svg . renderCommands <$> features)
+-- polyTestSvg :: IO (Maybe Element)
+-- polyTestSvg = do
+--   tile <- getNextzenTile testCoord
+--   let features = concatMap (P.decodeCommands . map fromIntegral) . filterLayerByName "buildings" <$> tile
+--   return (svg . renderCommands <$> features)
 
-saveTestSvg :: IO ()
-saveTestSvg = testSvg >>= maybe (putStrLn "got nothing") writeSvg
+-- saveTestSvg :: IO ()
+-- saveTestSvg = testSvg >>= maybe (putStrLn "got nothing") writeSvg
+-------- Diagrams
+
+render2DVector :: D.Diagram D.B -> IO ()
+render2DVector v = do
+  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
+  dateStr <- dateTimeStr
+  path <- testPath dateStr
+  putStrLn path
+  D.renderSVG path sz $ v D.# D.showOrigin
+
+geometryPointToDPoint :: Point -> D.P2 Double
+geometryPointToDPoint (x, y) = x D.^& y 
+
+drawTour :: [Point] -> D.Diagram D.B
+drawTour tour = tourPoints <> D.strokeP tourPath
+  where
+    tourPath   = D.fromVertices . map geometryPointToDPoint $ tour
+    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+    dot = D.circle 0.05 D.# D.fc D.green
+
+renderPath :: IO ()
+renderPath = do
+  t <- fakerTile
+  let f = concatMap (decLine . map fromIntegral) . filterLayerByName "roads" <$> t
+  let tbDrawn = map (parameters . lLineTo) <$> f
+  let path = foldr1 D.atop . map drawTour <$> tbDrawn
+  maybe (putStrLn "nothing") render2DVector path

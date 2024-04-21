@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Decoder.Lines
-  ( decLine
+  ( LineG(..)
+  , decLine
   ) where
 
 import Decoder.Geometry
