@@ -15,6 +15,7 @@ module Decoder.Geometry
   , tuplify
   , geometryCommand
   , splitAtMove
+  , sumTuple
   ) where
 
 import Data.Bits
@@ -135,4 +136,5 @@ splitAtMove xs = filter (not . null) $ f xs []
                            then agg : f ys [y]
                            else f ys (agg ++ [y])
 
-  
+sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+sumTuple (x, y) (x', y') = (x + x', y + y')

@@ -22,9 +22,6 @@ instance ToJSON PolygonG where
   toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
         pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo <> "close_path" .= pClosePath
 
-sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
-sumTuple (x, y) (x', y') = (x + x', y + y')
-
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
