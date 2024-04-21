@@ -22,15 +22,6 @@ instance ToJSON PolygonG where
   toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
         pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo <> "close_path" .= pClosePath
 
--- criteria inner/outer polygon
--- https://en.wikipedia.org/wiki/Shoelace_formula
--- p1 = (1, 6), p2 = (3, 1), p3 = (7, 2)
--- |1 3|    |3 7|   |7  1|
--- |   | +  |   | + |    | -- matrix multp.
--- |6 1|    |1 2|   |2  6|
--- res is negative: inner polygon
--- TODO new move to from a polygon is relative to the last line to 
-
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
@@ -75,4 +66,12 @@ sumMoveToAndLineTo polygons =
 
 instance MapGeometry PolygonG where
   decode = decPolygon
+
+-- criteria inner/outer polygon
+-- https://en.wikipedia.org/wiki/Shoelace_formula
+-- p1 = (1, 6), p2 = (3, 1), p3 = (7, 2)
+-- |1 3|    |3 7|   |7  1|
+-- |   | +  |   | + |    | -- matrix multp.
+-- |6 1|    |1 2|   |2  6|
+-- res is negative: inner polygon
 
