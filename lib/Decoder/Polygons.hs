@@ -1,20 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Decoder.Polygons
-( PolygonG(..)
-, decPolygon
-) where
+module Decoder.Polygons () where
 
 import Decoder.Geometry
 import Data.Aeson
 import Data.List
-
-data PolygonG = PolygonG
-  { pMoveTo :: GeoAction
-  , pLineTo :: GeoAction
-  , pClosePath :: GeoAction
-  } deriving (Show, Eq)
-
 
 instance ToJSON PolygonG where
   toJSON (PolygonG pMoveTo pLineTo pClosePath) =
@@ -30,12 +20,6 @@ decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
-
-decPolygon :: [Int] -> [PolygonG]
-decPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
- where
-  actionToPolygonG :: [GeoAction] -> PolygonG
-  actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
 
 absolutePolygonG :: PolygonG -> PolygonG
 absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
@@ -63,7 +47,10 @@ sumMoveToAndLineTo polygons =
     in foldl' sumTuple (0, 0) allPoints
 
 instance MapGeometry PolygonG where
-  decode = decPolygon
+  decode = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
+   where
+    actionToPolygonG :: [GeoAction] -> PolygonG
+    actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
 
 -- criteria inner/outer polygon
 -- https://en.wikipedia.org/wiki/Shoelace_formula

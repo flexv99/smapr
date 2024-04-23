@@ -1,19 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Decoder.Lines
-  ( LineG(..)
-  , decLine
-  ) where
+module Decoder.Lines () where
 
 import Decoder.Geometry
 import Data.Aeson
 import Data.List
-
-data LineG = LineG
-  { lMoveTo :: GeoAction
-  , lLineTo :: GeoAction
-  } deriving (Show, Eq)
-
 
 instance ToJSON LineG where
   toJSON (LineG pMoveTo pLineTo) =
@@ -29,12 +20,6 @@ decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
       { command = decodeCommand l
       , parameters = tuplify $ map decodeParam ls
       }
-
-decLine :: [Int] -> [LineG]
-decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
- where
-  actionToLineG :: [GeoAction] -> LineG
-  actionToLineG g = LineG { lMoveTo = head g , lLineTo = last g }
 
 absoluteLineG :: LineG -> LineG
 absoluteLineG p = LineG { lMoveTo = lMoveTo p
@@ -62,4 +47,7 @@ sumMoveToAndLineTo polygons =
     in foldl' sumTuple (0, 0) allPoints
 
 instance MapGeometry LineG where
-  decode = decLine
+  decode = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
+   where
+    actionToLineG :: [GeoAction] -> LineG
+    actionToLineG g = LineG { lMoveTo = head g , lLineTo = last g }

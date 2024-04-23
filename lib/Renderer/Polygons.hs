@@ -36,12 +36,12 @@ diagramFromFeature :: Proto.Vector_tile.Tile.Tile
                    -> String -> D.QDiagram D.B D.V2 Double D.Any
 diagramFromFeature t f = foldr1 D.atop (map (drawTour . polygonToPoints) roadGeo)
   where
-    roadGeo = concatMap (decPolygon . map fromIntegral) $ filterLayerByName f t
+    roadGeo = concatMap (decode . map fromIntegral) $ filterLayerByName f t
 
 renderPath :: IO ()
 renderPath = do
   t <- fakerTile
-  let f = concatMap (decPolygon . map fromIntegral) . filterLayerByName "roads" <$> t
+  let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
   let tbDrawn = map polygonToPoints <$> f
   let path = foldr1 D.atop . map drawTour <$> tbDrawn
   maybe (putStrLn "nothing") render2DVector path

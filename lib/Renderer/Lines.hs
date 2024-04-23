@@ -82,7 +82,7 @@ drawTour tour = tourPoints <> D.strokeP tourPath
 renderPath :: IO ()
 renderPath = do
   t <- fakerTile
-  let f = concatMap (decLine . map fromIntegral) . filterLayerByName "roads" <$> t
+  let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
   let tbDrawn = map (parameters . lLineTo) <$> f
   let path = foldr1 D.atop . map drawTour <$> tbDrawn
   maybe (putStrLn "nothing") render2DVector path

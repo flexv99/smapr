@@ -2,13 +2,13 @@
 
 module Decoder.Geometry
   ( GeoAction(..)
+  , LineG(..)
+  , PolygonG(..)
   , Point
   , Command(..)
   , CommandA(..)
   , MapGeometry(..)
-  , decodeCommands
   , decodeCommand
-  , toAbsoluteCoords
   , coordsOrigin
   , splitCommands
   , decodeParam
@@ -22,10 +22,13 @@ import Data.Bits
 import Control.Monad
 import GHC.Float (int2Double)
 import GHC.Word
+import Data.Foldable
+import qualified Data.Sequence as S
 import Proto.Vector_tile
+import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
-import Data.Aeson
-import Graphics.Svg
+import Proto.Vector_tile.Tile.Feature
+import qualified Data.Aeson as A
 
 type Point = (Double, Double)
 
@@ -41,17 +44,28 @@ data GeoAction = GeoAction
   , parameters :: [Point]
   } deriving (Show, Eq)
 
+data PolygonG = PolygonG
+  { pMoveTo :: GeoAction
+  , pLineTo :: GeoAction
+  , pClosePath :: GeoAction
+  } deriving (Show, Eq)
+
+data LineG = LineG
+  { lMoveTo :: GeoAction
+  , lLineTo :: GeoAction
+  } deriving (Show, Eq)
+
 data PointG = PointG
   { pMoveT :: GeoAction
   } deriving (Show, Eq)
 
-instance ToJSON GeoAction where
+instance A.ToJSON GeoAction where
   toJSON (GeoAction command parameters) =
-        object ["command" .= command, "parameters" .= parameters]
+        A.object ["command" A..= command, "parameters" A..= parameters]
 
-instance ToJSON Command where
+instance A.ToJSON Command where
   toJSON (Command cmd count) =
-        object ["cmd" .= show cmd, "count" .= count]
+        A.object ["cmd" A..= show cmd, "count" A..= count]
 
 class MapGeometry a where
   decode :: [Int] -> [a]
@@ -108,28 +122,6 @@ tuplify []        = []
 tuplify [x]       = error "cannot tuplify single emelent"
 tuplify (x:x':xs) = (x, x') : tuplify xs
 
-testLine :: [Int]
-testLine = [9, 4, 4, 18, 0, 16, 16, 0]
-
-testPolygon :: [Int]
-testPolygon = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
-
-decodeCommands :: [Int] -> [GeoAction]
-decodeCommands = undefined
-
-toAbsoluteCoords :: Point -> [GeoAction] -> [GeoAction]
-toAbsoluteCoords _ []         = []
-toAbsoluteCoords point (x:xs) =
-  let geo = GeoAction
-        { command = command x
-        , parameters = relativeParams $ sumFirst (parameters x)
-        } in geo : toAbsoluteCoords (last (parameters geo)) xs
-  where
-    sumFirst []              = [point]
-    sumFirst (y:ys)          = sumTuple point y : ys
-    relativeParams           = scanl1 sumTuple
-    sumTuple (x, y) (x', y') = (x + x', y + y')
-
 splitAtMove :: [GeoAction] -> [[GeoAction]]
 splitAtMove xs = filter (not . null) $ f xs []
     where f [] agg = [agg]
@@ -140,6 +132,7 @@ splitAtMove xs = filter (not . null) $ f xs []
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
-
-layerToGeo :: (MapGeometry a) => Layer -> [a]
-layerToGeo = undefined
+featureToGeo :: (MapGeometry a) => Feature -> [a]
+featureToGeo (Feature _ _ (Just POLYGON) g)    = decode $ map fromIntegral $ toList g :: [PolygonG]
+featureToGeo (Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g :: [LineG]
+featureToGeo f                                 = decode (map fromIntegral $ toList $ geometry f)
