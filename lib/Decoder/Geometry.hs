@@ -23,6 +23,7 @@ import Control.Monad
 import GHC.Float (int2Double)
 import GHC.Word
 import Proto.Vector_tile
+import Proto.Vector_tile.Tile.Layer
 import Data.Aeson
 import Graphics.Svg
 
@@ -138,3 +139,7 @@ splitAtMove xs = filter (not . null) $ f xs []
 
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
+
+
+layerToGeo :: (MapGeometry a) => Layer -> [a]
+layerToGeo = undefined
