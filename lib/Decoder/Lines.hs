@@ -1,8 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Decoder.Lines () where
+module Decoder.Lines (
+  decLine
+  , LineG(..)
+  , Point(..)
+  , GeoAction(..)
+  ) where
 
-import Decoder.Geometry
+import Decoder.Helper
 import Data.Aeson
 import Data.List
 
@@ -46,8 +51,8 @@ sumMoveToAndLineTo polygons =
         allPoints = concatMap (\polygon -> extractPoints (lMoveTo polygon) ++ extractPoints (lLineTo polygon)) polygons
     in foldl' sumTuple (0, 0) allPoints
 
-instance MapGeometry LineG where
-  decode = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
+decLine :: [Int] -> [LineG]
+decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
    where
     actionToLineG :: [GeoAction] -> LineG
     actionToLineG g = LineG { lMoveTo = head g , lLineTo = last g }

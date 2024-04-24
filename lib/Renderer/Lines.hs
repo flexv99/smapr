@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Renderer.Lines where
+module Renderer.Lines
+  ( lineToPoints
+  ) where
 
 import Control.Monad
 import qualified Data.Text as T
@@ -15,34 +17,34 @@ import Decoder.Geometry
 import Decoder.Lines
 import Proto.Vector_tile.Tile (Tile(..))
 
-svg :: Element -> Element
-svg content =
-  doctype
-  <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "100%", Height_ <<- "100%"]
+-- svg :: Element -> Element
+-- svg content =
+--   doctype
+--   <> with (svg11_ content) [Version_ <<- "1.1", Width_ <<- "100%", Height_ <<- "100%"]
 
-renderCommands :: [GeoAction] -> Element
-renderCommands g =
-  path_ [
-  Fill_           <<- "None"
-  , Stroke_       <<- "#ffffff"
-  , Stroke_width_ <<- "4"
-  , D_            <<- T.intercalate " " ( map geoToSvgPath g )
-        ]
+-- renderCommands :: [GeoAction] -> Element
+-- renderCommands g =
+--   path_ [
+--   Fill_           <<- "None"
+--   , Stroke_       <<- "#ffffff"
+--   , Stroke_width_ <<- "4"
+--   , D_            <<- T.intercalate " " ( map geoToSvgPath g )
+--         ]
 
-renderBuildingCommands :: [GeoAction] -> Element
-renderBuildingCommands g =
-  path_ [
-  Fill_           <<- "#f54242"
-  , Stroke_       <<- "#ffffff"
-  , Stroke_width_ <<- "4"
-  , D_            <<- T.intercalate " " ( map geoToSvgPath g )
-        ]
+-- renderBuildingCommands :: [GeoAction] -> Element
+-- renderBuildingCommands g =
+--   path_ [
+--   Fill_           <<- "#f54242"
+--   , Stroke_       <<- "#ffffff"
+--   , Stroke_width_ <<- "4"
+--   , D_            <<- T.intercalate " " ( map geoToSvgPath g )
+--         ]
 
-geoToSvgPath :: GeoAction -> T.Text
-geoToSvgPath g = case geometryCommand g of
-  MoveTo    -> T.intercalate " " $ map (uncurry mA) (parameters g)
-  LineTo    -> T.intercalate " " $ map (uncurry lA) (parameters g)
-  ClosePath -> z
+-- geoToSvgPath :: GeoAction -> T.Text
+-- geoToSvgPath g = case geometryCommand g of
+--   MoveTo    -> T.intercalate " " $ map (uncurry mA) (parameters g)
+--   LineTo    -> T.intercalate " " $ map (uncurry lA) (parameters g)
+--   ClosePath -> z
 
 -- testSvg :: IO (Maybe Element)
 -- testSvg = do
@@ -72,17 +74,22 @@ render2DVector v = do
 geometryPointToDPoint :: Point -> D.P2 Double
 geometryPointToDPoint (x, y) = x D.^& y 
 
-drawTour :: [Point] -> D.Diagram D.B
-drawTour tour = tourPoints <> D.strokeP tourPath
+lineToPoints :: LineG -> [D.P2 Double]
+lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ parameters lMoveTo ++ parameters lLineTo
   where
-    tourPath   = D.fromVertices . map geometryPointToDPoint $ tour
-    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-    dot = D.circle 0.05 D.# D.fc D.green
+    toDPoint = map geometryPointToDPoint
 
-renderPath :: IO ()
-renderPath = do
-  t <- fakerTile
-  let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
-  let tbDrawn = map (parameters . lLineTo) <$> f
-  let path = foldr1 D.atop . map drawTour <$> tbDrawn
-  maybe (putStrLn "nothing") render2DVector path
+-- drawTour :: [Point] -> D.Diagram D.B
+-- drawTour tour = tourPoints <> D.strokeP tourPath
+--   where
+--     tourPath   = D.fromVertices . map geometryPointToDPoint $ tour
+--     tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+--     dot = D.circle 0.05 D.# D.fc D.green
+
+-- renderPath :: IO ()
+-- renderPath = do
+--   t <- fakerTile
+--   let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
+--   let tbDrawn = map (parameters . lLineTo) <$> f
+--   let path = foldr1 D.atop . map drawTour <$> tbDrawn
+--   maybe (putStrLn "nothing") render2DVector path

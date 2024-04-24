@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE TypeFamilies              #-}
 
-module Renderer.Polygons () where
+module Renderer.Polygons
+  ( polygonToPoints
+  ) where
 
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.TwoD.Size as D
@@ -25,34 +27,35 @@ render2DVector v = do
 geoMetryPointToDPoint :: Point -> D.P2 Double
 geoMetryPointToDPoint (x, y) = x D.^& y
 
-drawTour :: [Point] -> D.Diagram D.B
-drawTour tour = tourPoints <> D.strokeP tourPath
+-- drawTour :: [Point] -> D.Diagram D.B
+-- drawTour tour = tourPoints <> D.strokeP tourPath
+--   where
+--     tourPath   = D.fromVertices . map geoMetryPointToDPoint $ tour
+--     tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+--     dot = D.circle 0.05 D.# D.fc D.black
+
+-- diagramFromFeature :: Proto.Vector_tile.Tile.Tile
+--                    -> String -> D.QDiagram D.B D.V2 Double D.Any
+-- diagramFromFeature t f = foldr1 D.atop (map (drawTour . polygonToPoints) roadGeo)
+--   where
+--     roadGeo = concatMap (decode . map fromIntegral) $ filterLayerByName f t
+
+-- renderPath :: IO ()
+-- renderPath = do
+--   t <- fakerTile
+--   let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
+--   let tbDrawn = map polygonToPoints <$> f
+--   let path = foldr1 D.atop . map drawTour <$> tbDrawn
+--   maybe (putStrLn "nothing") render2DVector path
+
+polygonToPoints :: PolygonG -> [D.P2 Double]
+polygonToPoints (PolygonG pMoveTo pLineTo pClosePath) = toDPoint $ parameters pMoveTo ++ parameters pLineTo ++ parameters pClosePath
   where
-    tourPath   = D.fromVertices . map geoMetryPointToDPoint $ tour
-    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-    dot = D.circle 0.05 D.# D.fc D.black
+    toDPoint = map geoMetryPointToDPoint
 
-diagramFromFeature :: Proto.Vector_tile.Tile.Tile
-                   -> String -> D.QDiagram D.B D.V2 Double D.Any
-diagramFromFeature t f = foldr1 D.atop (map (drawTour . polygonToPoints) roadGeo)
-  where
-    roadGeo = concatMap (decode . map fromIntegral) $ filterLayerByName f t
-
-renderPath :: IO ()
-renderPath = do
-  t <- fakerTile
-  let f = concatMap (decode . map fromIntegral) . filterLayerByName "roads" <$> t
-  let tbDrawn = map polygonToPoints <$> f
-  let path = foldr1 D.atop . map drawTour <$> tbDrawn
-  maybe (putStrLn "nothing") render2DVector path
-
-
-polygonToPoints :: PolygonG -> [Point]
-polygonToPoints p = parameters (pMoveTo p) ++ parameters (pLineTo p) ++ parameters (pClosePath p)
-
-testMultipleLayers :: IO ()
-testMultipleLayers = do
-  t <- fakerTile
-  let roads = fmap (`diagramFromFeature` "roads") t
-  let buildings = fmap (`diagramFromFeature` "buildings") t
-  maybe (putStrLn "nothing") render2DVector (fmap (<>) roads <*> buildings)
+-- testMultipleLayers :: IO ()
+-- testMultipleLayers = do
+--   t <- fakerTile
+--   let roads = fmap (`diagramFromFeature` "roads") t
+--   let buildings = fmap (`diagramFromFeature` "buildings") t
+--   maybe (putStrLn "nothing") render2DVector (fmap (<>) roads <*> buildings)
