@@ -8,6 +8,7 @@ import Data.Foldable
 import GHC.Word
 import qualified Data.Sequence as S
 import Proto.Vector_tile.Tile.Layer
+import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Feature
 import Decoder.Geometry
@@ -30,6 +31,9 @@ featureToDiagram (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTo
 decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
 
+renderLayer :: String -> Tile -> D.Diagram D.B
+renderLayer l t = foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $  getLayers l t
+
 test :: IO ()
 test = do
   let sz = D.mkSizeSpec2D (Just 512) (Just 512)
@@ -37,6 +41,7 @@ test = do
   path <- testPath dateStr
   putStrLn path
   t <- fakerTile
-  let f = head . map toList . (map features <$> toList) . getLayers "roads" <$> t
-  let d = foldl1 D.atop . map featureToDiagram <$> f
+  let roads = renderLayer "roads" <$> t
+  let buildings = renderLayer "buildings" <$> t
+  let d = fmap (<>) roads <*> buildings
   maybe (putStrLn "Nothing") (D.renderSVG path sz) d
