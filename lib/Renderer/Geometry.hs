@@ -32,7 +32,7 @@ decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
 
 renderLayer :: String -> Tile -> D.Diagram D.B
-renderLayer l t = foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $  getLayers l t
+renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $  getLayers l t
 
 test :: IO ()
 test = do
