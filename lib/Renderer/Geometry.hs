@@ -37,12 +37,8 @@ renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map
 
 test :: IO ()
 test = do
-  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
-  dateStr <- dateTimeStr
-  path <- testPath dateStr
-  putStrLn path
   t <- fakerTile
   let roads = renderLayer "roads" <$> t
   let buildings = renderLayer "buildings" <$> t
   let d = fmap (<>) roads <*> buildings
-  maybe (putStrLn "Nothing") (D.renderSVG path sz) d
+  maybe (putStrLn "Nothing") writeSvg d
