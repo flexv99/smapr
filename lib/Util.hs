@@ -5,6 +5,7 @@ module Util
   ( smaprConfig
   , testPath
   , dateTimeStr
+  , writeSvg
   , Sconf(..)
   , LocalApi(..)
   , NextzenApi(..)
@@ -16,6 +17,9 @@ import Data.Time.Clock (getCurrentTime, UTCTime)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as C
+import qualified Diagrams.Prelude as D
+import qualified Diagrams.TwoD.Size as D
+import qualified Diagrams.Backend.SVG as D
 
 data LocalApi = LocalApi
   { localBaseUrl :: String
@@ -73,3 +77,11 @@ testPath context = smaprConfig >>= \conf -> return (testDestinationPath conf ++ 
 dateTimeStr :: IO String
 dateTimeStr = getCurrentTime >>=
   \currentTime -> return $ formatTime defaultTimeLocale "%Y-%m-%d_%H:%M:%S" currentTime
+
+writeSvg :: D.Diagram D.B -> IO ()
+writeSvg d = do
+  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
+  dateStr <- dateTimeStr
+  path <- testPath dateStr
+  putStrLn path
+  D.renderSVG path sz d
