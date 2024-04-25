@@ -3,7 +3,6 @@
 
 module Util
   ( smaprConfig
-  , writeSvg
   , testPath
   , dateTimeStr
   , Sconf(..)
@@ -12,7 +11,6 @@ module Util
   )
 where
 
-import Graphics.Svg
 import GHC.Generics (Generic)
 import Data.Time.Clock (getCurrentTime, UTCTime)
 import Data.Time.Format (formatTime, defaultTimeLocale)
@@ -75,10 +73,3 @@ testPath context = smaprConfig >>= \conf -> return (testDestinationPath conf ++ 
 dateTimeStr :: IO String
 dateTimeStr = getCurrentTime >>=
   \currentTime -> return $ formatTime defaultTimeLocale "%Y-%m-%d_%H:%M:%S" currentTime
-
-writeSvg :: Element -> IO ()
-writeSvg svg = do
-  dateString <- dateTimeStr
-  destPath   <- testPath dateString
-  putStrLn destPath
-  renderToFile destPath svg
