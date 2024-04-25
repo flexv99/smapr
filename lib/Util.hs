@@ -9,8 +9,7 @@ module Util
   , Sconf(..)
   , LocalApi(..)
   , NextzenApi(..)
-  )
-where
+  ) where
 
 import GHC.Generics (Generic)
 import Data.Time.Clock (getCurrentTime, UTCTime)

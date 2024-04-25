@@ -27,6 +27,7 @@ drawTour tour = tourPoints <> D.strokeP tourPath
 featureToDiagram :: Feature -> D.Diagram D.B
 featureToDiagram (Feature _ _ (Just POLYGON) g)    = foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' g :: [PolygonG])
 featureToDiagram (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTour . lineToPoints) (decode' g :: [LineG])
+featureToDiagram _                                 = D.strutX 0
 
 decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
