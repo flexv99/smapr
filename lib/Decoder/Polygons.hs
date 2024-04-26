@@ -69,7 +69,7 @@ testPolygon :: [Int]
 testPolygon = [9,0,0,26,20,0,0,20,19,0,15,9,22,2,26,18,0,0,18,17,0,15,9,4,13,26,0,8,8,0,0,7,15]
 
 testShoelace :: [Point]
-testShoelace = [(1, 6), (3, 1), (7, 2), (4, 4), (8, 6)]
+testShoelace = [(1, 6), (3, 1), (7, 2), (4, 4), (8, 5)]
 
 polygonParams :: PolygonG -> [Point]
 polygonParams (PolygonG pMoveTo pLineTo pClosePath) = concat [parameters pMoveTo, parameters pLineTo, parameters pClosePath]
@@ -77,10 +77,13 @@ polygonParams (PolygonG pMoveTo pLineTo pClosePath) = concat [parameters pMoveTo
 shoelace :: [Point] -> Double
 shoelace p = sh' p / 2
   where
-    sh' []          = 0.0
-    sh' [x, y]      = shoelaceStep x y
-    sh' (x:x':xs)   = shoelaceStep x x' +  sh' (x':xs)
-    shoelaceStep (x, y) (x', y') = x * y' - (y * x')
+    sh' []                       = 0.0
+    sh' [x]                      = shoelaceStep x fst
+    sh' (x:x':xs)                = shoelaceStep x x' +  sh' (x':xs)
+    fst                          = head p
+    shoelaceStep (x, y) (x', y') = (x * y') - (y * x')
 
-isInner :: PolygonG -> bool
-isInner = undefined
+isInner :: PolygonG -> Bool
+isInner = neg . shoelace . polygonParams
+  where
+    neg n = n < 0
