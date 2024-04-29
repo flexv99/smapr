@@ -39,9 +39,6 @@ instance A.ToJSON Command where
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
 
-geometryCommand :: GeoAction -> CommandA
-geometryCommand = cmd . command
-
 -- command:
 -- 3 bits
 toCommandA :: Int -> CommandA
