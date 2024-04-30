@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Renderer.Lines
   ( lineToPoints
   ) where
@@ -28,6 +26,6 @@ geometryPointToDPoint :: Point -> D.P2 Double
 geometryPointToDPoint (x, y) = x D.^& y 
 
 lineToPoints :: LineG -> [D.P2 Double]
-lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ parameters lMoveTo ++ parameters lLineTo
+lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parameters lLineTo
   where
     toDPoint = map geometryPointToDPoint

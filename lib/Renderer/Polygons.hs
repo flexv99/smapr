@@ -28,6 +28,6 @@ geoMetryPointToDPoint :: Point -> D.P2 Double
 geoMetryPointToDPoint (x, y) = x D.^& y
 
 polygonToPoints :: PolygonG -> [D.P2 Double]
-polygonToPoints (PolygonG pMoveTo pLineTo pClosePath) = toDPoint $ parameters pMoveTo ++ parameters pLineTo ++ parameters pClosePath
+polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
   where
     toDPoint = map geoMetryPointToDPoint

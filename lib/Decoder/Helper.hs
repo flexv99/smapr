@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Decoder.Helper where
 
 import Data.Bits
 import Control.Monad
+import Control.Lens
 import GHC.Float (int2Double)
 import GHC.Word
 import Data.Foldable
@@ -19,22 +21,24 @@ type Point = (Double, Double)
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
-  { cmd :: CommandA
-  , count :: Int
+  { _cmd :: CommandA
+  , _count :: Int
   } deriving (Show, Eq)
+makeLenses ''Command
 
 data GeoAction = GeoAction
-  { command :: Command
-  , parameters :: [Point]
+  { _command :: Command
+  , _parameters :: [Point]
   } deriving (Show, Eq)
+makeLenses ''GeoAction
 
-instance A.ToJSON GeoAction where
-  toJSON (GeoAction command parameters) =
-        A.object ["command" A..= command, "parameters" A..= parameters]
+-- instance A.ToJSON GeoAction where
+--   toJSON (GeoAction command parameters) =
+--         A.object ["command" A..= _command, "parameters" A..= _parameters]
 
-instance A.ToJSON Command where
-  toJSON (Command cmd count) =
-        A.object ["cmd" A..= show cmd, "count" A..= count]
+-- instance A.ToJSON Command where
+--   toJSON (Command cmd count) =
+--         A.object ["cmd" A..= show _cmd, "count" A..= _count]
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
@@ -48,8 +52,8 @@ toCommandA _ = ClosePath -- [111]
 
 decodeCommand :: Int -> Command
 decodeCommand c = Command
-  { cmd = cType
-  , count = paramC
+  { _cmd = cType
+  , _count = paramC
   }
   where
     cType = toCommandA (c .&. 0x7)
@@ -62,7 +66,7 @@ decodeCommand c = Command
 -- closePath has a paramete count of 0
 
 parametersCount :: Command -> Int
-parametersCount = ap ((*) . forAction . cmd) count -- ap promotes function application
+parametersCount = ap ((*) . forAction . _cmd) _count -- ap promotes function application
   where
     forAction :: CommandA -> Int
     forAction MoveTo = 2
@@ -88,25 +92,33 @@ tuplify (x:x':xs) = (x, x') : tuplify xs
 splitAtMove :: [GeoAction] -> [[GeoAction]]
 splitAtMove xs = filter (not . null) $ f xs []
     where f [] agg = [agg]
-          f (y : ys) agg = if ((MoveTo ==) . cmd . command) y
+          f (y : ys) agg = if ((MoveTo ==) . _cmd . _command) y
                            then agg : f ys [y]
                            else f ys (agg ++ [y])
 
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
+testP :: PolygonG
+testP = PolygonG { _pMoveTo = GeoAction { _command = Command { _cmd = MoveTo, _count = 1 },  _parameters = [(0, 0)]}
+                 , _pLineTo = GeoAction { _command = Command { _cmd = LineTo, _count = 1 },  _parameters = [(0, 0)] }
+                 , _pClosePath =  GeoAction { _command = Command { _cmd = ClosePath, _count = 1 }, _parameters = [] } }
+
 data PolygonG = PolygonG
-  { pMoveTo :: GeoAction
-  , pLineTo :: GeoAction
-  , pClosePath :: GeoAction
+  { _pMoveTo :: GeoAction
+  , _pLineTo :: GeoAction
+  , _pClosePath :: GeoAction
   } deriving (Show, Eq)
+makeLenses ''PolygonG
 
 data LineG = LineG
-  { lMoveTo :: GeoAction
-  , lLineTo :: GeoAction
+  { _lMoveTo :: GeoAction
+  , _lLineTo :: GeoAction
   } deriving (Show, Eq)
+makeLenses ''LineG
 
 data PointG = PointG
-  { pMoveT :: GeoAction
+  { _pMoveT :: GeoAction
   } deriving (Show, Eq)
+makeLenses ''PointG
 
