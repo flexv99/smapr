@@ -12,12 +12,12 @@ import qualified Data.Aeson as A
 import Data.List
 import Control.Lens
 
--- instance A.ToJSON PolygonG where
---   toJSON (PolygonG pMoveTo pLineTo pClosePath) =
---         A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo, "close_path" A..= pClosePath]
+instance A.ToJSON PolygonG where
+  toJSON (PolygonG pMoveTo pLineTo pClosePath) =
+        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo, "close_path" A..= pClosePath]
 
---   toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
---         A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo <> "close_path" A..= pClosePath
+  toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
+        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo <> "close_path" A..= pClosePath
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)

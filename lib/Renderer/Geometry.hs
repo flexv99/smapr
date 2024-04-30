@@ -1,4 +1,4 @@
-module Renderer.Geometry where
+module Renderer.Geometry (test) where
 
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.TwoD.Size as D

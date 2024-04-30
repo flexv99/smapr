@@ -32,13 +32,13 @@ data GeoAction = GeoAction
   } deriving (Show, Eq)
 makeLenses ''GeoAction
 
--- instance A.ToJSON GeoAction where
---   toJSON (GeoAction command parameters) =
---         A.object ["command" A..= _command, "parameters" A..= _parameters]
+instance A.ToJSON GeoAction where
+  toJSON (GeoAction command parameters) =
+        A.object ["command" A..= command, "parameters" A..= parameters]
 
--- instance A.ToJSON Command where
---   toJSON (Command cmd count) =
---         A.object ["cmd" A..= show _cmd, "count" A..= _count]
+instance A.ToJSON Command where
+  toJSON (Command cmd count) =
+        A.object ["cmd" A..= show cmd, "count" A..= count]
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)

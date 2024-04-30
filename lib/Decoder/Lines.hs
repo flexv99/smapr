@@ -8,16 +8,16 @@ module Decoder.Lines (
   ) where
 
 import Decoder.Helper
-import Data.Aeson
+import qualified Data.Aeson as A
 import Data.List
 import Control.Lens
 
--- instance ToJSON LineG where
---   toJSON (LineG pMoveTo pLineTo) =
---         object ["move_to" .= pMoveTo, "line_to" .= pLineTo]
+instance A.ToJSON LineG where
+  toJSON (LineG pMoveTo pLineTo) =
+        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo]
 
---   toEncoding (LineG pMoveTo pLineTo) =
---         pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo
+  toEncoding (LineG pMoveTo pLineTo) =
+        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo
 
 decodeLineCommands :: [Int] -> [[GeoAction]]
 decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
