@@ -8,15 +8,16 @@ module Decoder.Polygons
   ) where
 
 import Decoder.Helper
-import Data.Aeson
+import qualified Data.Aeson as A
 import Data.List
+import Control.Lens
 
-instance ToJSON PolygonG where
+instance A.ToJSON PolygonG where
   toJSON (PolygonG pMoveTo pLineTo pClosePath) =
-        object ["move_to" .= pMoveTo, "line_to" .= pLineTo, "close_path" .= pClosePath]
+        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo, "close_path" A..= pClosePath]
 
   toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
-        pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo <> "close_path" .= pClosePath
+        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo <> "close_path" A..= pClosePath
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
@@ -84,6 +85,4 @@ shoelace p = sh' p / 2
     shoelaceStep (x, y) (x', y') = (x * y') - (y * x')
 
 isInner :: PolygonG -> Bool
-isInner = neg . shoelace . polygonParams
-  where
-    neg n = n < 0
+isInner = (< 0) . shoelace . polygonParams
