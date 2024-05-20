@@ -46,7 +46,7 @@ data LineS = LineS
   , _lineRoundLimit :: Maybe Double -- defaults to 1.05
   , _lineSortKey :: Maybe Int
   , _visibility :: Maybe Visibility
-  , _lineOpacity :: Maybe [Int] -- defaults to [1]
+  , _lineOpacity :: Maybe Double -- defaults to 1
   , _lineColor :: Maybe String
   , _lineTranslate :: Maybe [Int] -- defaults to [0, 0]
   , _lineTranslateAnchor :: Maybe LineTranslateAnchor
