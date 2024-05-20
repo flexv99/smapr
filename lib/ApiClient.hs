@@ -24,7 +24,7 @@ data Coord = Coord
   , zoom :: Double
   } deriving Show
 
--- helpers0
+-- helpers
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lon2tileX lon z = floor((lon + 180.0) / 360.0 * (2.0 ** z))
 

@@ -99,11 +99,6 @@ splitAtMove xs = filter (not . null) $ f xs []
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
-testP :: PolygonG
-testP = PolygonG { _pMoveTo = GeoAction { _command = Command { _cmd = MoveTo, _count = 1 },  _parameters = [(0, 0)]}
-                 , _pLineTo = GeoAction { _command = Command { _cmd = LineTo, _count = 1 },  _parameters = [(0, 0)] }
-                 , _pClosePath =  GeoAction { _command = Command { _cmd = ClosePath, _count = 1 }, _parameters = [] } }
-
 data PolygonG = PolygonG
   { _pMoveTo :: GeoAction
   , _pLineTo :: GeoAction
