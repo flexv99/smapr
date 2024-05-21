@@ -63,7 +63,7 @@ instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS 
-  { lineCap :: Maybe LineCap
+  { _lineCap :: Maybe LineCap
   , _lineJoin :: Maybe LineJoin
   , _lineMiterLimit :: Maybe Int -- defaults to 2
   , _lineRoundLimit :: Maybe Double -- defaults to 1.05
