@@ -1,11 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GADTs #-}
 
 module Style.Layers.Line where
 
 import GHC.Enum
 import qualified Data.Aeson as A
 import Control.Lens
+import Data.Text (toLower)
 
 -- - Butt: A cap with a squared-off end which is drawn to the exact endpoint of the line.
 -- - CRound: A cap with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
@@ -13,6 +14,12 @@ import Control.Lens
 -- defaults to Butt
 data LineCap = Butt | CRound | Square deriving (Enum, Eq, Show)
 
+instance A.FromJSON LineCap where
+  parseJSON = A.withText "LineCap" $ \t -> case toLower t of
+    "butt"   -> return Butt
+    "round"  -> return CRound
+    "square" -> return Square
+    _        -> return Butt
 
 -- - Bevel: A join with a squared-off end which is drawn beyond the endpoint of the line at a distance of one-half of the line's width.
 -- - JRound: A join with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
@@ -20,24 +27,40 @@ data LineCap = Butt | CRound | Square deriving (Enum, Eq, Show)
 -- optional
 data LineJoin = Bevel | JRound | Miter deriving (Enum, Eq, Show)
 
+instance A.FromJSON LineJoin where
+  parseJSON = A.withText "LineJoin" $ \t -> case toLower t of
+    "bevel" -> return Bevel
+    "round" -> return JRound
+    "Miter" -> return Miter
+    _       -> error "[Fatal] invalid line-join enum type"
+
 -- - Visible: The layer is shown.
 -- - None: The layer is not shown.
 -- defaults to Visible
 data Visibility = Visible | None deriving (Enum, Eq, Show)
+
+instance A.FromJSON Visibility where
+  parseJSON = A.withText "Visibility" $ \t -> case toLower t of
+    "visible" -> return Visible
+    "none"    -> return None
+    _         -> return Visible
 
 -- - Map: The line is translated relative to the map.
 -- - Viewport: The line is translated relative to the viewport.
 -- defaults to Map
 data LineTranslateAnchor = Map | Viewport deriving (Enum, Eq, Show)
 
-data ResolvedImage where
-  ResolvedImage :: {iconImage :: [[String]]} -> ResolvedImage
+instance A.FromJSON LineTranslateAnchor where
+  parseJSON = A.withText "LineTranslateAnchor" $ \t -> case toLower t of
+    "map"      -> return Map
+    "viewport" -> return Viewport
+    _          -> return Map 
 
-instance Show ResolvedImage where
-  show _ = "img"
+data ResolvedImage = ResolvedImage
+  { iconImage :: [[String]] } deriving (Show, Eq)
 
-instance Eq ResolvedImage where
-  (==) (ResolvedImage a) (ResolvedImage b) = a == b
+instance A.FromJSON ResolvedImage where
+  parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS 
   { lineCap :: Maybe LineCap
