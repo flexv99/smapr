@@ -56,7 +56,7 @@ instance A.FromJSON LineTranslateAnchor where
     "viewport" -> return Viewport
     _          -> return Map 
 
-data ResolvedImage = ResolvedImage
+newtype ResolvedImage = ResolvedImage
   { iconImage :: [[String]] } deriving (Show, Eq)
 
 instance A.FromJSON ResolvedImage where
@@ -82,3 +82,23 @@ data LineS = LineS
   , _lineGradient :: Maybe String
   } deriving (Show, Eq)
 makeLenses ''LineS
+
+instance A.FromJSON LineS where
+  parseJSON = A.withObject "LineS" $ \t -> LineS
+    <$> t A..:? "line-cap"
+    <*> t A..:? "line-join"
+    <*> t A..:? "line-miter-limit"
+    <*> t A..:? "line-round-limit"
+    <*> t A..:? "line-sort-key"
+    <*> t A..:? "visibility"
+    <*> t A..:? "line-opacity"
+    <*> t A..:? "line-color"
+    <*> t A..:? "line-translate"
+    <*> t A..:? "line-translate-anchor"
+    <*> t A..:? "line-width"
+    <*> t A..:? "line-gap-width"
+    <*> t A..:? "line-offset"
+    <*> t A..:? "line-blur"
+    <*> t A..:? "line-dash-array"
+    <*> t A..:? "line-pattern"
+    <*> t A..:? "line-gradient"
