@@ -31,7 +31,7 @@ instance A.FromJSON LineJoin where
   parseJSON = A.withText "LineJoin" $ \t -> case toLower t of
     "bevel" -> return Bevel
     "round" -> return JRound
-    "Miter" -> return Miter
+    "miter" -> return Miter
     _       -> error "[Fatal] invalid line-join enum type"
 
 -- - Visible: The layer is shown.
