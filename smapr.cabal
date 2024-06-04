@@ -36,7 +36,8 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
-                    , Style.Expressions.Types
+                    , Style.Types
+                    , Style.Expressions
                     , Style.Layers.Line
                     , Util
                     , ApiClient
@@ -70,6 +71,7 @@ library
                     , containers
                     , aeson
                     , transformers
+                    , colour
 
     hs-source-dirs:   lib
     default-language: Haskell2010
