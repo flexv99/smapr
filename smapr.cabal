@@ -36,6 +36,7 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
+                    , Style.Expressions.Types
                     , Style.Layers.Line
                     , Util
                     , ApiClient
@@ -57,6 +58,8 @@ library
                     , protocol-buffers-descriptor
                     , wreq
                     , lens
+                    , megaparsec
+                    , generic-deriving
                     , bytestring
                     , diagrams
                     , diagrams-lib
