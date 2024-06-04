@@ -20,13 +20,19 @@ newtype SGet = SGet { runGet :: T.Text } deriving (Show, Generic)
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme (skipMany (spaceChar <|> char ','))
 
+-- parse snake case property names
+snakeCaseChar :: Parser Char
+snakeCaseChar = alphaNumChar <|> char '_'
+
 -- Parse a string enclosed in double quotes
 quotedString :: Parser T.Text
-quotedString = char '"' >> T.pack <$> manyTill L.charLiteral (char '"')
+quotedString = label "property" $ between (char '"') (char '"') $ do
+  propName <- many snakeCaseChar 
+  pure $ T.pack propName
 
 -- Parse a getter expression
 getterExpression :: Parser SGet
-getterExpression = between (lexeme (char '[')) (lexeme (char ']')) $ do
+getterExpression = label "get" $ between (char '[') (char ']') $ do
     key <- quotedString
     lexeme (char ',')
     value <- quotedString
