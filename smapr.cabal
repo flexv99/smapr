@@ -36,6 +36,7 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
+                    , Style.Layers.Line
                     , Util
                     , ApiClient
 

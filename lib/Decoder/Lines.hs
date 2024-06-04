@@ -8,51 +8,49 @@ module Decoder.Lines (
   ) where
 
 import Decoder.Helper
-import Data.Aeson
+import qualified Data.Aeson as A
 import Data.List
+import Control.Lens
 
-instance ToJSON LineG where
+instance A.ToJSON LineG where
   toJSON (LineG pMoveTo pLineTo) =
-        object ["move_to" .= pMoveTo, "line_to" .= pLineTo]
+        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo]
 
   toEncoding (LineG pMoveTo pLineTo) =
-        pairs $ "move_to" .= pMoveTo <> "line_to" .= pLineTo
+        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo
 
 decodeLineCommands :: [Int] -> [[GeoAction]]
 decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
   where
     singleDecoder (l:ls) = GeoAction
-      { command = decodeCommand l
-      , parameters = tuplify $ map decodeParam ls
+      { _command = decodeCommand l
+      , _parameters = tuplify $ map decodeParam ls
       }
 
 absoluteLineG :: LineG -> LineG
-absoluteLineG p = LineG { lMoveTo = lMoveTo p
-                        , lLineTo = GeoAction { command = command $ lLineTo p, parameters = progSumLineTo }
-                        }
+absoluteLineG p = set (lLineTo . parameters) progSumLineTo p
   where
-    sumMoveTo     = foldl1 sumTuple (parameters $ lMoveTo p)
-    progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ lLineTo p)
-    closePath     = last $ parameters $ lMoveTo p
-
+    sumMoveTo     = foldl1 sumTuple $ view (lMoveTo . parameters) p
+    progSumLineTo = tail $ scanl sumTuple sumMoveTo $ view (lLineTo . parameters) p
+    closePath     = last $ view (lMoveTo . parameters) p
 
 relativeMoveTo :: [LineG] -> [LineG]
 relativeMoveTo = f []
   where
     f _ []        = []
     f acc (p:ps)  = if not $ null acc
-                    then LineG { lMoveTo = newMoveTo p acc, lLineTo = lLineTo p } : f (p : acc) ps
+                    then set lMoveTo (newMoveTo p acc) p : f (p : acc) ps
                     else p : f (p : acc) ps
-    newMoveTo p c = GeoAction { command = command $ lMoveTo p , parameters = zipWith sumTuple (parameters $ lMoveTo p) [sumMoveToAndLineTo c]}
+    newMoveTo p c = GeoAction { _command = view (lMoveTo . command) p
+                              , _parameters = zipWith sumTuple (view (lMoveTo . parameters) p) [sumMoveToAndLineTo c]}
 
 sumMoveToAndLineTo :: [LineG] -> Point
-sumMoveToAndLineTo polygons =
-    let extractPoints geoAction = if cmd (command geoAction) == MoveTo || cmd (command geoAction) == LineTo then parameters geoAction else []
-        allPoints = concatMap (\polygon -> extractPoints (lMoveTo polygon) ++ extractPoints (lLineTo polygon)) polygons
-    in foldl' sumTuple (0, 0) allPoints
+sumMoveToAndLineTo polygons = foldl' sumTuple (0, 0) allPoints
+    where      
+      allPoints = concatMap (\polygon -> view (lMoveTo . parameters) polygon ++ view (lLineTo . parameters) polygon) polygons
 
 decLine :: [Int] -> [LineG]
 decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
    where
     actionToLineG :: [GeoAction] -> LineG
-    actionToLineG g = LineG { lMoveTo = head g , lLineTo = last g }
+    actionToLineG g = LineG { _lMoveTo = head g , _lLineTo = last g }

@@ -23,40 +23,41 @@ decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
     singleDecoder (l:ls) = GeoAction
-      { command = decodeCommand l
-      , parameters = tuplify $ map decodeParam ls
+      { _command = decodeCommand l
+      , _parameters = tuplify $ map decodeParam ls
       }
 
 absolutePolygonG :: PolygonG -> PolygonG
-absolutePolygonG p = PolygonG { pMoveTo = pMoveTo p
-                              , pLineTo = GeoAction { command = command $ pLineTo p, parameters = progSumLineTo }
-                              , pClosePath = GeoAction { command = command $ pClosePath p, parameters = [closePath] }
-                              }
+absolutePolygonG p = set (pClosePath . parameters) [closePath] $ set (pLineTo . parameters) progSumLineTo p
   where
-    sumMoveTo = foldl1 sumTuple (parameters $ pMoveTo p)
-    progSumLineTo = tail $ scanl sumTuple sumMoveTo (parameters $ pLineTo p)
-    closePath = last $ parameters $ pMoveTo p
+    sumMoveTo = foldl1 sumTuple (view (pMoveTo . parameters) p)
+    progSumLineTo = tail $ scanl sumTuple sumMoveTo (view (pLineTo . parameters) p)
+    closePath = last $ view (pMoveTo . parameters) p
 
 relativeMoveTo :: [PolygonG] -> [PolygonG]
 relativeMoveTo = f []
   where
     f _ []        = []
     f acc (p:ps)  = if not $ null acc
-                    then PolygonG { pMoveTo = newMoveTo p acc, pLineTo = pLineTo p, pClosePath = pClosePath p } : f (p : acc) ps
+                    then set pMoveTo (newMoveTo p acc) p : f (p : acc) ps
                     else p : f (p : acc) ps
-    newMoveTo p c = GeoAction { command = command $ pMoveTo p , parameters = zipWith sumTuple (parameters $ pMoveTo p) [sumMoveToAndLineTo c]}
+    newMoveTo p c = GeoAction
+                      { _command = view (pMoveTo . command) p
+                      , _parameters = zipWith sumTuple (view (pMoveTo . parameters) p) [sumMoveToAndLineTo c]
+                      }
 
+-- refactor: is extractPoints even needed??
 sumMoveToAndLineTo :: [PolygonG] -> Point
-sumMoveToAndLineTo polygons =
-    let extractPoints geoAction = if cmd (command geoAction) == MoveTo || cmd (command geoAction) == LineTo then parameters geoAction else []
-        allPoints = concatMap (\polygon -> extractPoints (pMoveTo polygon) ++ extractPoints (pLineTo polygon)) polygons
+sumMoveToAndLineTo polygons = 
+    let extractPoints geoAction = if view (command . cmd) geoAction /= ClosePath then view parameters geoAction else []
+        allPoints = concatMap (\polygon -> extractPoints (view pMoveTo polygon) ++ extractPoints (view pLineTo polygon)) polygons
     in foldl' sumTuple (0, 0) allPoints
 
 decPolygon :: [Int] -> [PolygonG]
 decPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
    where
     actionToPolygonG :: [GeoAction] -> PolygonG
-    actionToPolygonG g = PolygonG { pMoveTo = head g , pLineTo = g !! 1, pClosePath = last g }
+    actionToPolygonG g = PolygonG { _pMoveTo = head g , _pLineTo = g !! 1, _pClosePath = last g }
 
 -- criteria inner/outer polygon
 -- https://en.wikipedia.org/wiki/Shoelace_formula
@@ -73,7 +74,7 @@ testShoelace :: [Point]
 testShoelace = [(1, 6), (3, 1), (7, 2), (4, 4), (8, 5)]
 
 polygonParams :: PolygonG -> [Point]
-polygonParams (PolygonG pMoveTo pLineTo pClosePath) = concat [parameters pMoveTo, parameters pLineTo, parameters pClosePath]
+polygonParams (PolygonG pMoveTo pLineTo pClosePath) = concat [view parameters pMoveTo, view parameters pLineTo, view parameters pClosePath]
 
 shoelace :: [Point] -> Double
 shoelace p = sh' p / 2
