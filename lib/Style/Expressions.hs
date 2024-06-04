@@ -7,7 +7,7 @@ import Data.Void (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
-import qualified Data.Text as T
+import qualified Data.Text.Lazy as T
 import Style.Types
 
 type Parser = Parsec
@@ -40,4 +40,4 @@ getterExpression = label "get" $ between (char '[') (char ']') $ do
         then return (SGet value)
         else fail "Expected \"get\" as the key"
 
--- test: parseTest getterExpression (toStrict $ encodeToLazyText ["get", "someProperyt"])
+-- test: parseTest getterExpression (encodeToLazyText ["get", "someProperyt"])
