@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module Style.Types where
 
@@ -31,6 +31,11 @@ missing ones:
 'variableAnchorOffsetCollection'
 -}
 
+type Parser = Parsec Void T.Text
+-- Void: The type for custom error messages. We have none, so use `Void`.
+-- T.Text: The input stream type.
+
+
 newtype StylesArray = StylesArray
   { getArray :: ([SType], Int, String) } deriving (Show, Generic)
 
@@ -39,6 +44,54 @@ data SType
   | SDouble  Double
   | SString  String
   | SBool    Bool
-  | STypeOf  String
-  | SArray   StylesArray
-  deriving (Show, Generic)
+  -- | STypeOf  String
+  -- | SArray   StylesArray
+  deriving (Show, Generic, Eq, Ord)
+
+-- the space consumer
+sc :: Parser ()
+sc = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme sc
+
+symbol :: T.Text -> Parser T.Text
+symbol = L.symbol sc
+
+-- parse snake case property names
+snakeCaseChar :: Parser Char
+snakeCaseChar = alphaNumChar <|> char '_'
+
+pString :: Parser SType
+pString = SString <$> lexeme (many snakeCaseChar) <?> "string literal"
+
+pInteger :: Parser SType
+pInteger = SInteger <$> lexeme (L.signed space L.decimal)
+
+pDouble :: Parser SType
+pDouble = SDouble <$> lexeme (L.signed space L.float)
+
+pNumber :: Parser SType
+pNumber = try pDouble <|> pInteger <?> "number"
+
+pBool :: Parser SType
+pBool = label "bool" $ lexeme $ (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
+        <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
+
+pAtom :: Parser SType
+pAtom = try $ choice
+  [ pBool
+  , pNumber
+  , pString
+  ]
+
+pArray :: Parser [SType]
+pArray = between (char '[' >> space) (char ']' >> space)
+  (listAtom `sepBy` (char ',' >> space))
+  where
+    listAtom = try $ choice
+      [ pBool
+      , between (char '"' >> space) (char '"' >> space) pString
+      , pNumber
+      ]
+
