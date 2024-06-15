@@ -1,4 +1,4 @@
 dist-newstyle
 .DS_Store
-test/
+test/generated
 smapr.cfg
