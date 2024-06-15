@@ -3,14 +3,14 @@
 module Style.Types where
 
 import GHC.Generics (Generic)
--- import qualified Data.Text.Internal.Lazy as T
--- import qualified Data.Text.Lazy as T
--- import Text.Megaparsec
--- import Text.Megaparsec.Char
--- import qualified Text.Megaparsec.Char.Lexer as L
--- import Data.Void
--- import qualified Data.Aeson.Types as A
--- import Data.Colour
+import qualified Data.Text.Internal.Lazy as T
+import qualified Data.Text.Lazy as T
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Void
+import qualified Data.Aeson.Types as A
+import Data.Colour
 
 -- Here are defined the types being used in the style spec
 -- reference: https://github.com/maplibre/maplibre-style-spec/blob/main/src/expression/types.ts#L133
