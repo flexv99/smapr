@@ -11,6 +11,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Void
 import qualified Data.Aeson.Types as A
 import Data.Colour
+import Control.Monad
 
 -- Here are defined the types being used in the style spec
 -- reference: https://github.com/maplibre/maplibre-style-spec/blob/main/src/expression/types.ts#L133
@@ -42,7 +43,7 @@ newtype StylesArray = StylesArray
 data SType
   = SInteger Int
   | SDouble  Double
-  | SString  String
+  | SString  T.Text
   | SBool    Bool
   -- | STypeOf  String
   -- | SArray   StylesArray
@@ -63,7 +64,9 @@ snakeCaseChar :: Parser Char
 snakeCaseChar = alphaNumChar <|> char '_'
 
 pString :: Parser SType
-pString = SString <$> lexeme (many snakeCaseChar) <?> "string literal"
+pString = SString <$> liftM T.pack (
+  between (char '"' >> space) (char '"' >> space)
+  (lexeme (many snakeCaseChar) <?> "string literal"))
 
 pInteger :: Parser SType
 pInteger = SInteger <$> lexeme (L.signed space L.decimal)
@@ -75,8 +78,9 @@ pNumber :: Parser SType
 pNumber = try pDouble <|> pInteger <?> "number"
 
 pBool :: Parser SType
-pBool = label "bool" $ lexeme $ (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
-        <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
+pBool = label "bool" $ lexeme $
+  (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
+  <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
 
 pAtom :: Parser SType
 pAtom = try $ choice
@@ -87,11 +91,5 @@ pAtom = try $ choice
 
 pArray :: Parser [SType]
 pArray = between (char '[' >> space) (char ']' >> space)
-  (listAtom `sepBy` (char ',' >> space))
-  where
-    listAtom = try $ choice
-      [ pBool
-      , between (char '"' >> space) (char '"' >> space) pString
-      , pNumber
-      ]
+  (pAtom `sepBy` (char ',' >> space))
 

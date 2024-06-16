@@ -23,10 +23,10 @@ main = hspec $ do
       parseMaybe pAtom "1.001" `shouldBe` (Just (SDouble 1.001))
   describe "Style.Types.Stypes.SString" $ do
     it "parse string" $ do
-      parseMaybe pAtom "abc" `shouldBe` (Just (SString "abc"))
+      parseMaybe pAtom "\"abc\"" `shouldBe` (Just (SString "abc"))
   describe "Style.Types.Stypes.SString" $ do
     it "parse snake cased string" $ do
-      parseMaybe pAtom "ab_c" `shouldBe` (Just (SString "ab_c"))
+      parseMaybe pAtom "\"ab_c\"" `shouldBe` (Just (SString "ab_c"))
   describe "Style.Types.Stypes.SType" $ do
     it "parse array" $ do
       parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` (Just ([SInteger (-1), SInteger 0, SDouble 0.4]))
@@ -42,7 +42,7 @@ main = hspec $ do
 
 
 expectedGetRes :: SGet
-expectedGetRes = SGet (T.pack "someProperyt")
+expectedGetRes = SGet (SString "someProperyt")
 
 expectedAtRes :: SAt SType
 expectedAtRes = SAt {array = [SString "a",SString "b",SString "c"], index = 1}

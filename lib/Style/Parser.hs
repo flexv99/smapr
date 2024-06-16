@@ -14,19 +14,18 @@ import Style.Types
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
 
--- Parse a string enclosed in double quotes
-quotedString :: Parser T.Text
-quotedString = label "property" $ between (char '"') (char '"') $ do
-  propName <- many snakeCaseChar 
-  pure $ T.pack propName
+pKeyword :: T.Text -> Parser T.Text
+pKeyword keyword = label ("property_key: " ++ T.unpack keyword) $
+  between (char '"' >> space) (char '"' >> space) $ 
+  lexeme (string keyword <* notFollowedBy alphaNumChar)
 
 -- test: parseTest literal "[\"literal\", [\"a\", \"b\", \"c\"]]"
 literal :: Parser [SType]
 literal = label "literal" $ do
   _ <- char '[' >> space
-  key <- quotedString
+  key <- pKeyword "literal"
   _ <- char ',' >> space
   array <- pArray
   _ <- char ']' >> space
-  if key /= T.pack "literal" then fail "Expected \"literal\" as the key" else return array
+  return array
 

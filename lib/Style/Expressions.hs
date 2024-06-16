@@ -19,26 +19,22 @@ data SAt a = SAt { array :: [a]
 -- Retrieves a property value from the current feature's properties,
 -- or from another object if a second argument is provided.
 -- Returns null if the requested property is missing.
-newtype SGet = SGet { runGet :: T.Text } deriving (Show, Generic, Eq)
+newtype SGet = SGet { runGet :: SType } deriving (Show, Generic, Eq)
 
 
 atP :: Parser (SAt SType)
-atP = label "at" $ between (char '[') (char ']') $ do
-  key <- quotedString
+atP = label "at" $ between (char '[' >> space) (char ']' >> space) $ do
+  key <- pKeyword "at"
   lexeme (char ',')
   value <- literal
   lexeme (char ',')
   idx <- L.decimal
-  if key == "at"
-        then return SAt {array = value, index = idx}
-        else fail "Expected \"at\" as the key"
+  return SAt {array = value, index = idx}
 
 -- Parse a getter expression
 getP :: Parser SGet
-getP = label "get" $ between (char '[') (char ']') $ do
-    key <- quotedString
+getP = label "get" $ between (char '[' >> space) (char ']' >> space) $ do
+    key <- pKeyword "get"
     lexeme (char ',')
-    value <- quotedString
-    if key == "get"
-        then return (SGet value)
-        else fail "Expected \"get\" as the key"
+    value <- pAtom
+    return (SGet value)
