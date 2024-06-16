@@ -12,7 +12,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Void
 import qualified Data.Aeson.Types as A
 import Data.Colour
-import Control.Monad
 
 type Parser = Parsec Void T.Text
 -- Void: The type for custom error messages. We have none, so use `Void`.
@@ -75,7 +74,7 @@ betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 --- PARSER
 
 pString :: Parser SType
-pString = SString <$> liftM T.pack (
+pString = SString <$> fmap T.pack (
   betweenDoubleQuotes
   (lexeme (many snakeCaseChar) <?> "string literal"))
 
@@ -104,13 +103,12 @@ pArray :: Parser [SType]
 pArray = betweenSquareBrackets
   (pAtom `sepBy` (char ',' >> space))
 
-
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
 
 pKeyword :: T.Text -> Parser T.Text
 pKeyword keyword = label ("property_key: " ++ T.unpack keyword) $
-  betweenDoubleQuotes $ 
+  betweenDoubleQuotes $
   lexeme (string keyword <* notFollowedBy alphaNumChar)
 
 -- test: parseTest literal "[\"literal\", [\"a\", \"b\", \"c\"]]"
@@ -122,6 +120,5 @@ literal :: Parser [SType]
 literal = label (show literalId) $ betweenSquareBrackets $ do
   key <- pKeyword literalId
   _ <- char ',' >> space
-  array <- pArray
-  return array
+  pArray
 

@@ -69,9 +69,8 @@ indexOfP = label (show indexOfId) $
     lexeme (char ',')
     onItems <- pArray
     start <- optional $ do
-      (lexeme (char ','))
-      givenIdx <- pInteger
-      return givenIdx
+      lexeme (char ',')
+      pInteger
     return SIndexOf { lookupItem = lookup, items = onItems, startIndex = start }
 
 -- Retrieves a property value from the current feature's properties,
@@ -89,5 +88,4 @@ getP = label (show getId) $
   betweenSquareBrackets $ do
     key <- pKeyword getId
     lexeme (char ',')
-    value <- pAtom
-    return (SGet value)
+    SGet <$> pAtom
