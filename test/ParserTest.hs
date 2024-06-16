@@ -7,36 +7,46 @@ import Style.Expressions
 
 main :: IO ()
 main = hspec $ do
-  describe "Style.Types.Stypes.SBool" $ do
+  describe "Style.Parser.SType.SBool" $ do
     it "parse bool" $ do
-      parseMaybe pAtom "false" `shouldBe` (Just (SBool False))
-  describe "Style.Types.Stypes.SNumber" $ do
+      parseMaybe pAtom "false" `shouldBe` Just (SBool False)
+  describe "Style.Types.Parser.SNumber" $ do
     it "parse number" $ do
-      parseMaybe pAtom "1" `shouldBe` (Just (SInteger 1))
-  describe "Style.Types.Stypes.SNumber" $ do
+      parseMaybe pAtom "1" `shouldBe` Just (SInteger 1)
+  describe "Style.Parser.SType.SNumber" $ do
     it "parse signed number" $ do
-      parseMaybe pAtom "-1" `shouldBe` (Just (SInteger (-1)))
-  describe "Style.Types.Stypes.SNumber" $ do
+      parseMaybe pAtom "-1" `shouldBe` Just (SInteger (-1))
+  describe "Style.Parser.SType.SNumber" $ do
     it "parse float" $ do
-      parseMaybe pAtom "1.001" `shouldBe` (Just (SDouble 1.001))
-  describe "Style.Types.Stypes.SString" $ do
+      parseMaybe pAtom "1.001" `shouldBe` Just (SDouble 1.001)
+  describe "Style.Parser.SType.SString" $ do
     it "parse string" $ do
-      parseMaybe pAtom "\"abc\"" `shouldBe` (Just (SString "abc"))
-  describe "Style.Types.Stypes.SString" $ do
+      parseMaybe pAtom "\"abc\"" `shouldBe` Just (SString "abc")
+  describe "Style.Parser.SType.SString" $ do
     it "parse snake cased string" $ do
-      parseMaybe pAtom "\"ab_c\"" `shouldBe` (Just (SString "ab_c"))
-  describe "Style.Types.Stypes.SType" $ do
+      parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
+  describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
-      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` (Just ([SInteger (-1), SInteger 0, SDouble 0.4]))
-  describe "Style.Expressions.getP" $ do
-    it "can parse getters" $ do
-      parseMaybe getP "[\"get\",\"someProperyt\"]" `shouldBe` (Just expectedGetRes)
-  describe "Style.Expressions.atP" $ do
-    it "can parse at expression" $ do
-      parseMaybe atP "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` (Just expectedAtRes)
+      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just ([SInteger (-1), SInteger 0, SDouble 0.4])
   describe "Style.Parser.literal" $ do
     it "parse literals" $ do
-      parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` (Just expectedLiteralRes)
+      parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` Just expectedLiteralRes
+  describe "Style.Expressions.getP" $ do
+    it "can parse getters" $ do
+      parseMaybe getP "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
+  describe "Style.Expressions.atP" $ do
+    it "can parse at expression" $ do
+      parseMaybe atP "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
+  describe "Style.Expressions.inP" $ do
+    it "can parse in expression" $ do
+      parseMaybe inP "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
+  describe "Style.Expressions.indexOfP" $ do
+    it "can parse index-of expressions with no starting index" $ do
+      parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
+  describe "Style.Expressions.indexOfP" $ do
+    it "can parse index-of expressions with starting index" $ do
+      parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
+
 
 
 expectedGetRes :: SGet
@@ -47,3 +57,14 @@ expectedAtRes = SAt {array = [SString "a",SString "b",SString "c"], index = 1}
 
 expectedLiteralRes :: [SType]
 expectedLiteralRes = [SString "a", SString "b"]
+
+expectedInRes :: SIn SType
+expectedInRes = SIn {object = SString "type", item = SString "Point"}
+
+expectedIndexOfRes :: SIndexOf SType
+expectedIndexOfRes = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+                              , startIndex = Nothing}
+
+expectedIndexOfRes' :: SIndexOf SType
+expectedIndexOfRes' = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+                               , startIndex = Just (SInteger 2)}

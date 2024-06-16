@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, TypeOperators #-}
 
 module Style.Parser where
 
@@ -50,6 +50,8 @@ data SType
   -- | SArray   StylesArray
   deriving (Show, Generic, Eq, Ord)
 
+--- HELPERS
+
 -- the space consumer
 sc :: Parser ()
 sc = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")
@@ -64,9 +66,17 @@ symbol = L.symbol sc
 snakeCaseChar :: Parser Char
 snakeCaseChar = alphaNumChar <|> char '_'
 
+betweenSquareBrackets :: (Token s ~ Char, MonadParsec e s m) => m a -> m a
+betweenSquareBrackets = between (char '[' >> space) (char ']' >> space)
+
+betweenDoubleQuotes :: (Token s ~ Char, MonadParsec e s m) => m a -> m a
+betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
+
+--- PARSER
+
 pString :: Parser SType
 pString = SString <$> liftM T.pack (
-  between (char '"' >> space) (char '"' >> space)
+  betweenDoubleQuotes
   (lexeme (many snakeCaseChar) <?> "string literal"))
 
 pInteger :: Parser SType
@@ -91,7 +101,7 @@ pAtom = try $ choice
   ]
 
 pArray :: Parser [SType]
-pArray = between (char '[' >> space) (char ']' >> space)
+pArray = betweenSquareBrackets
   (pAtom `sepBy` (char ',' >> space))
 
 
@@ -100,16 +110,18 @@ skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
 
 pKeyword :: T.Text -> Parser T.Text
 pKeyword keyword = label ("property_key: " ++ T.unpack keyword) $
-  between (char '"' >> space) (char '"' >> space) $ 
+  betweenDoubleQuotes $ 
   lexeme (string keyword <* notFollowedBy alphaNumChar)
 
 -- test: parseTest literal "[\"literal\", [\"a\", \"b\", \"c\"]]"
+
+literalId :: T.Text
+literalId = "literal"
+
 literal :: Parser [SType]
-literal = label "literal" $ do
-  _ <- char '[' >> space
-  key <- pKeyword "literal"
+literal = label (show literalId) $ betweenSquareBrackets $ do
+  key <- pKeyword literalId
   _ <- char ',' >> space
   array <- pArray
-  _ <- char ']' >> space
   return array
 
