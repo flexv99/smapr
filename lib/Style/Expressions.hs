@@ -8,7 +8,6 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text.Lazy as T
-import Style.Types
 import Style.Parser
 
 -- Retrieves an item from an array.

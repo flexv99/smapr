@@ -35,7 +35,6 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
-                    , Style.Types
                     , Style.Parser
                     , Style.Expressions
                     , Style.Layers.Line

@@ -4,8 +4,6 @@ import Test.Hspec
 import Text.Megaparsec
 import Style.Parser
 import Style.Expressions
-import qualified Data.Text.Lazy as T
-import Style.Types
 
 main :: IO ()
 main = hspec $ do
