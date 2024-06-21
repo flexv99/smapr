@@ -2,8 +2,10 @@
 
 import Test.Hspec
 import Text.Megaparsec
+import qualified Data.Text.Lazy as T
 import Style.Parser
 import Style.Expressions
+import qualified Renderer.Geometry as R
 
 main :: IO ()
 main = hspec $ do
@@ -46,6 +48,10 @@ main = hspec $ do
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with starting index" $ do
       parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
+  describe "" $ do
+    it "render a vector tile" $ do
+       R.test
+
 
 
 
@@ -68,3 +74,6 @@ expectedIndexOfRes = SIndexOf {lookupItem = SString "foo", items = [SString "baz
 expectedIndexOfRes' :: SIndexOf SType
 expectedIndexOfRes' = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
+
+waterLayerStyle :: T.Text
+waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
