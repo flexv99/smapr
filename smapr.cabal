@@ -42,7 +42,7 @@ library
                     , ApiClient
 
     -- Modules included in this library but not exported.
-    -- other-modules: Decoder.Helper
+    other-modules: Decoder.Helper
     -- Auto generated modules: proto stuff
     autogen-modules:  Proto.Vector_tile
                     , Proto.Vector_tile.Tile
