@@ -38,7 +38,7 @@ renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map
 test :: IO ()
 test = do
   t <- fakerTile
-  let roads = renderLayer "roads" <$> t
-  let buildings = renderLayer "buildings" <$> t
+  let roads = renderLayer "transportation" <$> t
+  let buildings = renderLayer "building" <$> t
   let d = fmap (<>) roads <*> buildings
   maybe (putStrLn "Nothing") writeSvg d
