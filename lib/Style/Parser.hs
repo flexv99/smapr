@@ -1,12 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 
 module Style.Parser where
 
 import qualified Data.Aeson.Types as A
 import Data.Colour
 import Data.Colour.RGBSpace.HSL
+import Data.Colour.SRGB
 import qualified Data.Text.Internal.Lazy as T
 import qualified Data.Text.Lazy as T
 import Data.Void
@@ -15,10 +17,9 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-type Parser = Parsec Void T.Text
-
 -- Void: The type for custom error messages. We have none, so use `Void`.
 -- T.Text: The input stream type.
+type Parser = Parsec Void T.Text
 
 newtype StylesArray = StylesArray
   {getArray :: ([SType], Int, String)}
@@ -48,7 +49,7 @@ data SType
   | SDouble Double
   | SString T.Text
   | SBool Bool
-  | SColor (Colour Double)
+  | SColor Color
   deriving (-- | STypeOf  String
             -- | SArray   StylesArray
             Show, Generic, Eq)
@@ -104,23 +105,7 @@ pBool =
     lexeme $
       (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
         <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
-
-pPercentage :: Parser SType
-pPercentage = do
-  num <- pInteger
-  _ <- char '%'
-  return num
-
-pColor :: Parser (SType, SType, SType)
-pColor = betweenDoubleQuotes $ do
-           key <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
-           betweenBrackets $ do
-             hue        <- pInteger
-             _          <- char ',' >> space
-             saturation <- pPercentage
-             _          <- char ',' >> space
-             lightness  <- pPercentage
-             pure (hue, saturation, lightness)
+                   
 
 pAtom :: Parser SType
 pAtom =
@@ -153,3 +138,44 @@ literal = label (show literalId) $ betweenSquareBrackets $ do
   key <- pKeyword literalId
   _ <- char ',' >> space
   pArray
+
+
+-- Color
+-- The color type is a color in the sRGB color space. Colors are JSON strings in a variety of permitted formats: HTML-style hex values, RGB, RGBA, HSL, and HSLA. Predefined HTML colors names, like yellow and blue, are also permitted.
+-- {
+--     "line-color": "#ff0",
+--     "line-color": "#ffff00",
+--     "line-color": "rgb(255, 255, 0)",
+--     "line-color": "rgba(255, 255, 0, 1)",
+--     "line-color": "hsl(100, 50%, 50%)",
+--     "line-color": "hsla(100, 50%, 50%, 1)",
+--     "line-color": "yellow"
+-- }
+
+type Color = Colour Double
+
+
+hslToColor :: Double -> Double -> Double  -> Color
+hslToColor h s l = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
+  where
+    rgb = hsl h (s / 100) (l / 100)
+
+pHslColor :: Parser SType
+pHslColor = betweenDoubleQuotes $ do
+           key <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
+           betweenBrackets $ do
+             hue        <- pInt
+             _          <- char ',' >> space
+             saturation <- pColorPercentage
+             _          <- char ',' >> space
+             lightness  <- pColorPercentage
+             pure $ SColor (hslToColor hue saturation lightness)
+               where
+                 pInt = lexeme (L.signed space L.decimal)
+                 pColorPercentage = do
+                   num <- pInt
+                   _   <- char '%'
+                   return num
+
+showSColor :: SType -> String
+showSColor (SColor a) = sRGB24show a 

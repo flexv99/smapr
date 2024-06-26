@@ -27,6 +27,9 @@ main = hspec $ do
   describe "Style.Parser.SType.SString" $ do
     it "parse snake cased string" $ do
       parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
+  describe "Style.Parser.SType.SColor" $ do
+    it "parse hsl color" $ do
+      fmap showSColor (parseMaybe pHslColor "\"hsl(205,56%,73%)\"") `shouldBe` Just "#94c1e1"
   describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
       parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just ([SInteger (-1), SInteger 0, SDouble 0.4])
@@ -48,11 +51,6 @@ main = hspec $ do
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with starting index" $ do
       parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
-  describe "" $ do
-    it "render a vector tile" $ do
-       R.test
-
-
 
 
 expectedGetRes :: SGet
