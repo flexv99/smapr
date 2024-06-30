@@ -31,6 +31,10 @@ data POCPaint = POCPaint
   }
   deriving (Show, Eq, Generic)
 
+-- (.!=) :: Parser (Maybe a) -> a -> Parser a
+
+-- Helper for use in combination with .:? to provide default values for optional JSON object fields.
+
 instance A.FromJSON SType where
   parseJSON (A.Number n) = pure $ SInteger (round n)
   parseJSON (A.Bool b)   = pure $ SBool b
@@ -40,8 +44,7 @@ instance A.FromJSON SType where
           case parse pAtom "" (T.fromStrict v) of
             Left err  -> fail $ errorBundlePretty err
             Right res -> return res
-      )
-      a
+      ) a
 
 instance A.FromJSON POCPaint where
   parseJSON = A.withObject "POCPaint" $ \obj ->
