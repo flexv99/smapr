@@ -29,7 +29,7 @@ main = hspec $ do
       parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
   describe "Style.Parser.SType.SColor" $ do
     it "parse hsl color" $ do
-      fmap showSColor (parseMaybe pHslColor "\"hsl(205,56%,73%)\"") `shouldBe` Just "#94c1e1"
+      fmap showSColor (parseMaybe pHslColor "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
   describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
       parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just ([SInteger (-1), SInteger 0, SDouble 0.4])

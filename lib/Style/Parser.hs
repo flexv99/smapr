@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Style.Parser where
 
@@ -83,12 +84,11 @@ betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 
 pString :: Parser SType
 pString =
-  SString
+ SString
     <$> fmap
       T.pack
-      ( betweenDoubleQuotes
-          (lexeme (many snakeCaseChar) <?> "string literal")
-      )
+      (betweenDoubleQuotes
+          (lexeme (many snakeCaseChar) <?> "string literal"))
 
 pInteger :: Parser SType
 pInteger = SInteger <$> lexeme (L.signed space L.decimal)
@@ -111,8 +111,10 @@ pAtom :: Parser SType
 pAtom =
   try $
     choice
-      [ pBool,
+      [
         pNumber,
+        pBool,
+        pHslColor,
         pString
       ]
 
@@ -161,7 +163,7 @@ hslToColor h s l = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
     rgb = hsl h (s / 100) (l / 100)
 
 pHslColor :: Parser SType
-pHslColor = betweenDoubleQuotes $ do
+pHslColor = do
            key <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
            betweenBrackets $ do
              hue        <- pInt
