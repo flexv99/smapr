@@ -51,6 +51,12 @@ main = hspec $ do
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with starting index" $ do
       parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
+  describe "Style.Expressions.eqP" $ do
+    it "can parse eqality expression" $ do
+      parseMaybe eqP "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
+  describe "Style.Expressions.eqP" $ do
+    it "can parse eqality expression on literal" $ do
+      parseMaybe eqP "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
 
 
 expectedGetRes :: SGet
@@ -72,6 +78,12 @@ expectedIndexOfRes = SIndexOf {lookupItem = SString "foo", items = [SString "baz
 expectedIndexOfRes' :: SIndexOf SType
 expectedIndexOfRes' = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
+
+expectedEq :: SEq SType
+expectedEq = SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
+
+expectedEqOnSType :: SEq SType
+expectedEqOnSType = SEq { iOne = SInteger 1, iTwo = SInteger 1 }
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"

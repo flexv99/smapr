@@ -52,6 +52,7 @@ data SType
   | SBool Bool
   | SColor Color
   | SArray [SType]
+  | STypeType T.Text
   deriving (-- | STypeOf  String
             -- | SArray   StylesArray
             Show, Generic, Eq)
@@ -106,7 +107,11 @@ pBool =
     lexeme $
       (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
         <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
-                   
+
+pType :: Parser SType
+pType = label "type" $ betweenDoubleQuotes $ do
+  t <- lexeme (string "$type" <* notFollowedBy alphaNumChar)
+  pure $ STypeType t
 
 pAtom :: Parser SType
 pAtom =
@@ -171,8 +176,7 @@ pHslColor = do
              _          <- char ',' >> space
              saturation <- pColorPercentage
              _          <- char ',' >> space
-             lightness  <- pColorPercentage
-             pure $ SColor (hslToColor hue saturation lightness)
+             SColor . hslToColor hue saturation <$> pColorPercentage
                where
                  pInt = lexeme (L.signed space L.decimal)
                  pColorPercentage = do
@@ -181,4 +185,4 @@ pHslColor = do
                    return num
 
 showSColor :: SType -> String
-showSColor (SColor a) = sRGB24show a 
+showSColor (SColor a) = sRGB24show a

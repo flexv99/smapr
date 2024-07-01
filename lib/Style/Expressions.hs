@@ -18,7 +18,7 @@ data SAt a = SAt { array :: [a]
                  } deriving (Show, Generic, Eq)
 
 atId :: T.Text
-atId = "at"
+atId = "at" 
 
 atP :: Parser (SAt SType)
 atP = label (show atId) $
@@ -89,3 +89,26 @@ getP = label (show getId) $
     key <- pKeyword getId
     lexeme (char ',')
     SGet <$> pAtom
+
+
+-- == 
+-- Returns true if the input values are equal, false otherwise.
+-- The comparison is strictly typed: values of different runtime types are always considered unequal.
+-- Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
+-- Accepts an optional collator argument to control locale-dependent string comparisons.
+data SEq a = SEq { iOne :: SType
+                 , iTwo :: SType
+                 } deriving (Show, Generic, Eq)
+
+eqId :: T.Text
+eqId = "=="
+
+eqP :: Parser (SEq SType)
+eqP = label (show eqId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword eqId
+    lexeme (char ',')
+    item1 <- pType <|> pAtom
+    lexeme (char ',')
+    item2 <- pAtom
+    return SEq { iOne = item1, iTwo = item2 }
