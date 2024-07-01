@@ -51,6 +51,7 @@ data SType
   | SString T.Text
   | SBool Bool
   | SColor Color
+  | SArray [SType]
   deriving (-- | STypeOf  String
             -- | SArray   StylesArray
             Show, Generic, Eq)
