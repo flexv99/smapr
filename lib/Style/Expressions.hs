@@ -11,8 +11,11 @@ import qualified Data.Text.Lazy as T
 import Style.Parser
 
 --- LOOKUP:
--- at: Retrieves an item from an array.
--- ["at", value, number]: value
+{-
+at
+Retrieves an item from an array.
+["at", value, number]: value
+-}
 data SAt a = SAt { array :: [a]
                  , index :: Int
                  } deriving (Show, Generic, Eq)
@@ -30,8 +33,11 @@ atP = label (show atId) $
     idx <- L.decimal
     return SAt {array = value, index = idx}
 
--- in: Determines whether an item exists in an array or a substring exists in a string.
--- ["in", value, value]: boolean
+{-
+in
+Determines whether an item exists in an array or a substring exists in a string.
+["in", value, value]: boolean
+-}
 data SIn a = SIn { object :: a
                  , item :: a
                  } deriving (Show, Generic, Eq)
@@ -49,9 +55,12 @@ inP = label (show inId) $
     itm <- pAtom
     return SIn { object = obj, item = itm }
 
--- index-of: Returns the first position at which an item can be found in an array or a substring can be found in a string,
--- or -1 if the input cannot be found. Accepts an optional index from where to begin the search.
--- ["index-of", value, value, number?]: number
+{-
+index-of
+Returns the first position at which an item can be found in an array or a substring can be found in a string,
+or -1 if the input cannot be found. Accepts an optional index from where to begin the search.
+["index-of", value, value, number?]: number
+-}
 data SIndexOf a = SIndexOf { lookupItem :: a
                            , items :: [a]
                            , startIndex :: Maybe SType
@@ -73,10 +82,13 @@ indexOfP = label (show indexOfId) $
       pInteger
     return SIndexOf { lookupItem = lookup, items = onItems, startIndex = start }
 
--- Retrieves a property value from the current feature's properties,
--- or from another object if a second argument is provided.
--- Returns null if the requested property is missing.
--- ["get", string]: value
+{-
+get
+Retrieves a property value from the current feature's properties,
+or from another object if a second argument is provided.
+Returns null if the requested property is missing.
+["get", string]: value
+-}
 newtype SGet = SGet { runGet :: SType } deriving (Show, Generic, Eq)
 
 getId :: T.Text
@@ -91,11 +103,13 @@ getP = label (show getId) $
     SGet <$> pAtom
 
 
--- == 
--- Returns true if the input values are equal, false otherwise.
--- The comparison is strictly typed: values of different runtime types are always considered unequal.
--- Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
--- Accepts an optional collator argument to control locale-dependent string comparisons.
+{-
+== 
+Returns true if the input values are equal, false otherwise.
+The comparison is strictly typed: values of different runtime types are always considered unequal.
+Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
+Accepts an optional collator argument to control locale-dependent string comparisons.
+-}
 data SEq a = SEq { iOne :: SType
                  , iTwo :: SType
                  } deriving (Show, Generic, Eq)
