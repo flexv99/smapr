@@ -19,12 +19,12 @@ import Text.Megaparsec
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
 
 data POCLayer = POCLayer
-  { id :: Int
+  { id :: T.Text
   , layerType :: T.Text
   , source :: T.Text
   , sourceLayer :: T.Text
-  , filter :: T.Text
-  , paint :: POCPaint
+  , filter :: SType
+  , paint :: Maybe POCPaint
   }
   deriving (Show, Eq, Generic)
 
@@ -66,22 +66,37 @@ instance A.FromJSON POCPaint where
       <*> obj A..:? "stops"
       <*> obj A..:? "line-width"
 
+instance A.FromJSON POCLayer where
+  parseJSON = A.withObject "POCLayer" $ \obj ->
+    POCLayer
+      <$> obj A..: "id"
+      <*> obj A..: "type"
+      <*> obj A..: "source"
+      <*> obj A..: "source-layer"
+      <*> obj A..: "filter"
+      <*> obj A..:? "paint"
+
 tpaint :: B.ByteString
 tpaint = "{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}"
 
--- {
---   "id": "waterway",
---   "type": "line",
---   "source": "openmaptiles",
---   "source-layer": "waterway",
---   "filter": [
---     "all",
---     ["==", "$type", "LineString"],
---     ["!in", "brunnel", "tunnel", "bridge"]
---   ],
---   "paint": {
---     "line-color": "hsl(s205, 56%, 73%)",
---     "line-opacity": 1,
---     "line-width": {"base": 1.4, "stops": [[8, 1], [20, 8]]}
---   }
--- },
+{-
+  {
+  "id": "waterway",
+  "type": "line",
+  "source": "openmaptiles",
+  "source-layer": "waterway",
+  "filter": [
+    "all",
+    ["==", "$type", "LineString"],
+    ["!in", "brunnel", "tunnel", "bridge"]
+  ],
+  "paint": {
+    "line-color": "hsl(205, 56%, 73%)",
+    "line-opacity": 1,
+    "line-width": {"base": 1.4, "stops": [[8, 1], [20, 8]]}
+  }
+},
+-}
+
+twaterway :: B.ByteString
+twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]],\"paint\":{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
