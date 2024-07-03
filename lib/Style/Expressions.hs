@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances #-}
 
 module Style.Expressions where
 
@@ -6,9 +6,17 @@ import GHC.Generics (Generic)
 import Data.Void (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Text as A
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text.Lazy as T
 import Style.Parser
+
+class SExpression a where
+    sParse :: Parser a
+
+-- a wrapper to avoid Constraint is no smaller than the instance head
+newtype Expression a = Expression a deriving (Show)
 
 --- LOOKUP:
 {-
@@ -32,6 +40,9 @@ atP = label (show atId) $
     lexeme (char ',')
     idx <- L.decimal
     return SAt {array = value, index = idx}
+
+instance SExpression (SAt SType) where
+    sParse = atP
 
 {-
 in
@@ -82,6 +93,9 @@ indexOfP = label (show indexOfId) $
       pInteger
     return SIndexOf { lookupItem = lookup, items = onItems, startIndex = start }
 
+instance SExpression (SIndexOf SType) where
+    sParse = indexOfP
+
 {-
 get
 Retrieves a property value from the current feature's properties,
@@ -126,3 +140,15 @@ eqP = label (show eqId) $
     lexeme (char ',')
     item2 <- pAtom
     return SEq { iOne = item1, iTwo = item2 }
+
+
+instance (SExpression a) => A.FromJSON (Expression a) where
+    parseJSON = A.withArray "Expression" $ \v ->
+                case parse sParse "" (A.encodeToLazyText v) of
+                  Left err  -> fail $ errorBundlePretty err
+                  Right res -> return (Expression res)
+
+-- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String (Expression (SAt SType))
+
+
+-- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String (Expression (SAt SType))

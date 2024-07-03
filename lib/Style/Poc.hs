@@ -13,6 +13,7 @@ import Data.Colour (transparent)
 import qualified Data.Vector as V
 import GHC.Generics
 import Style.Parser
+import Style.Expressions
 import Text.Megaparsec
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
@@ -23,10 +24,9 @@ data POCLayer = POCLayer
   , layerType :: T.Text
   , source :: T.Text
   , sourceLayer :: T.Text
-  , filter :: SType
+  , filter :: T.Text
   , paint :: Maybe POCPaint
-  }
-  deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic)
 
 data POCPaint = POCPaint
   { lineColor :: Maybe SType
