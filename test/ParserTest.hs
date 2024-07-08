@@ -62,27 +62,27 @@ main = hspec $ do
 expectedGetRes :: SGet
 expectedGetRes = SGet (SString "someProperyt")
 
-expectedAtRes :: SAt SType
+expectedAtRes :: SAt
 expectedAtRes = SAt {array = [SString "a",SString "b",SString "c"], index = 1}
 
 expectedLiteralRes :: [SType]
 expectedLiteralRes = [SString "a", SString "b"]
 
-expectedInRes :: SIn SType
+expectedInRes :: SIn
 expectedInRes = SIn {object = SString "type", item = SString "Point"}
 
-expectedIndexOfRes :: SIndexOf SType
+expectedIndexOfRes :: SIndexOf
 expectedIndexOfRes = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                               , startIndex = Nothing}
 
-expectedIndexOfRes' :: SIndexOf SType
+expectedIndexOfRes' :: SIndexOf
 expectedIndexOfRes' = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
 
-expectedEq :: SEq SType
+expectedEq :: SEq
 expectedEq = SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
 
-expectedEqOnSType :: SEq SType
+expectedEqOnSType :: SEq
 expectedEqOnSType = SEq { iOne = SInteger 1, iTwo = SInteger 1 }
 
 waterLayerStyle :: T.Text

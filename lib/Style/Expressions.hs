@@ -12,11 +12,27 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text.Lazy as T
 import Style.Parser
 
-class SExpression a where
-    sParse :: Parser a
+expressionParser :: Parser Expression
+expressionParser = label "Expression" $ choice
+      [ SAtType <$> atP
+      , SInType <$> inP
+      , SIndexOfType <$> indexOfP
+      , SGetType <$> getP
+      , SEqType <$> eqP
+      ]
+
+test :: Parser Expression
+test = (SAtType <$> atP) <|> (SInType <$> inP)
+
 
 -- a wrapper to avoid Constraint is no smaller than the instance head
-newtype Expression a = Expression a deriving (Show)
+data Expression
+  = SAtType SAt
+  | SInType SIn
+  | SIndexOfType SIndexOf
+  | SGetType SGet
+  | SEqType SEq
+  deriving (Show)
 
 --- LOOKUP:
 {-
@@ -24,14 +40,14 @@ at
 Retrieves an item from an array.
 ["at", value, number]: value
 -}
-data SAt a = SAt { array :: [a]
-                 , index :: Int
-                 } deriving (Show, Generic, Eq)
+data SAt = SAt { array :: [SType]
+               , index :: Int
+               } deriving (Show, Generic, Eq)
 
 atId :: T.Text
 atId = "at" 
 
-atP :: Parser (SAt SType)
+atP :: Parser SAt
 atP = label (show atId) $
   betweenSquareBrackets $ do
     key <- pKeyword atId
@@ -41,22 +57,19 @@ atP = label (show atId) $
     idx <- L.decimal
     return SAt {array = value, index = idx}
 
-instance SExpression (SAt SType) where
-    sParse = atP
-
 {-
 in
 Determines whether an item exists in an array or a substring exists in a string.
 ["in", value, value]: boolean
 -}
-data SIn a = SIn { object :: a
-                 , item :: a
+data SIn = SIn { object :: SType
+                 , item :: SType
                  } deriving (Show, Generic, Eq)
 
 inId :: T.Text
 inId = "in"
 
-inP :: Parser (SIn SType)
+inP :: Parser SIn
 inP = label (show inId) $
   betweenSquareBrackets $ do
     key <- pKeyword inId
@@ -72,15 +85,15 @@ Returns the first position at which an item can be found in an array or a substr
 or -1 if the input cannot be found. Accepts an optional index from where to begin the search.
 ["index-of", value, value, number?]: number
 -}
-data SIndexOf a = SIndexOf { lookupItem :: a
-                           , items :: [a]
-                           , startIndex :: Maybe SType
-                           } deriving (Show, Generic, Eq)
+data SIndexOf = SIndexOf { lookupItem :: SType
+                         , items :: [SType]
+                         , startIndex :: Maybe SType
+                         } deriving (Show, Generic, Eq)
 
 indexOfId :: T.Text
 indexOfId = "index-of"
 
-indexOfP :: Parser (SIndexOf SType)
+indexOfP :: Parser SIndexOf
 indexOfP = label (show indexOfId) $
   betweenSquareBrackets $ do
     key <- pKeyword indexOfId
@@ -92,9 +105,6 @@ indexOfP = label (show indexOfId) $
       lexeme (char ',')
       pInteger
     return SIndexOf { lookupItem = lookup, items = onItems, startIndex = start }
-
-instance SExpression (SIndexOf SType) where
-    sParse = indexOfP
 
 {-
 get
@@ -116,7 +126,6 @@ getP = label (show getId) $
     lexeme (char ',')
     SGet <$> pAtom
 
-
 {-
 == 
 Returns true if the input values are equal, false otherwise.
@@ -124,14 +133,14 @@ The comparison is strictly typed: values of different runtime types are always c
 Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
 Accepts an optional collator argument to control locale-dependent string comparisons.
 -}
-data SEq a = SEq { iOne :: SType
-                 , iTwo :: SType
-                 } deriving (Show, Generic, Eq)
+data SEq = SEq { iOne :: SType
+               , iTwo :: SType
+               } deriving (Show, Generic, Eq)
 
 eqId :: T.Text
 eqId = "=="
 
-eqP :: Parser (SEq SType)
+eqP :: Parser SEq
 eqP = label (show eqId) $
   betweenSquareBrackets $ do
     key <- pKeyword eqId
@@ -142,11 +151,23 @@ eqP = label (show eqId) $
     return SEq { iOne = item1, iTwo = item2 }
 
 
-instance (SExpression a) => A.FromJSON (Expression a) where
+{-
+all
+Returns true if all the inputs are true, false otherwise. The inputs are evaluated in order, and evaluation is short-circuiting: once an input expression evaluates to false, the result is false and no further input expressions are evaluated.
+-}
+data SAll = SAll { args :: [SType] } deriving (Show, Generic, Eq)
+
+
+
+
+
+
+
+instance A.FromJSON Expression where
     parseJSON = A.withArray "Expression" $ \v ->
-                case parse sParse "" (A.encodeToLazyText v) of
+                case parse expressionParser "" (A.encodeToLazyText v) of
                   Left err  -> fail $ errorBundlePretty err
-                  Right res -> return (Expression res)
+                  Right res -> return res
 
 -- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String (Expression (SAt SType))
 
