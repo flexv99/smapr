@@ -117,11 +117,10 @@ pAtom :: Parser SType
 pAtom =
   try $
     choice
-      [
-        pNumber,
-        pBool,
-        pHslColor,
-        pString
+      [ pNumber
+      , pBool
+      , pHslColor
+      , pString
       ]
 
 pArray :: Parser [SType]
