@@ -38,52 +38,44 @@ main = hspec $ do
       parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` Just expectedLiteralRes
   describe "Style.Expressions.getP" $ do
     it "can parse getters" $ do
-      parseMaybe getP "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
+      parseMaybe expressionParser "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
   describe "Style.Expressions.atP" $ do
     it "can parse at expression" $ do
-      parseMaybe atP "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
+      parseMaybe expressionParser "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
   describe "Style.Expressions.inP" $ do
     it "can parse in expression" $ do
-      parseMaybe inP "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
+      parseMaybe expressionParser "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with no starting index" $ do
-      parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
+      parseMaybe expressionParser "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with starting index" $ do
-      parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
+      parseMaybe expressionParser "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
   describe "Style.Expressions.eqP" $ do
     it "can parse eqality expression" $ do
-      parseMaybe eqP "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
+      parseMaybe expressionParser "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
   describe "Style.Expressions.eqP" $ do
     it "can parse eqality expression on literal" $ do
-      parseMaybe eqP "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
+      parseMaybe expressionParser "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
 
 
-expectedGetRes :: SGet
-expectedGetRes = SGet (SString "someProperyt")
+expectedGetRes = SGetType $ SGet (SString "someProperyt")
 
-expectedAtRes :: SAt
-expectedAtRes = SAt {array = [SString "a",SString "b",SString "c"], index = 1}
+expectedAtRes = SAtType $ SAt {array = [SString "a",SString "b",SString "c"], index = 1}
 
-expectedLiteralRes :: [SType]
 expectedLiteralRes = [SString "a", SString "b"]
 
-expectedInRes :: SIn
-expectedInRes = SIn {object = SString "type", item = SString "Point"}
+expectedInRes = SInType $ SIn {object = SString "type", item = SString "Point"}
 
-expectedIndexOfRes :: SIndexOf
-expectedIndexOfRes = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                               , startIndex = Nothing}
 
-expectedIndexOfRes' :: SIndexOf
-expectedIndexOfRes' = SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
 
-expectedEq :: SEq
-expectedEq = SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
+expectedEq = SEqType $ SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
 
-expectedEqOnSType :: SEq
-expectedEqOnSType = SEq { iOne = SInteger 1, iTwo = SInteger 1 }
+expectedEqOnSType = SEqType $ SEq { iOne = SInteger 1, iTwo = SInteger 1 }
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"

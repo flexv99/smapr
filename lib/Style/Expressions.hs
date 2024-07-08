@@ -12,27 +12,22 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text.Lazy as T
 import Style.Parser
 
-expressionParser :: Parser Expression
-expressionParser = label "Expression" $ choice
-      [ SAtType <$> atP
-      , SInType <$> inP
-      , SIndexOfType <$> indexOfP
-      , SGetType <$> getP
-      , SEqType <$> eqP
-      ]
-
-test :: Parser Expression
-test = (SAtType <$> atP) <|> (SInType <$> inP)
-
-
--- a wrapper to avoid Constraint is no smaller than the instance head
 data Expression
   = SAtType SAt
   | SInType SIn
   | SIndexOfType SIndexOf
   | SGetType SGet
   | SEqType SEq
-  deriving (Show)
+  deriving (Show, Eq)
+
+expressionParser :: Parser Expression
+expressionParser = label "Expression" $ choice $ map try 
+      [ SEqType      <$> eqP
+      , SInType      <$> inP
+      , SIndexOfType <$> indexOfP
+      , SGetType     <$> getP
+      , SAtType      <$> atP
+      ]
 
 --- LOOKUP:
 {-
@@ -58,13 +53,13 @@ atP = label (show atId) $
     return SAt {array = value, index = idx}
 
 {-
-in
+in & !in
 Determines whether an item exists in an array or a substring exists in a string.
 ["in", value, value]: boolean
 -}
 data SIn = SIn { object :: SType
-                 , item :: SType
-                 } deriving (Show, Generic, Eq)
+               , item :: SType
+               } deriving (Show, Generic, Eq)
 
 inId :: T.Text
 inId = "in"
@@ -73,6 +68,21 @@ inP :: Parser SIn
 inP = label (show inId) $
   betweenSquareBrackets $ do
     key <- pKeyword inId
+    lexeme (char ',')
+    obj <- pAtom
+    lexeme (char ',')
+    itm <- pAtom
+    return SIn { object = obj, item = itm }
+
+type SNotIn = SIn
+
+notInId :: T.Text
+notInId = "!in"
+
+notInP :: Parser SNotIn
+notInP = label (show notInId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword notInId
     lexeme (char ',')
     obj <- pAtom
     lexeme (char ',')
@@ -153,7 +163,9 @@ eqP = label (show eqId) $
 
 {-
 all
-Returns true if all the inputs are true, false otherwise. The inputs are evaluated in order, and evaluation is short-circuiting: once an input expression evaluates to false, the result is false and no further input expressions are evaluated.
+Returns true if all the inputs are true, false otherwise. The inputs are evaluated in order,
+and evaluation is short-circuiting: once an input expression evaluates to false,
+the result is false and no further input expressions are evaluated.
 -}
 data SAll = SAll { args :: [SType] } deriving (Show, Generic, Eq)
 
