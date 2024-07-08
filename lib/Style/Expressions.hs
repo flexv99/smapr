@@ -137,7 +137,7 @@ getP = label (show getId) $
     SGet <$> pAtom
 
 {-
-== 
+== & !=
 Returns true if the input values are equal, false otherwise.
 The comparison is strictly typed: values of different runtime types are always considered unequal.
 Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
@@ -152,6 +152,21 @@ eqId = "=="
 
 eqP :: Parser SEq
 eqP = label (show eqId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword eqId
+    lexeme (char ',')
+    item1 <- pType <|> pAtom
+    lexeme (char ',')
+    item2 <- pAtom
+    return SEq { iOne = item1, iTwo = item2 }
+
+type SNotEq = SEq
+
+notEqId :: T.Text
+notEqId = "!="
+
+notEqP :: Parser SNotEq
+notEqP = label (show eqId) $
   betweenSquareBrackets $ do
     key <- pKeyword eqId
     lexeme (char ',')
