@@ -10,6 +10,7 @@ import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Text.Lazy as T
+import Data.List (isInfixOf)
 import Style.Parser
 
 data Expression
@@ -17,17 +18,27 @@ data Expression
   | SInType SIn
   | SIndexOfType SIndexOf
   | SGetType SGet
+  | SNotEqType SNotEq
   | SEqType SEq
   deriving (Show, Eq)
 
 expressionParser :: Parser Expression
 expressionParser = label "Expression" $ choice $ map try 
       [ SEqType      <$> eqP
+      , SNotEqType   <$> notEqP
       , SInType      <$> inP
       , SIndexOfType <$> indexOfP
       , SGetType     <$> getP
       , SAtType      <$> atP
       ]
+
+expressionEval :: Expression -> SType
+expressionEval (SAtType a) = evaluate a
+expressionEval (SEqType a) = evaluate a
+expressionEval _           = undefined
+
+class EvalSExpr a where
+  evaluate :: a -> SType
 
 --- LOOKUP:
 {-
@@ -52,6 +63,9 @@ atP = label (show atId) $
     idx <- L.decimal
     return SAt {array = value, index = idx}
 
+instance EvalSExpr SAt where
+  evaluate (SAt array index) = array !! index
+
 {-
 in & !in
 Determines whether an item exists in an array or a substring exists in a string.
@@ -73,6 +87,11 @@ inP = label (show inId) $
     lexeme (char ',')
     itm <- pAtom
     return SIn { object = obj, item = itm }
+
+instance EvalSExpr SIn where
+  evaluate (SIn (SString a) (SString b)) = SBool $ a `T.isInfixOf` b
+  evaluate (SIn (SArray a) item)         = SBool $ item `elem` a
+  evaluate _                             = error "in determines whether an item exists in an array or a substring exists in a string. other types are not supported"
 
 type SNotIn = SIn
 
@@ -160,21 +179,26 @@ eqP = label (show eqId) $
     item2 <- pAtom
     return SEq { iOne = item1, iTwo = item2 }
 
-type SNotEq = SEq
+instance EvalSExpr SEq where
+  evaluate (SEq iOne iTwo) = SBool $ iOne == iTwo
+
+newtype SNotEq = SNotEq { negation :: SEq } deriving (Show, Generic, Eq)
 
 notEqId :: T.Text
 notEqId = "!="
 
 notEqP :: Parser SNotEq
-notEqP = label (show eqId) $
+notEqP = label (show notEqId) $
   betweenSquareBrackets $ do
-    key <- pKeyword eqId
+    key <- pKeyword notEqId
     lexeme (char ',')
     item1 <- pType <|> pAtom
     lexeme (char ',')
     item2 <- pAtom
-    return SEq { iOne = item1, iTwo = item2 }
+    return $ SNotEq $ SEq { iOne = item1, iTwo = item2 }
 
+instance EvalSExpr SNotEq where
+  evaluate (SNotEq (SEq iOne iTwo)) = SBool $ iOne /= iTwo
 
 {-
 all
@@ -184,10 +208,11 @@ the result is false and no further input expressions are evaluated.
 -}
 data SAll = SAll { args :: [SType] } deriving (Show, Generic, Eq)
 
+allId :: T.Text
+allId = "all"
 
-
-
-
+allP :: Parser SAll
+allP = undefined
 
 
 instance A.FromJSON Expression where
@@ -196,7 +221,7 @@ instance A.FromJSON Expression where
                   Left err  -> fail $ errorBundlePretty err
                   Right res -> return res
 
--- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String (Expression (SAt SType))
+-- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String Expression
 
 
--- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String (Expression (SAt SType))
+-- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String Expression
