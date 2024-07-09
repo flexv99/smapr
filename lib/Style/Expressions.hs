@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances, GADTs, DataKinds #-}
 
 module Style.Expressions where
 
@@ -21,6 +21,9 @@ data Expression
   | SNotEqType SNotEq
   | SEqType SEq
   deriving (Show, Eq)
+
+data Expr a where
+    SAt' :: [a] -> Int -> Expr SType
 
 expressionParser :: Parser Expression
 expressionParser = label "Expression" $ choice $ map try 
@@ -206,13 +209,18 @@ Returns true if all the inputs are true, false otherwise. The inputs are evaluat
 and evaluation is short-circuiting: once an input expression evaluates to false,
 the result is false and no further input expressions are evaluated.
 -}
-data SAll = SAll { args :: [SType] } deriving (Show, Generic, Eq)
+newtype SAll = SAll { args :: [Expression] } deriving (Show, Generic, Eq)
 
 allId :: T.Text
 allId = "all"
 
 allP :: Parser SAll
-allP = undefined
+allP = label (show allId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword allId
+    _ <- char ',' >> space
+    arguments <- expressionParser `sepBy` (char ',' >> space)
+    return SAll { args = arguments }
 
 
 instance A.FromJSON Expression where
@@ -222,6 +230,5 @@ instance A.FromJSON Expression where
                   Right res -> return res
 
 -- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String Expression
-
-
 -- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String Expression
+-- A.eitherDecode "[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]]" :: Either String Expression

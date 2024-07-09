@@ -5,7 +5,6 @@ import Text.Megaparsec
 import qualified Data.Text.Lazy as T
 import Style.Parser
 import Style.Expressions
-import qualified Renderer.Geometry as R
 
 main :: IO ()
 main = hspec $ do
@@ -58,23 +57,30 @@ main = hspec $ do
     it "can parse eqality expression on literal" $ do
       parseMaybe expressionParser "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
 
-
+expectedGetRes :: Expression
 expectedGetRes = SGetType $ SGet (SString "someProperyt")
 
+expectedAtRes :: Expression
 expectedAtRes = SAtType $ SAt {array = [SString "a",SString "b",SString "c"], index = 1}
 
+expectedLiteralRes :: [SType]
 expectedLiteralRes = [SString "a", SString "b"]
 
+expectedInRes :: Expression
 expectedInRes = SInType $ SIn {object = SString "type", item = SString "Point"}
 
+expectedIndexOfRes :: Expression                
 expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                               , startIndex = Nothing}
 
+expectedIndexOfRes' :: Expression
 expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
 
+expectedEq :: Expression
 expectedEq = SEqType $ SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
 
+expectedEqOnSType :: Expression
 expectedEqOnSType = SEqType $ SEq { iOne = SInteger 1, iTwo = SInteger 1 }
 
 waterLayerStyle :: T.Text
