@@ -22,10 +22,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 -- T.Text: The input stream type.
 type Parser = Parsec Void T.Text
 
-newtype StylesArray = StylesArray
-  {getArray :: ([SType], Int, String)}
-  deriving (Show, Generic)
-
 -- Here are defined the types being used in the style spec
 -- reference: https://github.com/maplibre/maplibre-style-spec/blob/main/src/expression/types.ts#L133
 -- Docs: https://maplibre.org/maplibre-style-spec/expressions/#types
@@ -46,16 +42,14 @@ missing ones:
 -}
 
 data SType
-  = SInteger Int
+  = SInt Int
   | SDouble Double
   | SString T.Text
   | SBool Bool
   | SColor Color
   | SArray [SType]
   | STypeType T.Text
-  deriving (-- | STypeOf  String
-            -- | SArray   StylesArray
-            Show, Generic, Eq)
+  deriving (Show, Generic, Eq)
 
 --- HELPERS
 
@@ -72,6 +66,9 @@ symbol = L.symbol sc
 -- parse snake case property names
 snakeCaseChar :: Parser Char
 snakeCaseChar = alphaNumChar <|> char '_'
+
+skipComma :: Parser a -> Parser a
+skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
 
 betweenBrackets :: (Token s ~ Char, MonadParsec e s m) => m a -> m a
 betweenBrackets = between (char '(' >> space) (char ')' >> space)
@@ -93,7 +90,7 @@ pString =
           (lexeme (many snakeCaseChar) <?> "string literal"))
 
 pInteger :: Parser SType
-pInteger = SInteger <$> lexeme (L.signed space L.decimal)
+pInteger = SInt <$> lexeme (L.signed space L.decimal)
 
 pDouble :: Parser SType
 pDouble = SDouble <$> lexeme (L.signed space L.float)
@@ -123,13 +120,10 @@ pAtom =
       , pString
       ]
 
-pArray :: Parser [SType]
-pArray =
+pArray :: Parser SType
+pArray = SArray <$> 
   betweenSquareBrackets
     (pAtom `sepBy` (char ',' >> space))
-
-skipComma :: Parser a -> Parser a
-skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
 
 pKeyword :: T.Text -> Parser T.Text
 pKeyword keyword =
@@ -140,7 +134,7 @@ pKeyword keyword =
 literalId :: T.Text
 literalId = "literal"
 
-literal :: Parser [SType]
+literal :: Parser SType
 literal = label (show literalId) $ betweenSquareBrackets $ do
   key <- pKeyword literalId
   _ <- char ',' >> space

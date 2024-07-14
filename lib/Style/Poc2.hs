@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, TypeOperators #-}
+{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, TypeOperators, DataKinds #-}
 
 module Style.Poc2 where
 
@@ -8,6 +8,8 @@ import qualified Data.Text.Lazy as T
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+
+-- POC for parsing expressions
 
 type Parser = Parsec Void T.Text
 
@@ -184,7 +186,7 @@ doubleExprP = DoubleE <$> pDouble <* hidden space
 boolExprP :: Parser (Expr Bool)
 boolExprP = BoolE <$> pBool <* hidden space
 
--- fmap eval $ parseMaybe (boolRet2Args (betweenDoubleQuotes $ char '=') intExprP) "[\"=\",1, 1]"
+-- fmap eval $ parseMaybe (boolRet2Args (betweenDoubleQuotes $ string "==") intExprP) "[\"==\",1, 1]"
 boolRet2Args
   :: (Token s ~ Char, MonadParsec e s m, Eq a1) =>
      m a2 -> m (Expr a1) -> m WrappedExpr
@@ -194,3 +196,4 @@ boolRet2Args pOp pVal = betweenSquareBrackets $ do
   val1 <- pVal
   _ <- char ',' >> space
   BoolExpr . EqE val1 <$> pVal
+

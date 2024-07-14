@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances, GADTs, DataKinds #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances, DataKinds, AllowAmbiguousTypes #-}
 
 module Style.Expressions where
 
@@ -14,34 +14,57 @@ import Data.List (isInfixOf)
 import Style.Parser
 
 data Expression
-  = SAtType SAt
+  = SLitType SType
+  | SAtType SAt
   | SInType SIn
   | SIndexOfType SIndexOf
   | SGetType SGet
-  | SNotEqType SNotEq
   | SEqType SEq
   deriving (Show, Eq)
 
-data Expr a where
-    SAt' :: [a] -> Int -> Expr SType
+data BoolRetExpr
+  = SLitBool SType
+  | SInBool SIn
+  | SEqBool SEq
+  | SAllBool SAll
+  | FSInBool FSIn
+  | FSEqBool FSEq
+  deriving (Show, Eq)
 
-expressionParser :: Parser Expression
-expressionParser = label "Expression" $ choice $ map try 
-      [ SEqType      <$> eqP
-      , SNotEqType   <$> notEqP
+class Expr a where
+  parseExpr :: Parser a
+  evaluate  :: a -> SType
+
+
+exprP :: Parser Expression
+exprP = label "Expression" $ choice $ map try
+      [ SLitType     <$> pAtom
+      , SEqType      <$> eqP
       , SInType      <$> inP
       , SIndexOfType <$> indexOfP
       , SGetType     <$> getP
       , SAtType      <$> atP
       ]
 
-expressionEval :: Expression -> SType
-expressionEval (SAtType a) = evaluate a
-expressionEval (SEqType a) = evaluate a
-expressionEval _           = undefined
+boolRetExprP :: Parser BoolRetExpr
+boolRetExprP = label "bool | bool returning expr" $ choice $ map try
+  [ SLitBool  <$> pBool
+  , SInBool   <$> inP
+  -- , SEqBool   <$> eqP
+  , SAllBool  <$> allP
+  , FSInBool  <$> fInP
+  , FSEqBool  <$> feqP
+  ]
 
-class EvalSExpr a where
-  evaluate :: a -> SType
+-- | to be used every time a expr needs more args of the same type
+typeEqAssert :: SType -> Parser SType
+typeEqAssert (SInt _)      = pInteger
+typeEqAssert (SDouble _)   = pDouble
+typeEqAssert (SString _)   = pString
+typeEqAssert (SBool _)     = pBool
+typeEqAssert (SArray _)    = pArray
+typeEqAssert (STypeType _) = pType
+typeEqAssert _             = error "does not match any supported type"
 
 --- LOOKUP:
 {-
@@ -49,12 +72,12 @@ at
 Retrieves an item from an array.
 ["at", value, number]: value
 -}
-data SAt = SAt { array :: [SType]
-               , index :: Int
+data SAt = SAt { array :: SType
+               , index :: SType
                } deriving (Show, Generic, Eq)
 
 atId :: T.Text
-atId = "at" 
+atId = "at"
 
 atP :: Parser SAt
 atP = label (show atId) $
@@ -63,11 +86,16 @@ atP = label (show atId) $
     lexeme (char ',')
     value <- literal
     lexeme (char ',')
-    idx <- L.decimal
+    idx <- pInteger
     return SAt {array = value, index = idx}
 
-instance EvalSExpr SAt where
-  evaluate (SAt array index) = array !! index
+instance Expr SAt where
+  parseExpr = atP
+
+  evaluate (SAt (SArray a) (SInt i)) = a !! i
+  evaluate (SAt _ (SInt i))          = error "at arg1 must be an array"
+  evaluate (SAt (SArray a) _)        = error "at arg2 must be an int"
+
 
 {-
 in & !in
@@ -91,25 +119,6 @@ inP = label (show inId) $
     itm <- pAtom
     return SIn { object = obj, item = itm }
 
-instance EvalSExpr SIn where
-  evaluate (SIn (SString a) (SString b)) = SBool $ a `T.isInfixOf` b
-  evaluate (SIn (SArray a) item)         = SBool $ item `elem` a
-  evaluate _                             = error "in determines whether an item exists in an array or a substring exists in a string. other types are not supported"
-
-type SNotIn = SIn
-
-notInId :: T.Text
-notInId = "!in"
-
-notInP :: Parser SNotIn
-notInP = label (show notInId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword notInId
-    lexeme (char ',')
-    obj <- pAtom
-    lexeme (char ',')
-    itm <- pAtom
-    return SIn { object = obj, item = itm }
 
 {-
 index-of
@@ -118,7 +127,7 @@ or -1 if the input cannot be found. Accepts an optional index from where to begi
 ["index-of", value, value, number?]: number
 -}
 data SIndexOf = SIndexOf { lookupItem :: SType
-                         , items :: [SType]
+                         , items :: SType
                          , startIndex :: Maybe SType
                          } deriving (Show, Generic, Eq)
 
@@ -177,31 +186,10 @@ eqP = label (show eqId) $
   betweenSquareBrackets $ do
     key <- pKeyword eqId
     lexeme (char ',')
-    item1 <- pType <|> pAtom
+    item1 <- pAtom
     lexeme (char ',')
-    item2 <- pAtom
+    item2 <- typeEqAssert item1
     return SEq { iOne = item1, iTwo = item2 }
-
-instance EvalSExpr SEq where
-  evaluate (SEq iOne iTwo) = SBool $ iOne == iTwo
-
-newtype SNotEq = SNotEq { negation :: SEq } deriving (Show, Generic, Eq)
-
-notEqId :: T.Text
-notEqId = "!="
-
-notEqP :: Parser SNotEq
-notEqP = label (show notEqId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword notEqId
-    lexeme (char ',')
-    item1 <- pType <|> pAtom
-    lexeme (char ',')
-    item2 <- pAtom
-    return $ SNotEq $ SEq { iOne = item1, iTwo = item2 }
-
-instance EvalSExpr SNotEq where
-  evaluate (SNotEq (SEq iOne iTwo)) = SBool $ iOne /= iTwo
 
 {-
 all
@@ -209,7 +197,7 @@ Returns true if all the inputs are true, false otherwise. The inputs are evaluat
 and evaluation is short-circuiting: once an input expression evaluates to false,
 the result is false and no further input expressions are evaluated.
 -}
-newtype SAll = SAll { args :: [Expression] } deriving (Show, Generic, Eq)
+newtype SAll = SAll { args :: [BoolRetExpr] } deriving (Show, Generic, Eq)
 
 allId :: T.Text
 allId = "all"
@@ -218,17 +206,51 @@ allP :: Parser SAll
 allP = label (show allId) $
   betweenSquareBrackets $ do
     key <- pKeyword allId
-    _ <- char ',' >> space
-    arguments <- expressionParser `sepBy` (char ',' >> space)
+    lexeme (char ',')
+    arguments <- boolRetExprP `sepBy` (char ',' >> space)
     return SAll { args = arguments }
 
 
 instance A.FromJSON Expression where
     parseJSON = A.withArray "Expression" $ \v ->
-                case parse expressionParser "" (A.encodeToLazyText v) of
+                case parse exprP "" (A.encodeToLazyText v) of
                   Left err  -> fail $ errorBundlePretty err
                   Right res -> return res
 
+-- parseTest allP "[\"all\",[\"==\",\"type\",\"LineString\"], true,[\"==\",\"type\",\"LineString\"]]"
 -- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String Expression
 -- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String Expression
 -- A.eitherDecode "[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]]" :: Either String Expression
+
+
+data FSIn = FSIn { obj :: [SType]
+                 } deriving (Show, Generic, Eq)
+
+fInId :: T.Text
+fInId = "!in"
+
+fInP :: Parser FSIn
+fInP = label (show fInId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword fInId
+    lexeme (char ',')
+    obj <- pAtom `sepBy` lexeme (char ',')
+    return FSIn { obj = obj }
+
+
+data FSEq = FSEq { fiOne :: SType
+                 , fiTwo :: SType
+                 } deriving (Show, Generic, Eq)
+
+feqId :: T.Text
+feqId = "=="
+
+feqP :: Parser FSEq
+feqP = label (show feqId) $
+  betweenSquareBrackets $ do
+    key <- pKeyword feqId
+    lexeme (char ',')
+    item1 <- pType
+    lexeme (char ',')
+    item2 <- pAtom
+    return FSEq { fiOne = item1, fiTwo = item2 }

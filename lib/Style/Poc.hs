@@ -11,9 +11,12 @@ import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Colour (transparent)
 import qualified Data.Vector as V
+import qualified Data.Sequence as S
 import GHC.Generics
 import Style.Parser
 import Style.Expressions
+import ApiClient
+import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Text.Megaparsec
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
@@ -44,7 +47,7 @@ instance A.FromJSON SType where
   parseJSON (A.Number n) =
     if isFloating n
       then pure $ SDouble (toRealFloat n)
-      else pure $ SInteger (round n)
+      else pure $ SInt (round n)
   parseJSON (A.Bool b)   = pure $ SBool b
   parseJSON (A.Array a)  = SArray <$> traverse A.parseJSON (V.toList a)
   parseJSON a            = A.withText
@@ -79,6 +82,13 @@ instance A.FromJSON POCLayer where
 tpaint :: B.ByteString
 tpaint = "{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}"
 
+tfilter :: B.ByteString
+tfilter = "[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]]"
+
+
+twaterway :: B.ByteString
+twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]],\"paint\":{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
+
 {-
   {
   "id": "waterway",
@@ -97,6 +107,5 @@ tpaint = "{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width
   }
 },
 -}
-
-twaterway :: B.ByteString
-twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]],\"paint\":{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
+pocWater :: IO (Maybe (S.Seq Layer))
+pocWater = fakerTile >>= return . fmap (getLayers "water")

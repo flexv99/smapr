@@ -31,7 +31,7 @@ main = hspec $ do
       fmap showSColor (parseMaybe pHslColor "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
   describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
-      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just ([SInteger (-1), SInteger 0, SDouble 0.4])
+      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just (SArray [SInteger (-1), SInteger 0, SDouble 0.4])
   describe "Style.Parser.literal" $ do
     it "parse literals" $ do
       parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` Just expectedLiteralRes
@@ -61,20 +61,20 @@ expectedGetRes :: Expression
 expectedGetRes = SGetType $ SGet (SString "someProperyt")
 
 expectedAtRes :: Expression
-expectedAtRes = SAtType $ SAt {array = [SString "a",SString "b",SString "c"], index = 1}
+expectedAtRes = SAtType $ SAt {array = SArray [SString "a",SString "b",SString "c"], index = SInteger 1}
 
-expectedLiteralRes :: [SType]
-expectedLiteralRes = [SString "a", SString "b"]
+expectedLiteralRes :: SType
+expectedLiteralRes = SArray [SString "a", SString "b"]
 
 expectedInRes :: Expression
 expectedInRes = SInType $ SIn {object = SString "type", item = SString "Point"}
 
 expectedIndexOfRes :: Expression                
-expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = SArray [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                               , startIndex = Nothing}
 
 expectedIndexOfRes' :: Expression
-expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
+expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = SArray [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
                                , startIndex = Just (SInteger 2)}
 
 expectedEq :: Expression

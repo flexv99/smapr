@@ -36,6 +36,7 @@ library
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
+                    , Style.Poc2
                     , Style.Parser
                     , Style.Expressions
                     , Style.Layers.Line
