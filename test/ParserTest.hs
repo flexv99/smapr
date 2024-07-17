@@ -13,10 +13,10 @@ main = hspec $ do
       parseMaybe pAtom "false" `shouldBe` Just (SBool False)
   describe "Style.Types.Parser.SNumber" $ do
     it "parse number" $ do
-      parseMaybe pAtom "1" `shouldBe` Just (SInteger 1)
+      parseMaybe pAtom "1" `shouldBe` Just (SInt 1)
   describe "Style.Parser.SType.SNumber" $ do
     it "parse signed number" $ do
-      parseMaybe pAtom "-1" `shouldBe` Just (SInteger (-1))
+      parseMaybe pAtom "-1" `shouldBe` Just (SInt (-1))
   describe "Style.Parser.SType.SNumber" $ do
     it "parse float" $ do
       parseMaybe pAtom "1.001" `shouldBe` Just (SDouble 1.001)
@@ -31,37 +31,37 @@ main = hspec $ do
       fmap showSColor (parseMaybe pHslColor "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
   describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
-      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just (SArray [SInteger (-1), SInteger 0, SDouble 0.4])
+      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SDouble 0.4])
   describe "Style.Parser.literal" $ do
     it "parse literals" $ do
       parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` Just expectedLiteralRes
   describe "Style.Expressions.getP" $ do
     it "can parse getters" $ do
-      parseMaybe expressionParser "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
+      parseMaybe exprP "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
   describe "Style.Expressions.atP" $ do
     it "can parse at expression" $ do
-      parseMaybe expressionParser "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
+      parseMaybe exprP "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
   describe "Style.Expressions.inP" $ do
     it "can parse in expression" $ do
-      parseMaybe expressionParser "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
+      parseMaybe exprP "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with no starting index" $ do
-      parseMaybe expressionParser "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
+      parseMaybe exprP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
   describe "Style.Expressions.indexOfP" $ do
     it "can parse index-of expressions with starting index" $ do
-      parseMaybe expressionParser "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
+      parseMaybe exprP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
   describe "Style.Expressions.eqP" $ do
     it "can parse eqality expression" $ do
-      parseMaybe expressionParser "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
+      parseMaybe exprP "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
   describe "Style.Expressions.eqP" $ do
     it "can parse eqality expression on literal" $ do
-      parseMaybe expressionParser "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
+      parseMaybe exprP "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
 
 expectedGetRes :: Expression
 expectedGetRes = SGetType $ SGet (SString "someProperyt")
 
 expectedAtRes :: Expression
-expectedAtRes = SAtType $ SAt {array = SArray [SString "a",SString "b",SString "c"], index = SInteger 1}
+expectedAtRes = SAtType $ SAt {array = SArray [SString "a",SString "b",SString "c"], index = SInt 1}
 
 expectedLiteralRes :: SType
 expectedLiteralRes = SArray [SString "a", SString "b"]
@@ -75,13 +75,13 @@ expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items 
 
 expectedIndexOfRes' :: Expression
 expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = SArray [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
-                               , startIndex = Just (SInteger 2)}
+                               , startIndex = Just (SInt 2)}
 
 expectedEq :: Expression
 expectedEq = SEqType $ SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
 
 expectedEqOnSType :: Expression
-expectedEqOnSType = SEqType $ SEq { iOne = SInteger 1, iTwo = SInteger 1 }
+expectedEqOnSType = SEqType $ SEq { iOne = SInt 1, iTwo = SInt 1 }
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"

@@ -11,26 +11,30 @@ import Data.Foldable
 import qualified Data.Sequence as S
 import GHC.Float (int2Double)
 import GHC.Word
+import qualified Data.Map as MP
 import Proto.Vector_tile
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
+import Proto.Vector_tile.Tile.Value
+
+import ApiClient
 
 type Point = (Double, Double)
 
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
-  { _cmd :: CommandA,
-    _count :: Int
+  { _cmd :: CommandA
+  , _count :: Int
   }
   deriving (Show, Eq)
 
 makeLenses ''Command
 
 data GeoAction = GeoAction
-  { _command :: Command,
-    _parameters :: [Point]
+  { _command :: Command
+  , _parameters :: [Point]
   }
   deriving (Show, Eq)
 
@@ -46,7 +50,6 @@ instance A.ToJSON Command where
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
-
 
 
 -- command:
@@ -110,17 +113,17 @@ sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
 data PolygonG = PolygonG
-  { _pMoveTo :: GeoAction,
-    _pLineTo :: GeoAction,
-    _pClosePath :: GeoAction
+  { _pMoveTo :: GeoAction
+  , _pLineTo :: GeoAction
+  , _pClosePath :: GeoAction
   }
   deriving (Show, Eq)
 
 makeLenses ''PolygonG
 
 data LineG = LineG
-  { _lMoveTo :: GeoAction,
-    _lLineTo :: GeoAction
+  { _lMoveTo :: GeoAction
+  , _lLineTo :: GeoAction
   }
   deriving (Show, Eq)
 

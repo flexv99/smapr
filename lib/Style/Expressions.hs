@@ -50,7 +50,7 @@ boolRetExprP :: Parser BoolRetExpr
 boolRetExprP = label "bool | bool returning expr" $ choice $ map try
   [ SLitBool  <$> pBool
   , SInBool   <$> inP
-  -- , SEqBool   <$> eqP
+  , SEqBool   <$> eqP
   , SAllBool  <$> allP
   , FSInBool  <$> fInP
   , FSEqBool  <$> feqP

@@ -35,6 +35,8 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
+                    , Decoder.FeatureAttributes
+                    , Glue.Mapper
                     , Style.Poc
                     , Style.Poc2
                     , Style.Parser
@@ -63,6 +65,7 @@ library
                     , megaparsec
                     , generic-deriving
                     , bytestring
+                    , utf8-string
                     , diagrams
                     , diagrams-lib
                     , diagrams-svg
@@ -91,4 +94,6 @@ Test-Suite smapr-testsuite
                       , megaparsec
                       , text
                       , aeson
+                      , containers
+  other-modules:        Decoder.DecoderSpec
   build-tool-depends: hspec-discover:hspec-discover
