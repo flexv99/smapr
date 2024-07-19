@@ -58,12 +58,6 @@ pString = fmap
       (betweenDoubleQuotes
           (lexeme (many snakeCaseChar) <?> "string"))
 
-pInteger :: Parser Int
-pInteger = lexeme (L.signed space L.decimal) <?> "integer"
-
-pDouble :: Parser Double
-pDouble = lexeme (L.signed space L.float) <?> "float"
-
 pBool :: Parser Bool
 pBool =
   label "bool" $
@@ -71,8 +65,45 @@ pBool =
       (False <$ (string "false" *> notFollowedBy alphaNumChar))
         <|> (True <$ (string "true" *> notFollowedBy alphaNumChar))
 
-pArray :: Parser [a]
-pArray = undefined
+pInteger :: Parser Int
+pInteger = lexeme (L.signed space L.decimal) <?> "integer"
+
+pDouble :: Parser Double
+pDouble = lexeme (L.signed space L.float) <?> "float"
+
+pArray :: Parser a -> Parser [a]
+pArray pAtom = betweenSquareBrackets
+    (pAtom `sepBy` (char ',' >> space))
+
+
+stringLitP :: Parser SType
+stringLitP = SString <$> pString
+
+boolLitP :: Parser SType
+boolLitP = SBool <$> pBool
+
+intLitP :: Parser SType
+intLitP = SInt <$> pInteger
+
+doubleLitP :: Parser SType
+doubleLitP = SDouble <$> pDouble
+
+pNumber :: Parser SType
+pNumber = try doubleLitP <|> intLitP <?> "number"
+
+pAtom :: Parser SType
+pAtom =
+  try $
+    choice
+      [ pNumber
+      , boolLitP
+      , stringLitP
+      ]
+
+arrayLitP :: Parser SType
+arrayLitP = SArray <$> betweenSquareBrackets
+    (pAtom `sepBy` (char ',' >> space))
+
 
 -- | prefix exrp parser
 --
@@ -82,7 +113,7 @@ prefixChainExprP :: Parser (a -> a -> a) -> Parser a -> Parser a
 prefixChainExprP pOp pVal = betweenSquareBrackets $ do
   op <- pOp
   _ <- char ',' >> space
-  vals <- pVal `sepBy` (char ',' >> space)
+  vals <- (pVal <|> prefixChainExprP pOp pVal) `sepBy` (char ',' >> space)
   return (foldl1 op vals)
 
 prefixBoolExprP :: (Eq a) => Parser (a -> a -> Bool) -> Parser a -> Parser Bool
@@ -96,49 +127,54 @@ prefixBoolExprP pOp pVal = betweenSquareBrackets $ do
 
 -- | AST representation of our little domain language tagged by the
 --   value-type the expression is representing (see 'evalExpr')
-data Expr (res :: Type) where
+data Expr :: SType -> * where
   -- | string literal
-  StringE :: T.Text -> Expr T.Text
+  StringE :: T.Text -> Expr (SString s)
   -- | bool-value
-  BoolE   :: Bool -> Expr Bool
+  BoolE   :: Bool -> Expr (SBool b)
   -- | int literal
-  IntE    :: Int -> Expr Int
+  IntE    :: Int -> Expr (SInt i)
   -- | double literal
-  DoubleE :: Double -> Expr Double
-  -- | strinc concatenation
-  AddE    :: (Num a) => Expr a -> Expr a -> Expr a
-  -- | check for equaliy on polymorphic type
-  EqE     :: (Eq a) => Expr a -> Expr a -> Expr Bool
-  -- | check for not equaliy on polymorphic type
-  NotEqE  :: (Eq a) => Expr a -> Expr a -> Expr Bool
-  -- | if-expression - condition-expression has to be of type Bool,
-  --   __then__ and __else__ expression have to be the same type
-  IfE     :: Expr Bool -> Expr res -> Expr res -> Expr res
-
+  DoubleE :: Double -> Expr (SDouble d)
+  -- | list literal
+  ArrayE  :: SType -> Expr (SArray a)
+  -- | addition
+  AddE    :: Expr (SInt i) -> Expr (SInt i) -> Expr (SInt i)
+  -- -- | check for equaliy on polymorphic type
+  EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
+  -- -- | check for not equaliy on polymorphic type
+  -- NotEqE  :: (Eq a) => Expr a -> Expr a -> Expr Bool
+  -- -- | if-expression - condition-expression has to be of type Bool,
+  -- --   __then__ and __else__ expression have to be the same type
+  -- IfE     :: Expr Bool -> Expr res -> Expr res -> Expr res
 
 -- | evaluates an 'Expr' to the tagged type
 -- >>> evalExpr (AddE (IntE 10) (IfE (BoolE False) (IntE 0) (IntE 32)))
 -- 42
-evalExpr :: Expr res -> res
-evalExpr (StringE s) = s
-evalExpr (BoolE b)   = b
-evalExpr (IntE i)    = i
-evalExpr (DoubleE d) = d
-evalExpr (AddE a b)  = evalExpr a + evalExpr b
-evalExpr (EqE o t)   = evalExpr o == evalExpr t
-evalExpr (IfE b t e)
-  | evalExpr b = evalExpr t
-  | otherwise  = evalExpr e
+-- >>> evalExpr $ ArrayE $ map (IntE) [1..10]
+-- [1,2,3,4,5,6,7,8,9,10]
+evalExpr :: Expr res -> SType
+evalExpr (StringE s) = SString s
+evalExpr (BoolE b)   = SBool b
+evalExpr (IntE i)    = SInt i
+evalExpr (DoubleE d) = SDouble d
+evalExpr (ArrayE (SArray a))  = SArray a
+evalExpr (AddE a b)  = stypeSum (evalExpr a) (evalExpr b)
+evalExpr (EqE o t)   = stypeEq (eval o) (eval t)
+-- evalExpr (IfE b t e)
+--   | evalExpr b = evalExpr t
+--   | otherwise  = evalExpr e
 
 deriving instance Show (Expr res)
 
 -- | runtime representation
 --   mainly useful for parsing
 data WrappedExpr where
-  StringExpr  :: Expr T.Text -> WrappedExpr
-  IntExpr     :: Expr Int -> WrappedExpr
-  DoubleExpr  :: Expr Double -> WrappedExpr
-  BoolExpr    :: Expr Bool -> WrappedExpr
+  StringExpr  :: Expr (SString n)  -> WrappedExpr
+  IntExpr     :: Expr (SInt i)     -> WrappedExpr
+  DoubleExpr  :: Expr (SDouble d)  -> WrappedExpr
+  BoolExpr    :: Expr (SBool b)    -> WrappedExpr
+  ArrayExpr   :: Expr (SArray a)   -> WrappedExpr
 
 deriving instance Show WrappedExpr
 
@@ -146,10 +182,10 @@ deriving instance Show WrappedExpr
 -- >>> eval (IntExpr (AddE (IntE 4) (IntE 5)))
 -- SInt 9
 eval :: WrappedExpr -> SType
-eval (StringExpr s) = SString (evalExpr s)
-eval (BoolExpr b)   = SBool (evalExpr b)
-eval (IntExpr i)    = SInt (evalExpr i)
-eval (DoubleExpr d) = SDouble (evalExpr d)
+eval (StringExpr s) = evalExpr s
+eval (BoolExpr b)   = evalExpr b
+eval (IntExpr i)    = evalExpr i
+eval (DoubleExpr d) = evalExpr d
 
 -- | helps wrapping 'Expr' to the right
 --   'WrappedExpr' constructor
@@ -162,38 +198,67 @@ eval (DoubleExpr d) = SDouble (evalExpr d)
 class KnownResType a where
   wrap :: Expr a -> WrappedExpr
 
-instance KnownResType T.Text where
+instance KnownResType (SString b) where
   wrap = StringExpr
 
-instance KnownResType Int where
+instance KnownResType (SInt a) where
   wrap = IntExpr
 
-instance KnownResType Double where
+instance KnownResType (SDouble d) where
   wrap = DoubleExpr
 
-instance KnownResType Bool where
+instance KnownResType (SBool b) where
   wrap = BoolExpr
 
-stringExprP :: Parser (Expr T.Text)
+stringExprP :: Parser (Expr (SString s))
 stringExprP = StringE <$> pString <* hidden space
 
-intExprP :: Parser (Expr Int)
+intExprP :: Parser (Expr (SInt i))
 intExprP = IntE <$> pInteger <* hidden space
 
-doubleExprP :: Parser (Expr Double)
+doubleExprP :: Parser (Expr (SDouble d))
 doubleExprP = DoubleE <$> pDouble <* hidden space
 
-boolExprP :: Parser (Expr Bool)
+boolExprP :: Parser (Expr (SBool b))
 boolExprP = BoolE <$> pBool <* hidden space
 
--- fmap eval $ parseMaybe (boolRet2Args (betweenDoubleQuotes $ string "==") intExprP) "[\"==\",1, 1]"
-boolRet2Args
-  :: (Token s ~ Char, MonadParsec e s m, Eq a1) =>
-     m a2 -> m (Expr a1) -> m WrappedExpr
-boolRet2Args pOp pVal = betweenSquareBrackets $ do
-  op <- pOp
+arrayExprP :: Parser (Expr (SArray a))
+arrayExprP = ArrayE <$> arrayLitP <* hidden space
+
+unified :: Parser WrappedExpr
+unified = fmap wrap intExprP <|> fmap wrap boolExprP <|> fmap wrap doubleExprP <|> fmap wrap stringExprP
+
+stypeSum :: SType -> SType -> SType
+stypeSum (SInt i) (SInt j) = SInt $ i + j
+stypeSum _ _               = error "sum accepts numbers only"
+
+stypeEq :: SType -> SType -> SType
+stypeEq (SInt i) (SInt j)       = SBool $ i == j
+stypeEq (SDouble i) (SDouble j) = SBool $ i == j
+stypeEq (SString i) (SString j) = SBool $ i == j
+stypeEq (SBool i) (SBool j)     = SBool $ i == j
+stypeEq (SArray i) (SArray j)   = SBool $ i == j
+stypeEq _ _                     = error "eq on nor supported types"
+
+
+-- TODO accept n args
+-- | fmap evalExpr $ parseMaybe testSumP "[\"+\", 1, [\"+\", 1, 2]]"
+testSumP :: Parser (Expr ('SInt i))
+testSumP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "+"
   _ <- char ',' >> space
-  val1 <- pVal
+  val1 <- intExprP <|> testSumP
   _ <- char ',' >> space
-  BoolExpr . EqE val1 <$> pVal
+  val2 <- intExprP <|> testSumP
+  return $ AddE val1 val2
+
+-- | fmap evalExpr $ parseMaybe testEqP "[\"==\", 1, 5]"
+testEqP :: Parser (Expr ('SBool b))
+testEqP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "=="
+  _ <- char ',' >> space
+  val1 <- unified
+  _ <- char ',' >> space
+  val2 <- unified
+  return $ EqE val1 val2
 
