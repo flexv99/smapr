@@ -1,20 +1,20 @@
 module Renderer.Geometry (test) where
 
-import ApiClient
-import Data.Foldable
 import qualified Data.Sequence as S
-import Decoder.Geometry
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.Trail as D
 import qualified Diagrams.TwoD.Size as D
 import GHC.Word
+import Data.Foldable
 import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Renderer.Lines
 import Renderer.Polygons
+import Decoder.Geometry
+import ApiClient
 import Util
 
 drawTour :: [D.P2 Double] -> D.Diagram D.B
@@ -38,7 +38,7 @@ renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map
 test :: IO ()
 test = do
   t <- fakerTile
-  let roads = renderLayer "transportation" <$> t
-  let buildings = renderLayer "building" <$> t
-  let d = fmap (<>) roads <*> buildings
+  let roads     = renderLayer "roads" <$> t
+  let water     = renderLayer "water" <$> t
+  let d         = fmap (<>) roads <*> water
   maybe (putStrLn "Nothing") writeSvg d

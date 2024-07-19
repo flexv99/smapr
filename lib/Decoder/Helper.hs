@@ -76,7 +76,7 @@ decodeCommand c =
 -- closePath has a paramete count of 0
 
 parametersCount :: Command -> Int
-parametersCount = ap ((*) . forAction . _cmd) _count -- ap promotes function application
+parametersCount = ap ((*) . forAction . _cmd) _count
   where
     forAction :: CommandA -> Int
     forAction MoveTo = 2
