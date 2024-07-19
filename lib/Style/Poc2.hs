@@ -142,11 +142,6 @@ data Expr :: SType -> * where
   AddE    :: Expr (SInt i) -> Expr (SInt i) -> Expr (SInt i)
   -- -- | check for equaliy on polymorphic type
   EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
-  -- -- | check for not equaliy on polymorphic type
-  -- NotEqE  :: (Eq a) => Expr a -> Expr a -> Expr Bool
-  -- -- | if-expression - condition-expression has to be of type Bool,
-  -- --   __then__ and __else__ expression have to be the same type
-  -- IfE     :: Expr Bool -> Expr res -> Expr res -> Expr res
 
 -- | evaluates an 'Expr' to the tagged type
 -- >>> evalExpr (AddE (IntE 10) (IfE (BoolE False) (IntE 0) (IntE 32)))
@@ -186,6 +181,7 @@ eval (StringExpr s) = evalExpr s
 eval (BoolExpr b)   = evalExpr b
 eval (IntExpr i)    = evalExpr i
 eval (DoubleExpr d) = evalExpr d
+eval (ArrayExpr a)  = evalExpr a
 
 -- | helps wrapping 'Expr' to the right
 --   'WrappedExpr' constructor
@@ -210,6 +206,9 @@ instance KnownResType (SDouble d) where
 instance KnownResType (SBool b) where
   wrap = BoolExpr
 
+instance KnownResType (SArray a) where
+  wrap = ArrayExpr
+
 stringExprP :: Parser (Expr (SString s))
 stringExprP = StringE <$> pString <* hidden space
 
@@ -226,7 +225,7 @@ arrayExprP :: Parser (Expr (SArray a))
 arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
 unified :: Parser WrappedExpr
-unified = fmap wrap intExprP <|> fmap wrap boolExprP <|> fmap wrap doubleExprP <|> fmap wrap stringExprP
+unified = fmap wrap intExprP <|> fmap wrap boolExprP <|> fmap wrap doubleExprP <|> fmap wrap stringExprP <|> fmap wrap arrayExprP
 
 stypeSum :: SType -> SType -> SType
 stypeSum (SInt i) (SInt j) = SInt $ i + j
@@ -259,6 +258,5 @@ testEqP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   val1 <- unified
   _ <- char ',' >> space
-  val2 <- unified
-  return $ EqE val1 val2
+  EqE val1 <$> unified
 
