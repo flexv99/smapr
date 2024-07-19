@@ -127,7 +127,7 @@ prefixBoolExprP pOp pVal = betweenSquareBrackets $ do
 
 -- | AST representation of our little domain language tagged by the
 --   value-type the expression is representing (see 'evalExpr')
-data Expr :: SType -> * where
+data Expr :: SType -> Type where
   -- | string literal
   StringE :: T.Text -> Expr (SString s)
   -- | bool-value
@@ -140,22 +140,23 @@ data Expr :: SType -> * where
   ArrayE  :: SType -> Expr (SArray a)
   -- | addition
   AddE    :: Expr (SInt i) -> Expr (SInt i) -> Expr (SInt i)
-  -- -- | check for equaliy on polymorphic type
+  -- | check for equaliy on polymorphic types
   EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
+  -- | get
+  AtE    :: SType -> Expr (SInt i) -> Expr a
 
 -- | evaluates an 'Expr' to the tagged type
 -- >>> evalExpr (AddE (IntE 10) (IfE (BoolE False) (IntE 0) (IntE 32)))
 -- 42
--- >>> evalExpr $ ArrayE $ map (IntE) [1..10]
--- [1,2,3,4,5,6,7,8,9,10]
 evalExpr :: Expr res -> SType
-evalExpr (StringE s) = SString s
-evalExpr (BoolE b)   = SBool b
-evalExpr (IntE i)    = SInt i
-evalExpr (DoubleE d) = SDouble d
+evalExpr (StringE s)          = SString s
+evalExpr (BoolE b)            = SBool b
+evalExpr (IntE i)             = SInt i
+evalExpr (DoubleE d)          = SDouble d
 evalExpr (ArrayE (SArray a))  = SArray a
-evalExpr (AddE a b)  = stypeSum (evalExpr a) (evalExpr b)
-evalExpr (EqE o t)   = stypeEq (eval o) (eval t)
+evalExpr (AddE a b)           = stypeSum (evalExpr a) (evalExpr b)
+evalExpr (EqE o t)            = stypeEq (eval o) (eval t)
+evalExpr (AtE a i)            = sIn a (evalExpr i)
 -- evalExpr (IfE b t e)
 --   | evalExpr b = evalExpr t
 --   | otherwise  = evalExpr e
@@ -239,9 +240,15 @@ stypeEq (SBool i) (SBool j)     = SBool $ i == j
 stypeEq (SArray i) (SArray j)   = SBool $ i == j
 stypeEq _ _                     = error "eq on nor supported types"
 
+sIn :: SType -> SType -> SType
+sIn (SArray a) (SInt i) = a !! i
+sIn _ (SInt i) = error "param 1 must be an array"
+sIn (SArray a) _ = error "param 2 must be an int"
+
 
 -- TODO accept n args
--- | fmap evalExpr $ parseMaybe testSumP "[\"+\", 1, [\"+\", 1, 2]]"
+-- >>> fmap evalExpr $ parseMaybe testSumP "[\"+\", 1, [\"+\", 1, 2]]"
+-- 4
 testSumP :: Parser (Expr ('SInt i))
 testSumP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "+"
@@ -251,12 +258,25 @@ testSumP = betweenSquareBrackets $ do
   val2 <- intExprP <|> testSumP
   return $ AddE val1 val2
 
--- | fmap evalExpr $ parseMaybe testEqP "[\"==\", 1, 5]"
+-- >>> fmap evalExpr $ parseMaybe testEqP "[\"==\", 1, 1]"
+-- true
+-- >>> fmap evalExpr $ parseMaybe testEqP "[\"==\", [1, 2, 3], [123]]"
+-- false
+-- >> evalExpr <$> parseMaybe testEqP "[\"==\", [\"+\", 123, 4], 127]"
+-- true
 testEqP :: Parser (Expr ('SBool b))
 testEqP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "=="
   _ <- char ',' >> space
-  val1 <- unified
+  val1 <- wrap <$> testSumP <|> unified
   _ <- char ',' >> space
-  EqE val1 <$> unified
+  EqE val1 <$> (wrap <$> testSumP <|> unified)
 
+
+testAtP :: Parser (Expr a)
+testAtP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "at"
+  _ <- char ',' >> space
+  val1 <- arrayLitP
+  _ <- char ',' >> space
+  AtE val1 <$> intExprP
