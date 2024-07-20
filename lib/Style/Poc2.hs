@@ -100,9 +100,21 @@ pAtom =
       , stringLitP
       ]
 
+parserForType :: SType -> Parser SType
+parserForType t = case t of
+  SInt _    -> intLitP
+  SDouble _ -> doubleLitP
+  SBool _   -> boolLitP
+  SString _ -> stringLitP
+  SArray _  -> arrayLitP
+  _         -> pAtom
+
 arrayLitP :: Parser SType
-arrayLitP = SArray <$> betweenSquareBrackets
-    (pAtom `sepBy` (char ',' >> space))
+arrayLitP = betweenSquareBrackets $ do
+  firstElem <- pAtom
+  _ <- char ',' >> space
+  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+  return $ SArray (firstElem : restElems)
 
 
 -- | prefix exrp parser
@@ -139,7 +151,9 @@ data Expr :: SType -> Type where
   -- | list literal
   ArrayE  :: SType -> Expr (SArray a)
   -- | addition
-  AddE    :: Expr (SInt i) -> Expr (SInt i) -> Expr (SInt i)
+  AddE    :: SType -> Expr (SInt i)
+  -- | subtraction
+  SubE    :: SType -> SType -> Expr a
   -- | check for equaliy on polymorphic types
   EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
   -- | get
@@ -154,7 +168,8 @@ evalExpr (BoolE b)            = SBool b
 evalExpr (IntE i)             = SInt i
 evalExpr (DoubleE d)          = SDouble d
 evalExpr (ArrayE (SArray a))  = SArray a
-evalExpr (AddE a b)           = stypeSum (evalExpr a) (evalExpr b)
+evalExpr (AddE (SArray a))    = stypeSum a
+evalExpr (SubE a b)           = stypeSub a b
 evalExpr (EqE o t)            = stypeEq (eval o) (eval t)
 evalExpr (AtE a i)            = sIn a (evalExpr i)
 -- evalExpr (IfE b t e)
@@ -228,9 +243,22 @@ arrayExprP = ArrayE <$> arrayLitP <* hidden space
 unified :: Parser WrappedExpr
 unified = fmap wrap intExprP <|> fmap wrap boolExprP <|> fmap wrap doubleExprP <|> fmap wrap stringExprP <|> fmap wrap arrayExprP
 
-stypeSum :: SType -> SType -> SType
-stypeSum (SInt i) (SInt j) = SInt $ i + j
-stypeSum _ _               = error "sum accepts numbers only"
+stypeSum :: [SType] -> SType
+stypeSum = foldr stypeAdd (SInt 0)
+  where
+    stypeAdd :: SType -> SType -> SType
+    stypeAdd (SInt i) (SInt j)        = SInt $ i + j
+    stypeAdd (SInt i) (SDouble j)     = SDouble $ fromIntegral i + j
+    stypeAdd (SDouble i) (SInt j)     = SDouble $ i + fromIntegral j
+    stypeAdd (SDouble i) (SDouble j)  = SDouble $ i + j
+    stypeAdd _ _                      = error "must be numeric type"
+
+stypeSub :: SType -> SType -> SType
+stypeSub (SInt i) (SInt j)       = SInt $ i - j
+stypeSub (SInt i) (SDouble j)    = SDouble $ fromIntegral i - j
+stypeSub (SDouble i) (SInt j)   = SDouble $ i - fromIntegral j
+stypeSub (SDouble i) (SDouble j) = SDouble $ i - j
+stypeSub _ _                     = error "must be numeric type"
 
 stypeEq :: SType -> SType -> SType
 stypeEq (SInt i) (SInt j)       = SBool $ i == j
@@ -242,21 +270,26 @@ stypeEq _ _                     = error "eq on nor supported types"
 
 sIn :: SType -> SType -> SType
 sIn (SArray a) (SInt i) = a !! i
-sIn _ (SInt i) = error "param 1 must be an array"
-sIn (SArray a) _ = error "param 2 must be an int"
+sIn _ (SInt i)          = error "param 1 must be an array"
+sIn (SArray a) _        = error "param 2 must be an int"
 
 
--- TODO accept n args
 -- >>> fmap evalExpr $ parseMaybe testSumP "[\"+\", 1, [\"+\", 1, 2]]"
 -- 4
 testSumP :: Parser (Expr ('SInt i))
 testSumP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "+"
   _ <- char ',' >> space
-  val1 <- intExprP <|> testSumP
+  vals <- (pNumber <|> fmap (eval . wrap) testSumP) `sepBy` (char ',' >> space)
+  return $ AddE (SArray vals)
+
+testSubP :: Parser (Expr a)
+testSubP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ char '-'
   _ <- char ',' >> space
-  val2 <- intExprP <|> testSumP
-  return $ AddE val1 val2
+  val1 <- pNumber <|> fmap (eval . wrap) testSumP
+  _ <- char ',' >> space
+  SubE val1 <$> (pNumber <|> fmap (eval . wrap) testSumP)
 
 -- >>> fmap evalExpr $ parseMaybe testEqP "[\"==\", 1, 1]"
 -- true
@@ -280,3 +313,5 @@ testAtP = betweenSquareBrackets $ do
   val1 <- arrayLitP
   _ <- char ',' >> space
   AtE val1 <$> intExprP
+
+

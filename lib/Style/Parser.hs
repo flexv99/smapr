@@ -1,8 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators, DeriveGeneric #-}
 
 module Style.Parser where
 
@@ -26,20 +22,7 @@ type Parser = Parsec Void T.Text
 -- reference: https://github.com/maplibre/maplibre-style-spec/blob/main/src/expression/types.ts#L133
 -- Docs: https://maplibre.org/maplibre-style-spec/expressions/#types
 
-{-
-Supported datatypes:
-missing ones:
-'null'
-'color'
-'object'
-'value'
-'error'
-'collator'
-'formatted'
-'padding'
-'resolvedImage'
-'variableAnchorOffsetCollection'
--}
+type Color = Colour Double
 
 data SType
   = SInt Int
@@ -81,64 +64,75 @@ betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 
 --- PARSER
 
-pString :: Parser SType
-pString =
- SString
-    <$> fmap
-      T.pack
-      (betweenDoubleQuotes
-          (lexeme (many snakeCaseChar) <?> "string literal"))
-
-pInteger :: Parser SType
-pInteger = SInt <$> lexeme (L.signed space L.decimal)
-
-pDouble :: Parser SType
-pDouble = SDouble <$> lexeme (L.signed space L.float)
-
-pNumber :: Parser SType
-pNumber = try pDouble <|> pInteger <?> "number"
-
-pBool :: Parser SType
-pBool =
-  label "bool" $
-    lexeme $
-      (SBool False <$ (string "false" *> notFollowedBy alphaNumChar))
-        <|> (SBool True <$ (string "true" *> notFollowedBy alphaNumChar))
-
-pType :: Parser SType
-pType = label "type" $ betweenDoubleQuotes $ do
-  t <- lexeme (string "$type" <* notFollowedBy alphaNumChar)
-  pure $ STypeType t
-
-pAtom :: Parser SType
-pAtom =
-  try $
-    choice
-      [ pNumber
-      , pBool
-      , pHslColor
-      , pString
-      ]
-
-pArray :: Parser SType
-pArray = SArray <$> 
-  betweenSquareBrackets
-    (pAtom `sepBy` (char ',' >> space))
-
 pKeyword :: T.Text -> Parser T.Text
 pKeyword keyword =
   label ("property_key: " ++ T.unpack keyword) $
     betweenDoubleQuotes $
       lexeme (string keyword <* notFollowedBy alphaNumChar)
 
-literalId :: T.Text
-literalId = "literal"
+pString :: Parser T.Text
+pString = fmap
+      T.pack
+      (betweenDoubleQuotes
+          (lexeme (many snakeCaseChar) <?> "string"))
 
-literal :: Parser SType
-literal = label (show literalId) $ betweenSquareBrackets $ do
-  key <- pKeyword literalId
+pBool :: Parser Bool
+pBool =
+  label "bool" $
+    lexeme $
+      (False <$ (string "false" *> notFollowedBy alphaNumChar))
+        <|> (True <$ (string "true" *> notFollowedBy alphaNumChar))
+
+pInteger :: Parser Int
+pInteger = lexeme (L.signed space L.decimal) <?> "integer"
+
+pDouble :: Parser Double
+pDouble = lexeme (L.signed space L.float) <?> "float"
+
+pArray :: Parser a -> Parser [a]
+pArray pAtom = betweenSquareBrackets
+    (pAtom `sepBy` (char ',' >> space))
+
+
+stringLitP :: Parser SType
+stringLitP = SString <$> pString
+
+boolLitP :: Parser SType
+boolLitP = SBool <$> pBool
+
+intLitP :: Parser SType
+intLitP = SInt <$> pInteger
+
+doubleLitP :: Parser SType
+doubleLitP = SDouble <$> pDouble
+
+pNumber :: Parser SType
+pNumber = try doubleLitP <|> intLitP <?> "number"
+
+pAtom :: Parser SType
+pAtom =
+  try $
+    choice
+      [ pNumber
+      , boolLitP
+      , stringLitP
+      ]
+
+parserForType :: SType -> Parser SType
+parserForType t = case t of
+  SInt _    -> intLitP
+  SDouble _ -> doubleLitP
+  SBool _   -> boolLitP
+  SString _ -> stringLitP
+  SArray _  -> arrayLitP
+  _         -> pAtom
+
+arrayLitP :: Parser SType
+arrayLitP = betweenSquareBrackets $ do
+  firstElem <- pAtom
   _ <- char ',' >> space
-  pArray
+  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+  return $ SArray (firstElem : restElems)
 
 
 -- Color
@@ -152,9 +146,6 @@ literal = label (show literalId) $ betweenSquareBrackets $ do
 --     "line-color": "hsla(100, 50%, 50%, 1)",
 --     "line-color": "yellow"
 -- }
-
-type Color = Colour Double
-
 
 hslToColor :: Double -> Double -> Double  -> Color
 hslToColor h s l = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
@@ -179,3 +170,9 @@ pHslColor = do
 
 showSColor :: SType -> String
 showSColor (SColor a) = sRGB24show a
+
+exprBaseP :: T.Text -> Parser a -> Parser a
+exprBaseP id rest = betweenSquareBrackets $ do
+  _ <- pKeyword id
+  _ <- char ',' >> space
+  rest

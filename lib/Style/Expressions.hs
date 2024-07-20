@@ -1,256 +1,182 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances, DataKinds, AllowAmbiguousTypes #-}
+{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, TypeOperators, DataKinds #-}
 
 module Style.Expressions where
 
-import GHC.Generics (Generic)
-import Data.Void (Void)
+import Data.Kind (Type)
+import Data.Void
+import qualified Data.Text.Lazy as T
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Data.Aeson as A
-import qualified Data.Aeson.Text as A
 import qualified Text.Megaparsec.Char.Lexer as L
-import qualified Data.Text.Lazy as T
-import Data.List (isInfixOf)
 import Style.Parser
 
-data Expression
-  = SLitType SType
-  | SAtType SAt
-  | SInType SIn
-  | SIndexOfType SIndexOf
-  | SGetType SGet
-  | SEqType SEq
-  deriving (Show, Eq)
+-- | AST representation of map libre's style spec expressions
+--   value-type the expression is representing (see 'evalExpr')
+data Expr :: SType -> Type where
+  -- | string literal
+  StringE :: T.Text -> Expr (SString s)
+  -- | bool-value
+  BoolE   :: Bool -> Expr (SBool b)
+  -- | int literal
+  IntE    :: Int -> Expr (SInt i)
+  -- | double literal
+  DoubleE :: Double -> Expr (SDouble d)
+  -- | list literal
+  ArrayE  :: SType -> Expr (SArray a)
+  -- | addition
+  AddE    :: SType -> Expr (SInt i)
+  -- | subtraction
+  SubE    :: SType -> SType -> Expr a
+  -- | check for equaliy on polymorphic types
+  EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
+  -- | get
+  AtE    :: SType -> Expr (SInt i) -> Expr a
 
-data BoolRetExpr
-  = SLitBool SType
-  | SInBool SIn
-  | SEqBool SEq
-  | SAllBool SAll
-  | FSInBool FSIn
-  | FSEqBool FSEq
-  deriving (Show, Eq)
+deriving instance Show (Expr res)
 
-class Expr a where
-  parseExpr :: Parser a
-  evaluate  :: a -> SType
+-- | runtime representation
+--   mainly useful for parsing
+data WrappedExpr where
+  StringExpr  :: Expr (SString n)  -> WrappedExpr
+  IntExpr     :: Expr (SInt i)     -> WrappedExpr
+  DoubleExpr  :: Expr (SDouble d)  -> WrappedExpr
+  BoolExpr    :: Expr (SBool b)    -> WrappedExpr
+  ArrayExpr   :: Expr (SArray a)   -> WrappedExpr
 
+deriving instance Show WrappedExpr
 
-exprP :: Parser Expression
-exprP = label "Expression" $ choice $ map try
-      [ SLitType     <$> pAtom
-      , SEqType      <$> eqP
-      , SInType      <$> inP
-      , SIndexOfType <$> indexOfP
-      , SGetType     <$> getP
-      , SAtType      <$> atP
-      ]
+-- | helps wrapping 'Expr' to the right
+--   'WrappedExpr' constructor
+--
+-- >>> wrap (IntE 42)
+-- IntExpr (IntE 42)
+--
+-- >>> wrap (IsNullE (IntE 42))
+-- BoolExpr (IsNullE (IntE 42))
+class KnownResType a where
+  wrap :: Expr a -> WrappedExpr
 
-boolRetExprP :: Parser BoolRetExpr
-boolRetExprP = label "bool | bool returning expr" $ choice $ map try
-  [ SLitBool  <$> pBool
-  , SInBool   <$> inP
-  , SEqBool   <$> eqP
-  , SAllBool  <$> allP
-  , FSInBool  <$> fInP
-  , FSEqBool  <$> feqP
-  ]
+instance KnownResType (SString b) where
+  wrap = StringExpr
 
--- | to be used every time a expr needs more args of the same type
-typeEqAssert :: SType -> Parser SType
-typeEqAssert (SInt _)      = pInteger
-typeEqAssert (SDouble _)   = pDouble
-typeEqAssert (SString _)   = pString
-typeEqAssert (SBool _)     = pBool
-typeEqAssert (SArray _)    = pArray
-typeEqAssert (STypeType _) = pType
-typeEqAssert _             = error "does not match any supported type"
+instance KnownResType (SInt a) where
+  wrap = IntExpr
 
---- LOOKUP:
-{-
-at
-Retrieves an item from an array.
-["at", value, number]: value
--}
-data SAt = SAt { array :: SType
-               , index :: SType
-               } deriving (Show, Generic, Eq)
+instance KnownResType (SDouble d) where
+  wrap = DoubleExpr
 
-atId :: T.Text
-atId = "at"
+instance KnownResType (SBool b) where
+  wrap = BoolExpr
 
-atP :: Parser SAt
-atP = label (show atId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword atId
-    lexeme (char ',')
-    value <- literal
-    lexeme (char ',')
-    idx <- pInteger
-    return SAt {array = value, index = idx}
+instance KnownResType (SArray a) where
+  wrap = ArrayExpr
 
-instance Expr SAt where
-  parseExpr = atP
+stringExprP :: Parser (Expr (SString s))
+stringExprP = StringE <$> pString <* hidden space
 
-  evaluate (SAt (SArray a) (SInt i)) = a !! i
-  evaluate (SAt _ (SInt i))          = error "at arg1 must be an array"
-  evaluate (SAt (SArray a) _)        = error "at arg2 must be an int"
+intExprP :: Parser (Expr (SInt i))
+intExprP = IntE <$> pInteger <* hidden space
 
+doubleExprP :: Parser (Expr (SDouble d))
+doubleExprP = DoubleE <$> pDouble <* hidden space
 
-{-
-in & !in
-Determines whether an item exists in an array or a substring exists in a string.
-["in", value, value]: boolean
--}
-data SIn = SIn { object :: SType
-               , item :: SType
-               } deriving (Show, Generic, Eq)
+boolExprP :: Parser (Expr (SBool b))
+boolExprP = BoolE <$> pBool <* hidden space
 
-inId :: T.Text
-inId = "in"
+arrayExprP :: Parser (Expr (SArray a))
+arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
-inP :: Parser SIn
-inP = label (show inId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword inId
-    lexeme (char ',')
-    obj <- pAtom
-    lexeme (char ',')
-    itm <- pAtom
-    return SIn { object = obj, item = itm }
+exprChoicheP :: Parser WrappedExpr
+exprChoicheP = choice [ wrap <$> intExprP
+                      , wrap <$> doubleExprP
+                      , wrap <$> boolExprP
+                      , wrap <$> stringExprP
+                      , wrap <$> arrayExprP]
 
+-- | evaluates an 'Expr' to the tagged type f.e.
+-- >>> evalExpr $ AddE (SArray [SInt 38,SInt 4])
+-- 42
+evalExpr :: Expr res -> SType
+evalExpr (StringE s)          = SString s
+evalExpr (BoolE b)            = SBool b
+evalExpr (IntE i)             = SInt i
+evalExpr (DoubleE d)          = SDouble d
+evalExpr (ArrayE (SArray a))  = SArray a
+evalExpr (AddE (SArray a))    = stypeSum a
+evalExpr (SubE a b)           = stypeSub a b
+evalExpr (EqE o t)            = stypeEq (eval o) (eval t)
+evalExpr (AtE a i)            = sIn a (evalExpr i)
+-- evalExpr (IfE b t e)
+--   | evalExpr b = evalExpr t
+--   | otherwise  = evalExpr e
 
-{-
-index-of
-Returns the first position at which an item can be found in an array or a substring can be found in a string,
-or -1 if the input cannot be found. Accepts an optional index from where to begin the search.
-["index-of", value, value, number?]: number
--}
-data SIndexOf = SIndexOf { lookupItem :: SType
-                         , items :: SType
-                         , startIndex :: Maybe SType
-                         } deriving (Show, Generic, Eq)
+-- | evaluates an 'WrappedExpr' to SType
+-- >>> eval (IntExpr (AddE (IntE 4) (IntE 5)))
+-- SInt 9
+eval :: WrappedExpr -> SType
+eval (StringExpr s) = evalExpr s
+eval (BoolExpr b)   = evalExpr b
+eval (IntExpr i)    = evalExpr i
+eval (DoubleExpr d) = evalExpr d
+eval (ArrayExpr a)  = evalExpr a
 
-indexOfId :: T.Text
-indexOfId = "index-of"
+stypeSum :: [SType] -> SType
+stypeSum = foldr stypeAdd (SInt 0)
+  where
+    stypeAdd :: SType -> SType -> SType
+    stypeAdd (SInt i)    (SInt j)     = SInt $ i + j
+    stypeAdd (SInt i)    (SDouble j)  = SDouble $ fromIntegral i + j
+    stypeAdd (SDouble i) (SInt j)     = SDouble $ i + fromIntegral j
+    stypeAdd (SDouble i) (SDouble j)  = SDouble $ i + j
+    stypeAdd _ _                      = error "must be numeric type"
 
-indexOfP :: Parser SIndexOf
-indexOfP = label (show indexOfId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword indexOfId
-    lexeme (char ',')
-    lookup <- pAtom
-    lexeme (char ',')
-    onItems <- pArray
-    start <- optional $ do
-      lexeme (char ',')
-      pInteger
-    return SIndexOf { lookupItem = lookup, items = onItems, startIndex = start }
+stypeSub :: SType -> SType -> SType
+stypeSub (SInt i)    (SInt j)    = SInt $ i - j
+stypeSub (SInt i)    (SDouble j) = SDouble $ fromIntegral i - j
+stypeSub (SDouble i) (SInt j)    = SDouble $ i - fromIntegral j
+stypeSub (SDouble i) (SDouble j) = SDouble $ i - j
+stypeSub _ _                     = error "must be numeric type"
 
-{-
-get
-Retrieves a property value from the current feature's properties,
-or from another object if a second argument is provided.
-Returns null if the requested property is missing.
-["get", string]: value
--}
-newtype SGet = SGet { runGet :: SType } deriving (Show, Generic, Eq)
+stypeEq :: SType -> SType -> SType
+stypeEq (SInt i)    (SInt j)    = SBool $ i == j
+stypeEq (SDouble i) (SDouble j) = SBool $ i == j
+stypeEq (SString i) (SString j) = SBool $ i == j
+stypeEq (SBool i)   (SBool j)   = SBool $ i == j
+stypeEq (SArray i)  (SArray j)  = SBool $ i == j
+stypeEq _ _                     = error "eq on not supported types"
 
-getId :: T.Text
-getId = "get"
-
--- Parse a getter expression
-getP :: Parser SGet
-getP = label (show getId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword getId
-    lexeme (char ',')
-    SGet <$> pAtom
-
-{-
-== & !=
-Returns true if the input values are equal, false otherwise.
-The comparison is strictly typed: values of different runtime types are always considered unequal.
-Cases where the types are known to be different at parse time are considered invalid and will produce a parse error.
-Accepts an optional collator argument to control locale-dependent string comparisons.
--}
-data SEq = SEq { iOne :: SType
-               , iTwo :: SType
-               } deriving (Show, Generic, Eq)
-
-eqId :: T.Text
-eqId = "=="
-
-eqP :: Parser SEq
-eqP = label (show eqId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword eqId
-    lexeme (char ',')
-    item1 <- pAtom
-    lexeme (char ',')
-    item2 <- typeEqAssert item1
-    return SEq { iOne = item1, iTwo = item2 }
-
-{-
-all
-Returns true if all the inputs are true, false otherwise. The inputs are evaluated in order,
-and evaluation is short-circuiting: once an input expression evaluates to false,
-the result is false and no further input expressions are evaluated.
--}
-newtype SAll = SAll { args :: [BoolRetExpr] } deriving (Show, Generic, Eq)
-
-allId :: T.Text
-allId = "all"
-
-allP :: Parser SAll
-allP = label (show allId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword allId
-    lexeme (char ',')
-    arguments <- boolRetExprP `sepBy` (char ',' >> space)
-    return SAll { args = arguments }
+sIn :: SType -> SType -> SType
+sIn (SArray a) (SInt i) = a !! i
+sIn _          (SInt i) = error "param 1 must be an array"
+sIn (SArray a) _        = error "param 2 must be an int"
 
 
-instance A.FromJSON Expression where
-    parseJSON = A.withArray "Expression" $ \v ->
-                case parse exprP "" (A.encodeToLazyText v) of
-                  Left err  -> fail $ errorBundlePretty err
-                  Right res -> return res
+-- >>> fmap evalExpr $ parseMaybe sumP "[\"+\", 1, [\"+\", 1, 2]]"
+-- 4
+sumP :: Parser (Expr ('SInt i))
+sumP = exprBaseP "+" $ do
+  vals <- (pNumber <|>  fmap evalExpr atP <|> fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
+  return $ AddE (SArray vals)
 
--- parseTest allP "[\"all\",[\"==\",\"type\",\"LineString\"], true,[\"==\",\"type\",\"LineString\"]]"
--- A.eitherDecode "[\"==\",\"$type\",\"LineString\"]" :: Either String Expression
--- A.eitherDecode "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" :: Either String Expression
--- A.eitherDecode "[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]]" :: Either String Expression
+subP :: Parser (Expr a)
+subP = exprBaseP "-" $ do
+  val1 <- pNumber <|> fmap (eval . wrap) sumP
+  _ <- char ',' >> space
+  SubE val1 <$> (pNumber <|> fmap (eval . wrap) sumP)
 
-
-data FSIn = FSIn { obj :: [SType]
-                 } deriving (Show, Generic, Eq)
-
-fInId :: T.Text
-fInId = "!in"
-
-fInP :: Parser FSIn
-fInP = label (show fInId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword fInId
-    lexeme (char ',')
-    obj <- pAtom `sepBy` lexeme (char ',')
-    return FSIn { obj = obj }
+-- >>> fmap evalExpr $ parseMaybe eqP "[\"==\", [1, 2, 3], [123]]"
+-- false
+-- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
+-- true
+eqP :: Parser (Expr ('SBool b))
+eqP = exprBaseP "==" $ do
+  val1 <- wrap <$> sumP <|> exprChoicheP
+  _ <- char ',' >> space
+  EqE val1 <$> (wrap <$> sumP <|> exprChoicheP)
 
 
-data FSEq = FSEq { fiOne :: SType
-                 , fiTwo :: SType
-                 } deriving (Show, Generic, Eq)
-
-feqId :: T.Text
-feqId = "=="
-
-feqP :: Parser FSEq
-feqP = label (show feqId) $
-  betweenSquareBrackets $ do
-    key <- pKeyword feqId
-    lexeme (char ',')
-    item1 <- pType
-    lexeme (char ',')
-    item2 <- pAtom
-    return FSEq { fiOne = item1, fiTwo = item2 }
+atP :: Parser (Expr a)
+atP = exprBaseP "at" $ do
+  val1 <- arrayLitP
+  _ <- char ',' >> space
+  AtE val1 <$> intExprP
