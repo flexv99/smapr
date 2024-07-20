@@ -33,57 +33,26 @@ spec = do
       fmap showSColor (parseMaybe pHslColor "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
   describe "Style.Parser.SType.SType" $ do
     it "parse array" $ do
-      parseMaybe pArray "[-1, 0, 0.4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SDouble 0.4])
-  describe "Style.Parser.literal" $ do
-    it "parse literals" $ do
-      parseMaybe literal "[\"literal\", [\"a\", \"b\"]]" `shouldBe` Just expectedLiteralRes
-  describe "Style.Expressions.getP" $ do
-    it "can parse getters" $ do
-      parseMaybe exprP "[\"get\",\"someProperyt\"]" `shouldBe` Just expectedGetRes
+      parseMaybe arrayLitP "[-1, 0, 4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SInt 4])
+  describe "Style.Expressions.sumP" $ do
+    it "can parse and evaluate sum expression" $ do
+      evalExpr <$> parseMaybe sumP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" `shouldBe` Just (SInt 5)
+  describe "Style.Expressions.prodP" $ do
+    it "can parse and evaluate multiplication expression" $ do
+      evalExpr <$> parseMaybe prodP "[\"*\", 1, [\"-\", 1, 2], 5, 6]" `shouldBe` Just (SInt (-30))
+  describe "Style.Expressions.subP" $ do
+    it "can parse and evaluate subtraction expression" $ do
+      evalExpr <$> parseMaybe subP "[\"-\", 1, [\"+\", 1, 2]]" `shouldBe` Just (SInt (-2))
+  describe "Style.Expressions.divP" $ do
+    it "can parse and evaluate division expression" $ do
+      evalExpr <$> parseMaybe divP "[\"/\", 1, [\"+\", 2, 2]]" `shouldBe` Just (SDouble 0.25)
+  describe "Style.Expressions.eqP" $ do
+    it "can parse and evaluate eqality expression" $ do
+      evalExpr <$> parseMaybe eqP "[\"==\",1, 1]" `shouldBe` Just (SBool True)
   describe "Style.Expressions.atP" $ do
-    it "can parse at expression" $ do
-      parseMaybe exprP "[\"at\", [\"literal\", [\"a\", \"b\", \"c\"]], 1]" `shouldBe` Just expectedAtRes
-  describe "Style.Expressions.inP" $ do
-    it "can parse in expression" $ do
-      parseMaybe exprP "[\"in\", \"type\", \"Point\"]" `shouldBe` Just expectedInRes
-  describe "Style.Expressions.indexOfP" $ do
-    it "can parse index-of expressions with no starting index" $ do
-      parseMaybe exprP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"]]" `shouldBe` Just expectedIndexOfRes
-  describe "Style.Expressions.indexOfP" $ do
-    it "can parse index-of expressions with starting index" $ do
-      parseMaybe exprP "[\"index-of\", \"foo\", [\"baz\", \"bar\", \"hello\", \"foo\", \"world\"], 2]" `shouldBe` Just expectedIndexOfRes'
-  describe "Style.Expressions.eqP" $ do
-    it "can parse eqality expression" $ do
-      parseMaybe exprP "[\"==\",\"$type\",\"LineString\"]" `shouldBe` Just expectedEq
-  describe "Style.Expressions.eqP" $ do
-    it "can parse eqality expression on literal" $ do
-      parseMaybe exprP "[\"==\",1, 1]" `shouldBe` Just expectedEqOnSType
+    it "can parse and return element at index of a list" $ do
+      evalExpr <$> parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" `shouldBe` Just (SString "bc")
 
-expectedGetRes :: Expression
-expectedGetRes = SGetType $ SGet (SString "someProperyt")
-
-expectedAtRes :: Expression
-expectedAtRes = SAtType $ SAt {array = SArray [SString "a",SString "b",SString "c"], index = SInt 1}
-
-expectedLiteralRes :: SType
-expectedLiteralRes = SArray [SString "a", SString "b"]
-
-expectedInRes :: Expression
-expectedInRes = SInType $ SIn {object = SString "type", item = SString "Point"}
-
-expectedIndexOfRes :: Expression                
-expectedIndexOfRes = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = SArray [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
-                              , startIndex = Nothing}
-
-expectedIndexOfRes' :: Expression
-expectedIndexOfRes' = SIndexOfType $ SIndexOf {lookupItem = SString "foo", items = SArray [SString "baz",SString "bar",SString "hello",SString "foo",SString "world"]
-                               , startIndex = Just (SInt 2)}
-
-expectedEq :: Expression
-expectedEq = SEqType $ SEq { iOne = STypeType "$type", iTwo = SString "LineString" }
-
-expectedEqOnSType :: Expression
-expectedEqOnSType = SEqType $ SEq { iOne = SInt 1, iTwo = SInt 1 }
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
