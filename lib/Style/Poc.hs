@@ -39,8 +39,6 @@ data POCPaint = POCPaint
   , lineWidth :: Maybe POCPaint
   } deriving (Show, Eq, Generic)
 
--- (.!=) :: Parser (Maybe a) -> a -> Parser a
-
 -- Helper for use in combination with .:? to provide default values for optional JSON object fields.
 
 instance A.FromJSON SType where

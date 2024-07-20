@@ -83,16 +83,38 @@ pBool =
       (False <$ (string "false" *> notFollowedBy alphaNumChar))
         <|> (True <$ (string "true" *> notFollowedBy alphaNumChar))
 
+pAtom :: Parser SType
+pAtom =
+  try $
+    choice
+      [ numberLitP
+      , boolLitP
+      , stringLitP
+      , arrayLitP
+      ]
+
+parserForType :: SType -> Parser SType
+parserForType t = case t of
+  SInt _    -> intLitP
+  SDouble _ -> doubleLitP
+  SBool _   -> boolLitP
+  SString _ -> stringLitP
+  SArray _  -> arrayLitP
+  _         -> pAtom
+
+pArray :: Parser [SType]
+pArray =
+  label "array" $ betweenSquareBrackets $ do
+  firstElem <- pAtom
+  _ <- char ',' >> space
+  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+  return (firstElem : restElems)
+
 pInteger :: Parser Int
 pInteger = lexeme (L.signed space L.decimal) <?> "integer"
 
 pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
-
-pArray :: Parser a -> Parser [a]
-pArray pAtom = betweenSquareBrackets
-    (pAtom `sepBy` (char ',' >> space))
-
 
 stringLitP :: Parser SType
 stringLitP = SString <$> pString
@@ -106,34 +128,11 @@ intLitP = SInt <$> pInteger
 doubleLitP :: Parser SType
 doubleLitP = SDouble <$> pDouble
 
-pNumber :: Parser SType
-pNumber = try doubleLitP <|> intLitP <?> "number"
-
-pAtom :: Parser SType
-pAtom =
-  try $
-    choice
-      [ pNumber
-      , boolLitP
-      , stringLitP
-      ]
-
-parserForType :: SType -> Parser SType
-parserForType t = case t of
-  SInt _    -> intLitP
-  SDouble _ -> doubleLitP
-  SBool _   -> boolLitP
-  SString _ -> stringLitP
-  SArray _  -> arrayLitP
-  _         -> pAtom
+numberLitP :: Parser SType
+numberLitP = try doubleLitP <|> intLitP <?> "number"
 
 arrayLitP :: Parser SType
-arrayLitP = betweenSquareBrackets $ do
-  firstElem <- pAtom
-  _ <- char ',' >> space
-  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
-  return $ SArray (firstElem : restElems)
-
+arrayLitP = SArray <$> pArray
 
 -- Color
 -- The color type is a color in the sRGB color space. Colors are JSON strings in a variety of permitted formats: HTML-style hex values, RGB, RGBA, HSL, and HSLA. Predefined HTML colors names, like yellow and blue, are also permitted.

@@ -24,12 +24,16 @@ data Expr :: SType -> Type where
   -- | list literal
   ArrayE  :: SType -> Expr (SArray a)
   -- | addition
-  AddE    :: SType -> Expr (SInt i)
+  AddE    :: SType -> Expr a
+  -- | product
+  ProdE    :: SType -> Expr a
   -- | subtraction
   SubE    :: SType -> SType -> Expr a
+  -- | division
+  DivE    :: SType -> SType -> Expr a
   -- | check for equaliy on polymorphic types
   EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
-  -- | get
+  -- | element at index
   AtE    :: SType -> Expr (SInt i) -> Expr a
 
 deriving instance Show (Expr res)
@@ -103,9 +107,11 @@ evalExpr (IntE i)             = SInt i
 evalExpr (DoubleE d)          = SDouble d
 evalExpr (ArrayE (SArray a))  = SArray a
 evalExpr (AddE (SArray a))    = stypeSum a
+evalExpr (ProdE (SArray a))   = stypeProd a
 evalExpr (SubE a b)           = stypeSub a b
+evalExpr (DivE a b)           = stypeDiv a b
 evalExpr (EqE o t)            = stypeEq (eval o) (eval t)
-evalExpr (AtE a i)            = sIn a (evalExpr i)
+evalExpr (AtE a i)            = stypeIn a (evalExpr i)
 -- evalExpr (IfE b t e)
 --   | evalExpr b = evalExpr t
 --   | otherwise  = evalExpr e
@@ -130,12 +136,29 @@ stypeSum = foldr stypeAdd (SInt 0)
     stypeAdd (SDouble i) (SDouble j)  = SDouble $ i + j
     stypeAdd _ _                      = error "must be numeric type"
 
+stypeProd :: [SType] -> SType
+stypeProd = foldr stypeProd (SInt 1)
+  where
+    stypeProd :: SType -> SType -> SType
+    stypeProd (SInt i)    (SInt j)     = SInt $ i * j
+    stypeProd (SInt i)    (SDouble j)  = SDouble $ fromIntegral i * j
+    stypeProd (SDouble i) (SInt j)     = SDouble $ i * fromIntegral j
+    stypeProd (SDouble i) (SDouble j)  = SDouble $ i * j
+    stypeProd _ _                      = error "must be numeric type"
+
 stypeSub :: SType -> SType -> SType
 stypeSub (SInt i)    (SInt j)    = SInt $ i - j
 stypeSub (SInt i)    (SDouble j) = SDouble $ fromIntegral i - j
 stypeSub (SDouble i) (SInt j)    = SDouble $ i - fromIntegral j
 stypeSub (SDouble i) (SDouble j) = SDouble $ i - j
 stypeSub _ _                     = error "must be numeric type"
+
+stypeDiv :: SType -> SType -> SType
+stypeDiv (SInt i)    (SInt j)    = SDouble $ fromIntegral i / fromIntegral j
+stypeDiv (SInt i)    (SDouble j) = SDouble $ fromIntegral i / j
+stypeDiv (SDouble i) (SInt j)    = SDouble $ i / fromIntegral j
+stypeDiv (SDouble i) (SDouble j) = SDouble $ i / j
+stypeDiv _ _                     = error "must be numeric type"
 
 stypeEq :: SType -> SType -> SType
 stypeEq (SInt i)    (SInt j)    = SBool $ i == j
@@ -145,24 +168,35 @@ stypeEq (SBool i)   (SBool j)   = SBool $ i == j
 stypeEq (SArray i)  (SArray j)  = SBool $ i == j
 stypeEq _ _                     = error "eq on not supported types"
 
-sIn :: SType -> SType -> SType
-sIn (SArray a) (SInt i) = a !! i
-sIn _          (SInt i) = error "param 1 must be an array"
-sIn (SArray a) _        = error "param 2 must be an int"
+stypeIn :: SType -> SType -> SType
+stypeIn (SArray a) (SInt i) = a !! i
+stypeIn _          (SInt i) = error "param 1 must be an array"
+stypeIn (SArray a) _        = error "param 2 must be an int"
 
 
 -- >>> fmap evalExpr $ parseMaybe sumP "[\"+\", 1, [\"+\", 1, 2]]"
 -- 4
 sumP :: Parser (Expr ('SInt i))
 sumP = exprBaseP "+" $ do
-  vals <- (pNumber <|>  fmap evalExpr atP <|> fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
+  vals <- (numberLitP <|>  fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
   return $ AddE (SArray vals)
+
+prodP :: Parser (Expr ('SInt i))
+prodP = exprBaseP "*" $ do
+  vals <- (numberLitP <|> fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
+  return $ ProdE (SArray vals)
 
 subP :: Parser (Expr a)
 subP = exprBaseP "-" $ do
-  val1 <- pNumber <|> fmap (eval . wrap) sumP
+  val1 <- numberLitP <|> fmap (eval . wrap) sumP
   _ <- char ',' >> space
-  SubE val1 <$> (pNumber <|> fmap (eval . wrap) sumP)
+  SubE val1 <$> (numberLitP <|> fmap (eval . wrap) sumP)
+
+divP :: Parser (Expr a)
+divP = exprBaseP "/" $ do
+  val1 <- numberLitP <|> fmap (eval . wrap) sumP
+  _ <- char ',' >> space
+  DivE val1 <$> (numberLitP <|> fmap (eval . wrap) sumP)
 
 -- >>> fmap evalExpr $ parseMaybe eqP "[\"==\", [1, 2, 3], [123]]"
 -- false
