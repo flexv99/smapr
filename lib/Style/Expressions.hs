@@ -3,11 +3,10 @@
 module Style.Expressions where
 
 import Data.Kind (Type)
-import Data.Void
 import qualified Data.Text.Lazy as T
+import qualified Text.Megaparsec.Char.Lexer as L
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer as L
 import Style.Parser
 
 -- | AST representation of map libre's style spec expressions
@@ -173,30 +172,20 @@ stypeIn (SArray a) (SInt i) = a !! i
 stypeIn _          (SInt i) = error "param 1 must be an array"
 stypeIn (SArray a) _        = error "param 2 must be an int"
 
-
--- >>> fmap evalExpr $ parseMaybe sumP "[\"+\", 1, [\"+\", 1, 2]]"
--- 4
-sumP :: Parser (Expr ('SInt i))
-sumP = exprBaseP "+" $ do
-  vals <- (numberLitP <|>  fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
-  return $ AddE (SArray vals)
-
-prodP :: Parser (Expr ('SInt i))
-prodP = exprBaseP "*" $ do
-  vals <- (numberLitP <|> fmap evalExpr subP <|> fmap (eval . wrap) sumP) `sepBy` (char ',' >> space)
-  return $ ProdE (SArray vals)
-
-subP :: Parser (Expr a)
-subP = exprBaseP "-" $ do
-  val1 <- numberLitP <|> fmap (eval . wrap) sumP
-  _ <- char ',' >> space
-  SubE val1 <$> (numberLitP <|> fmap (eval . wrap) sumP)
-
-divP :: Parser (Expr a)
-divP = exprBaseP "/" $ do
-  val1 <- numberLitP <|> fmap (eval . wrap) sumP
-  _ <- char ',' >> space
-  DivE val1 <$> (numberLitP <|> fmap (eval . wrap) sumP)
+-- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
+-- 1.5
+numRetExprP :: Parser (Expr a)
+numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
+                               , exprBaseP "-" $ SubE <$> argWithComma <*> singleArgP
+                               , ProdE . SArray <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
+                               , exprBaseP "/" $ DivE <$> argWithComma <*> singleArgP
+                               ]
+              where
+                singleArgP = numberLitP <|> (evalExpr <$> numRetExprP)
+                argWithComma = do
+                  val <- singleArgP
+                  _ <- char ',' >> space
+                  return val
 
 -- >>> fmap evalExpr $ parseMaybe eqP "[\"==\", [1, 2, 3], [123]]"
 -- false
@@ -204,9 +193,9 @@ divP = exprBaseP "/" $ do
 -- true
 eqP :: Parser (Expr ('SBool b))
 eqP = exprBaseP "==" $ do
-  val1 <- wrap <$> sumP <|> exprChoicheP
+  val1 <- exprChoicheP
   _ <- char ',' >> space
-  EqE val1 <$> (wrap <$> sumP <|> exprChoicheP)
+  EqE val1 <$> exprChoicheP
 
 
 atP :: Parser (Expr a)

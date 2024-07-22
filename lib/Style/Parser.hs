@@ -24,6 +24,7 @@ type Parser = Parsec Void T.Text
 
 type Color = Colour Double
 
+
 data SType
   = SInt Int
   | SDouble Double
@@ -31,7 +32,7 @@ data SType
   | SBool Bool
   | SColor Color
   | SArray [SType]
-  | STypeType T.Text
+  | STypeOf T.Text
   deriving (Show, Generic, Eq)
 
 --- HELPERS

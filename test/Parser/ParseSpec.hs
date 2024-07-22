@@ -36,16 +36,16 @@ spec = do
       parseMaybe arrayLitP "[-1, 0, 4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SInt 4])
   describe "Style.Expressions.sumP" $ do
     it "can parse and evaluate sum expression" $ do
-      evalExpr <$> parseMaybe sumP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" `shouldBe` Just (SInt 5)
+      evalExpr <$> parseMaybe numRetExprP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" `shouldBe` Just (SInt 5)
   describe "Style.Expressions.prodP" $ do
     it "can parse and evaluate multiplication expression" $ do
-      evalExpr <$> parseMaybe prodP "[\"*\", 1, [\"-\", 1, 2], 5, 6]" `shouldBe` Just (SInt (-30))
+      evalExpr <$> parseMaybe numRetExprP "[\"*\", 1, [\"-\", 1, 2], 5, 6]" `shouldBe` Just (SInt (-30))
   describe "Style.Expressions.subP" $ do
     it "can parse and evaluate subtraction expression" $ do
-      evalExpr <$> parseMaybe subP "[\"-\", 1, [\"+\", 1, 2]]" `shouldBe` Just (SInt (-2))
+      evalExpr <$> parseMaybe numRetExprP "[\"-\", 1, [\"+\", 1, 2]]" `shouldBe` Just (SInt (-2))
   describe "Style.Expressions.divP" $ do
     it "can parse and evaluate division expression" $ do
-      evalExpr <$> parseMaybe divP "[\"/\", 1, [\"+\", 2, 2]]" `shouldBe` Just (SDouble 0.25)
+      evalExpr <$> parseMaybe numRetExprP "[\"/\", 1, [\"+\", 2, 2]]" `shouldBe` Just (SDouble 0.25)
   describe "Style.Expressions.eqP" $ do
     it "can parse and evaluate eqality expression" $ do
       evalExpr <$> parseMaybe eqP "[\"==\",1, 1]" `shouldBe` Just (SBool True)
