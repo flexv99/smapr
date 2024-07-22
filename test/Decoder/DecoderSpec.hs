@@ -1,10 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Decoder.DecoderSpec (spec) where
 
+import Data.Functor ((<&>))
 import qualified Data.Sequence as S
 import qualified Data.Map as MP
-import Data.Functor ((<&>))
 import Test.Hspec
-import Decoder.FeatureAttributes
+import Data.Foldable
+import Proto.Util
 import Proto.Vector_tile.Tile.Layer
 import ApiClient
 
@@ -15,7 +18,13 @@ spec :: Spec
 spec = do
   describe "key value mapper" $ do
     it "map a feature's tags to the according keys and values" $ do
-      (waterLayer <&> fmap featureProperties) `shouldReturn` featureTagsMapperRes
+      (waterLayer <&> fmap layerProperties) `shouldReturn` featureTagsMapperRes
+  describe "feature's geometry as string" $ do
+    it "retrieve a feature's geometry type" $ do
+      (waterLayer <&> fmap (geometryTypeToString . head . toList . features)) `shouldReturn` Just (Just "LINESTRING")
+  describe "feature's id as string" $ do
+    it "retrieve a feature's id" $ do
+      (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "0")
 
-featureTagsMapperRes :: Maybe [MP.Map String String]
-featureTagsMapperRes = Just [MP.fromList [("collision_rank","river"),("id","41431201"),("kind","stream"),("min_zoom","11.0"),("name","512"),("name:de","Gran Ega"),("name:it","Gader Bach"),("sort_rank","201"),("source","openstreetmap.org")],MP.fromList [("collision_rank","river"),("id","41431201"),("kind","stream"),("min_zoom","11.0"),("name","512"),("name:de","Gran Ega"),("name:it","Gader Bach"),("sort_rank","201"),("source","openstreetmap.org")],MP.fromList [("collision_rank","river"),("id","41431201"),("kind","stream"),("min_zoom","11.0"),("name","512"),("name:de","Gran Ega"),("name:it","Gader Bach"),("sort_rank","201"),("source","openstreetmap.org")]]
+featureTagsMapperRes :: Maybe (MP.Map String String)
+featureTagsMapperRes = Just (MP.fromList [("collision_rank","river"),("id","41431201"),("kind","stream"),("min_zoom","11.0"),("name","512"),("name:de","Gran Ega"),("name:it","Gader Bach"),("sort_rank","201"),("source","openstreetmap.org")])

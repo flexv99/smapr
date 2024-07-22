@@ -28,9 +28,11 @@ geometryTypeToString f = T.pack . show <$> type' f
 featureIdToString :: Feature -> Maybe T.Text
 featureIdToString f = T.pack . show <$> id f
 
--- | mapping feature tags to key pairs 
-featureProperties :: Layer -> [MP.Map String String]
-featureProperties l = map (\x -> MP.fromList (key `zip` value)) (toList $ features l)
+-- | mapping feature tags to key pairs
+-- TODO this is wrong!! rework map by feature
+-- f.e waterLayer has 9 keys and 13 values!
+layerProperties :: Layer -> MP.Map String String
+layerProperties l = MP.fromList (key `zip` value)
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
     value = map valueToFeatureVal $ toList $ values l

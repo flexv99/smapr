@@ -7,6 +7,8 @@ import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import qualified Data.Text.Lazy as T
 import qualified Text.Megaparsec.Char.Lexer as L
+import qualified Data.Sequence as S
+import qualified Data.Map as MP
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.Parser
@@ -41,10 +43,10 @@ feqP = exprBaseP "==" $ do
   FeqE val1 <$> stringLitP
 
 
-evalFilterExpr :: FilterExpr a -> Feature -> Bool
+evalFilterExpr :: FilterExpr a -> Feature -> Layer -> Bool
 evalFilterExpr (FeqE a b) = evalFilterEq a b
 
-evalFilterEq :: FilterBy -> SType -> Feature -> Bool
-evalFilterEq FTypeOf (SString s) f  = (Just s ==) $ geometryTypeToString f
-evalFilterEq (FId id) (SString s) f = (Just s ==) $ featureIdToString f
-
+evalFilterEq :: FilterBy ->  SType -> Feature -> Layer -> Bool
+evalFilterEq FTypeOf (SString s) f l     = (Just s ==) $ geometryTypeToString f
+evalFilterEq (FId id) (SString s) f l    = (Just s ==) $ featureIdToString f
+evalFilterEq (FProp key) (SString s) f l = undefined

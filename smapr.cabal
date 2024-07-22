@@ -36,8 +36,6 @@ library
                     , Renderer.Lines
                     , Renderer.Polygons
                     , Renderer.Geometry
-                    , Decoder.FeatureAttributes
-                    , Glue.Mapper
                     , Style.Poc
                     , Style.Poc2
                     , Style.Parser
