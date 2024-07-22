@@ -32,7 +32,6 @@ data SType
   | SBool Bool
   | SColor Color
   | SArray [SType]
-  | STypeOf T.Text
   deriving (Show, Generic, Eq)
 
 --- HELPERS
