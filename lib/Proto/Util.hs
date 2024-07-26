@@ -31,8 +31,9 @@ featureIdToString f = T.pack . show <$> id f
 -- | mapping feature tags to key pairs
 -- TODO this is wrong!! rework map by feature
 -- f.e waterLayer has 9 keys and 13 values!
-layerProperties :: Layer -> MP.Map String String
-layerProperties l = MP.fromList (key `zip` value)
+featureProperties :: Layer -> Feature -> MP.Map String String
+featureProperties l f =  MP.fromList $ map (\x -> let index = fromIntegral x
+                                           in ( key !! index, value !! index )) $ toList $ tags f
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
     value = map valueToFeatureVal $ toList $ values l
