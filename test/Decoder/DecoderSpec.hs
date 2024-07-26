@@ -18,7 +18,7 @@ spec :: Spec
 spec = do
   describe "key value mapper" $ do
     it "map a feature's tags to the according keys and values" $ do
-       `shouldReturn` featureTagsMapperRes
+      (waterLayer >>= (\water -> return $ featureProperties <$> water <*> (head . toList . features <$> water))) `shouldReturn` featureTagsMapperRes
   describe "feature's geometry as string" $ do
     it "retrieve a feature's geometry type" $ do
       (waterLayer <&> fmap (geometryTypeToString . head . toList . features)) `shouldReturn` Just (Just "LINESTRING")
@@ -27,4 +27,4 @@ spec = do
       (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "0")
 
 featureTagsMapperRes :: Maybe (MP.Map String String)
-featureTagsMapperRes = Just (fromList [("id","41431201"),("kind","stream"),("min_zoom","11.0"),("sort_rank","201"),("source","openstreetmap.org")])
+featureTagsMapperRes = Just (MP.fromList [("id","41431201"),("kind","stream"),("min_zoom","11.0"),("sort_rank","201"),("source","openstreetmap.org")])

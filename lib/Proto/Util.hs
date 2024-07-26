@@ -2,6 +2,7 @@ module Proto.Util where
 
 import Prelude hiding (id)
 import Data.ByteString.Lazy.Char8 (unpack)
+import Decoder.Helper (tuplify)
 import qualified Data.Text.Lazy as T
 import qualified Text.ProtocolBuffers.Header as P'
 import qualified Data.Map as MP
@@ -32,8 +33,8 @@ featureIdToString f = T.pack . show <$> id f
 -- TODO this is wrong!! rework map by feature
 -- f.e waterLayer has 9 keys and 13 values!
 featureProperties :: Layer -> Feature -> MP.Map String String
-featureProperties l f =  MP.fromList $ map (\x -> let index = fromIntegral x
-                                           in ( key !! index, value !! index )) $ toList $ tags f
+featureProperties l f =  MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegral x, fromIntegral y)
+                                           in ( key !! i, value !! j )) $ tuplify $ toList $ tags f
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
     value = map valueToFeatureVal $ toList $ values l
