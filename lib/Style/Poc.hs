@@ -10,6 +10,7 @@ import qualified Data.ByteString.Lazy.Internal as B
 import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Colour (transparent)
+import Data.Functor ((<&>))
 import qualified Data.Vector as V
 import qualified Data.Sequence as S
 import GHC.Generics
@@ -18,6 +19,7 @@ import Style.Expressions
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Text.Megaparsec
+import Proto.Util
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
@@ -105,6 +107,6 @@ twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",
   }
 },
 -}
-pocWater :: IO (Maybe (S.Seq Layer))
-pocWater = fakerTile >>= return . fmap (getLayers "water")
+waterLayer :: IO (Maybe Layer)
+waterLayer = fakerTile <&> fmap (\l -> getLayers "water" l `S.index` 0)
 
