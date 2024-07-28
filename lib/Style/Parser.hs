@@ -62,6 +62,7 @@ betweenSquareBrackets = between (char '[' >> space) (char ']' >> space)
 betweenDoubleQuotes :: (Token s ~ Char, MonadParsec e s m) => m a -> m a
 betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 
+
 --- PARSER
 
 pKeyword :: T.Text -> Parser T.Text
