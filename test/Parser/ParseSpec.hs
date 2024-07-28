@@ -3,10 +3,16 @@
 module Parser.ParseSpec (spec) where
 
 import qualified Data.Text.Lazy as T
+import qualified Data.Sequence as S
 import Test.Hspec
 import Text.Megaparsec
 import Style.Parser
 import Style.Expressions
+import Style.FilterExpressions
+import Proto.Util
+import Proto.Vector_tile.Tile.Layer
+import Proto.Vector_tile.Tile.Feature
+import ApiClient
 
 spec :: Spec
 spec = do
@@ -52,7 +58,18 @@ spec = do
   describe "Style.Expressions.atP" $ do
     it "can parse and return element at index of a list" $ do
       evalExpr <$> parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" `shouldBe` Just (SString "bc")
+  describe "Style.FilterExpressions.evalFilterExpr" $ do
+    it "can evaluate a in Expression" $ do
+      t <- testLayerAndFeature
+      let expr = parseMaybe fInP "[\"!in\", \"brunnel\", \"tunnel\", \"bridge\"]"
+      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just True
 
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
+
+testLayerAndFeature :: IO (Maybe Layer, Maybe Feature)
+testLayerAndFeature = do
+  testLayer <- waterLayer
+  let f = fmap (`S.index` 0) (features <$> testLayer)
+  return (testLayer, f)
