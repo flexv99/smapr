@@ -1,3 +1,5 @@
+{-# LANGUAGE  OverloadedStrings #-}
+
 module Proto.Util where
 
 import Prelude hiding (id)
@@ -32,9 +34,9 @@ featureIdToString f = T.pack . show <$> id f
 -- | mapping feature tags to key pairs
 -- TODO this is wrong!! rework map by feature
 -- f.e waterLayer has 9 keys and 13 values!
-featureProperties :: Layer -> Feature -> MP.Map String String
+featureProperties :: Layer -> Feature -> MP.Map T.Text T.Text
 featureProperties l f =  MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegral x, fromIntegral y)
-                                           in ( key !! i, value !! j )) $ tuplify $ toList $ tags f
+                                           in ( T.pack (key !! i), T.pack (value !! j) )) $ tuplify $ toList $ tags f
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
     value = map valueToFeatureVal $ toList $ values l
