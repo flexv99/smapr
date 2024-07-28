@@ -12,9 +12,6 @@ import Proto.Util
 import Proto.Vector_tile.Tile.Layer
 import ApiClient
 
-waterLayer :: IO (Maybe Layer)
-waterLayer = fakerTile <&> fmap (\l -> getLayers "water" l `S.index` 0)
-
 spec :: Spec
 spec = do
   describe "key value mapper" $ do
@@ -25,8 +22,8 @@ spec = do
       (waterLayer <&> fmap (geometryTypeToString . head . toList . features)) `shouldReturn` Just (Just "LINESTRING")
   describe "feature's id as string" $ do
     it "retrieve a feature's id" $ do
-      (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "0")
+      (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "1")
       
 
 featureTagsMapperRes :: Maybe (MP.Map T.Text T.Text)
-featureTagsMapperRes = Just (MP.fromList [("id","41431201"),("kind","stream"),("min_zoom","11.0"),("sort_rank","201"),("source","openstreetmap.org")])
+featureTagsMapperRes = Just (MP.fromList [("class","stream"),("intermittent","0"),("name_de",""),("name_en","")])
