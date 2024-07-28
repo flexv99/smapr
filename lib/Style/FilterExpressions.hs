@@ -81,8 +81,6 @@ evalFilterEq (FProp key) (SString s) f l = (Just s ==) $ key `MP.lookup` feature
 evalFilterEq _ _ f l                     = error "wrong params"
 
 evalFilterIn :: FilterBy -> SType -> Feature -> Layer -> Bool
-evalFilterIn = undefined
+evalFilterIn (FProp key) (SArray a) f l = maybe False (\v -> any (T.isInfixOf v . T.pack . show) a) $  key `MP.lookup` featureProperties l f
 
-waterLayer :: IO (Maybe Layer)
-waterLayer = fakerTile <&> fmap (\l -> getLayers "water" l `S.index` 0)
- 
+
