@@ -5,6 +5,7 @@ module Decoder.DecoderSpec (spec) where
 import Data.Functor ((<&>))
 import qualified Data.Sequence as S
 import qualified Data.Map as MP
+import qualified Data.Text.Lazy as T
 import Test.Hspec
 import Data.Foldable
 import Proto.Util
@@ -25,6 +26,7 @@ spec = do
   describe "feature's id as string" $ do
     it "retrieve a feature's id" $ do
       (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "0")
+      
 
-featureTagsMapperRes :: Maybe (MP.Map String String)
+featureTagsMapperRes :: Maybe (MP.Map T.Text T.Text)
 featureTagsMapperRes = Just (MP.fromList [("id","41431201"),("kind","stream"),("min_zoom","11.0"),("sort_rank","201"),("source","openstreetmap.org")])
