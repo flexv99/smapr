@@ -5,6 +5,7 @@ module Proto.Util where
 import Prelude hiding (id)
 import Data.ByteString.Lazy.Char8 (unpack)
 import Decoder.Helper (tuplify)
+import Data.Functor ((<&>))
 import qualified Data.Text.Lazy as T
 import qualified Text.ProtocolBuffers.Header as P'
 import qualified Data.Map as MP
@@ -16,6 +17,7 @@ import Proto.Vector_tile.Tile.Value
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
+import ApiClient
 
 data FeatureVal
   = ValStr String
@@ -48,3 +50,6 @@ featureProperties l f =  MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegra
       , show <$> uint_value v
       , show <$> sint_value v
       , show <$> bool_value v]
+
+waterLayer :: IO (Maybe Layer)
+waterLayer = fakerTile <&> fmap (\l -> getLayers "waterway" l `S.index` 0)
