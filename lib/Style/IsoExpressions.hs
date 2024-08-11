@@ -1,97 +1,31 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures#-}
-{-# LANGUAGE RankNTypes#-}
-{-# LANGUAGE FlexibleInstances#-}
-{-# LANGUAGE StandaloneDeriving#-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 
-module Style.Expressions where
+module Style.IsoExpressions where
 
 import Data.Kind (Type)
 import qualified Data.Text.Lazy as T
 import qualified Text.Megaparsec.Char.Lexer as L
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import Style.ExpressionsWrapper
 import Style.Parser
 
--- | AST representation of map libre's style spec expressions
---   value-type the expression is representing (see 'evalExpr')
-data Expr :: SType -> Type where
-  -- | string literal
-  StringE :: T.Text -> Expr (SString s)
-  -- | bool-value
-  BoolE   :: Bool -> Expr (SBool b)
-  -- | int literal
-  IntE    :: Int -> Expr (SInt i)
-  -- | double literal
-  DoubleE :: Double -> Expr (SDouble d)
-  -- | list literal
-  ArrayE  :: SType -> Expr (SArray a)
-  -- | addition
-  AddE    :: SType -> Expr a
-  -- | product
-  ProdE   :: SType -> Expr a
-  -- | subtraction
-  SubE    :: SType -> SType -> Expr a
-  -- | division
-  DivE    :: SType -> SType -> Expr a
-  -- | check for equaliy on polymorphic types
-  EqE     :: WrappedExpr -> WrappedExpr -> Expr (SBool b)
-  -- | element at index
-  AtE    :: SType -> Expr (SInt i) -> Expr a
-
-deriving instance Show (Expr res)
-
--- | runtime representation
---   mainly useful for parsing
-data WrappedExpr where
-  StringExpr  :: Expr (SString n)  -> WrappedExpr
-  IntExpr     :: Expr (SInt i)     -> WrappedExpr
-  DoubleExpr  :: Expr (SDouble d)  -> WrappedExpr
-  BoolExpr    :: Expr (SBool b)    -> WrappedExpr
-  ArrayExpr   :: Expr (SArray a)   -> WrappedExpr
-
-deriving instance Show WrappedExpr
-
--- | helps wrapping 'Expr' to the right
---   'WrappedExpr' constructor
---
--- >>> wrap (IntE 42)
--- IntExpr (IntE 42)
---
--- >>> wrap (IsNullE (IntE 42))
--- BoolExpr (IsNullE (IntE 42))
-class KnownResType a where
-  wrap :: Expr a -> WrappedExpr
-
-instance KnownResType (SString b) where
-  wrap = StringExpr
-
-instance KnownResType (SInt a) where
-  wrap = IntExpr
-
-instance KnownResType (SDouble d) where
-  wrap = DoubleExpr
-
-instance KnownResType (SBool b) where
-  wrap = BoolExpr
-
-instance KnownResType (SArray a) where
-  wrap = ArrayExpr
-
-stringExprP :: Parser (Expr (SString s))
+stringExprP :: Parser (IsoExpr (SString s))
 stringExprP = StringE <$> pString <* hidden space
 
-intExprP :: Parser (Expr (SInt i))
+intExprP :: Parser (IsoExpr (SInt i))
 intExprP = IntE <$> pInteger <* hidden space
 
-doubleExprP :: Parser (Expr (SDouble d))
+doubleExprP :: Parser (IsoExpr (SDouble d))
 doubleExprP = DoubleE <$> pDouble <* hidden space
 
-boolExprP :: Parser (Expr (SBool b))
+boolExprP :: Parser (IsoExpr (SBool b))
 boolExprP = BoolE <$> pBool <* hidden space
 
-arrayExprP :: Parser (Expr (SArray a))
+arrayExprP :: Parser (IsoExpr (SArray a))
 arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
 exprChoicheP :: Parser WrappedExpr
@@ -104,7 +38,7 @@ exprChoicheP = choice [ wrap <$> intExprP
 -- | evaluates an 'Expr' to the tagged type f.e.
 -- >>> evalExpr $ AddE (SArray [SInt 38,SInt 4])
 -- 42
-evalExpr :: Expr res -> SType
+evalExpr :: IsoExpr res -> SType
 evalExpr (StringE s)          = SString s
 evalExpr (BoolE b)            = SBool b
 evalExpr (IntE i)             = SInt i
@@ -179,7 +113,7 @@ stypeIn (SArray a) _        = error "param 2 must be an int"
 
 -- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
 -- 1.5
-numRetExprP :: Parser (Expr a)
+numRetExprP :: Parser (IsoExpr a)
 numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
                                , exprBaseP "-" $ SubE <$> argWithComma <*> singleArgP
                                , ProdE . SArray <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
@@ -196,14 +130,14 @@ numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `
 -- false
 -- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
 -- true
-eqP :: Parser (Expr ('SBool b))
+eqP :: Parser (IsoExpr ('SBool b))
 eqP = exprBaseP "==" $ do
-  val1 <- try exprChoicheP <|> (wrap <$> (numRetExprP :: (Parser (Expr (SInt i)))))
+  val1 <- try exprChoicheP <|> (wrap <$> (numRetExprP :: (Parser (IsoExpr (SInt i)))))
   _ <- char ',' >> space
   EqE val1 <$> exprChoicheP
 
 
-atP :: Parser (Expr a)
+atP :: Parser (IsoExpr a)
 atP = exprBaseP "at" $ do
   val1 <- arrayLitP
   _ <- char ',' >> space

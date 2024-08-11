@@ -35,6 +35,12 @@ data SType
   | SNull
   deriving (Show, Generic, Eq)
 
+data FilterBy
+  = FTypeOf
+  | FId Int
+  | FProp T.Text
+  deriving (Eq, Show)
+
 --- HELPERS
 
 -- the space consumer

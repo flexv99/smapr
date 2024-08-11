@@ -39,8 +39,9 @@ library
                     , Style.Poc
                     , Style.Poc2
                     , Style.Parser
-                    , Style.Expressions
-                    , Style.FilterExpressions
+                    , Style.IsoExpressions
+                    , Style.FeatureExpressions
+                    , Style.ExpressionsWrapper
                     , Style.Layers.Line
                     , Util
                     , ApiClient

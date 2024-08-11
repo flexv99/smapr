@@ -7,8 +7,8 @@ import qualified Data.Sequence as S
 import Test.Hspec
 import Text.Megaparsec
 import Style.Parser
-import Style.Expressions
-import Style.FilterExpressions
+import Style.IsoExpressions
+import Style.FeatureExpressions
 import Proto.Util
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
@@ -60,16 +60,21 @@ spec = do
   describe "Style.Expressions.atP" $ do
     it "can parse and return element at index of a list" $ do
       evalExpr <$> parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" `shouldBe` Just (SString "bc")
+  describe "Style.FilterExpressions.fgeometryP" $ do
+    it "parse geometry type function that retrieves a feature's geometry" $ do
+      t <- testLayerAndFeature
+      let expr = parseMaybe fgeometryP "[\"geometry-type\"]"
+      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SString "LINESTRING")
   describe "Style.FilterExpressions.evalFilterExpr" $ do
     it "can evaluate a in Expression" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fInP "[\"!in\", \"brunnel\", \"tunnel\", \"bridge\"]"
-      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
   describe "Style.FilterExpressions.evalFilterGetter" $ do
     it "can evaluate a in getter Expression on feature properties" $ do
       t <- testLayerAndFeature
-      let expr = parseMaybe fgetP "[\"get\",\"stream\"]"
-      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just SNull
+      let expr = parseMaybe fgetP "[\"get\",\"intermittent\"]"
+      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SString "0")
 
 
 waterLayerStyle :: T.Text

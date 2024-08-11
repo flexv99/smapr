@@ -18,8 +18,9 @@ import qualified Data.Vector as V
 import qualified Data.Sequence as S
 import GHC.Generics
 import Style.Parser
-import Style.Expressions
-import Style.FilterExpressions
+import Style.IsoExpressions
+import Style.FeatureExpressions
+import Style.ExpressionsWrapper
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Text.Megaparsec
@@ -34,7 +35,7 @@ data POCLayer = forall (b :: Bool). POCLayer
   , layerType :: T.Text
   , source :: T.Text
   , sourceLayer :: T.Text
-  , lfilter :: FilterExpr ('SBool b)
+  , lfilter :: FeatureExpr ('SBool b)
   , paint :: Maybe LineS
   }
 deriving instance Show POCLayer

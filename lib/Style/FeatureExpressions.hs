@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, DataKinds #-}
 
-module Style.FilterExpressions where
+module Style.FeatureExpressions where
 
 import Data.Kind (Type)
 import Data.Functor ((<&>))
@@ -13,31 +13,10 @@ import qualified Data.Map as MP
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.Parser
-import Style.Expressions
+import Style.ExpressionsWrapper
 import Proto.Util
 import ApiClient
 
-data FilterBy
-  = FTypeOf
-  | FId Int
-  | FProp T.Text
-  deriving (Eq, Show)
-
--- | AST representation of filter expressions
-data FilterExpr :: SType -> Type where
-  StringFe :: T.Text -> FilterExpr (SString s)
-  ArrayFe  :: SType -> FilterExpr (SArray a)
-  Negation :: FilterExpr (SBool s) -> FilterExpr (SBool b)
-  -- | all expr
-  FallE    :: [FilterExpr (SBool b)] -> FilterExpr (SBool b)
-  -- | filter by equality
-  FeqE     :: FilterBy -> SType -> FilterExpr (SBool b)
-  -- | in lookup
-  FinE     :: FilterBy -> SType -> FilterExpr (SBool b)
-  -- | getter on feature properties
-  FgetE    :: SType -> FilterExpr a
-
-deriving instance Show (FilterExpr res)
 
 typeParser :: Parser T.Text
 typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
@@ -51,7 +30,7 @@ filterByP = choice [ FId <$> pInteger
                    , FProp <$> pString
                    ]
 
-fEqP :: Parser (FilterExpr ('SBool b))
+fEqP :: Parser (FeatureExpr ('SBool b))
 fEqP = betweenSquareBrackets $ do
   key <- betweenDoubleQuotes (string "!=" <|> string "==")
   _ <- char ',' >> space
@@ -61,7 +40,7 @@ fEqP = betweenSquareBrackets $ do
   let expr = FeqE val1 val2
   if T.isPrefixOf "!" key then return $ Negation expr else return expr
 
-fInP :: Parser (FilterExpr ('SBool b))
+fInP :: Parser (FeatureExpr ('SBool b))
 fInP = betweenSquareBrackets $ do
   key <- betweenDoubleQuotes (string "!in" <|> string "in")
   _ <- char ',' >> space
@@ -71,31 +50,36 @@ fInP = betweenSquareBrackets $ do
   let expr = FinE val props
   if T.isPrefixOf "!" key then return $ Negation expr else return expr
 
-fAllP :: Parser (FilterExpr ('SBool a))
+fAllP :: Parser (FeatureExpr ('SBool a))
 fAllP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
   _ <- char ',' >> space
   FallE <$> filterParsers `sepBy` (char ',' >> space)
 
-fgetP :: Parser (FilterExpr a)
+fgetP :: Parser (FeatureExpr a)
 fgetP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
   FgetE <$> stringLitP
 
-filterParsers :: Parser (FilterExpr ('SBool b))
+fgeometryP :: Parser (FeatureExpr (SString s))
+fgeometryP = betweenSquareBrackets $ do
+  FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
+
+filterParsers :: Parser (FeatureExpr ('SBool b))
 filterParsers = choice [try fAllP, try fEqP, try fInP, try fgetP]
 
-evalFilterExpr :: FilterExpr a -> Feature -> Layer -> SType
-evalFilterExpr (Negation e) f l = SBool $ not $ unwrapSBool $ evalFilterExpr e f l
-evalFilterExpr (FeqE a b)   f l = evalFilterEq a b f l
-evalFilterExpr (FinE a b)   f l = evalFilterIn a b f l
-evalFilterExpr (FallE v)    f l = evalAll v f l
-evalFilterExpr (FgetE k)    f l = evalFilterGet k f l
+evalFeatureExpr :: FeatureExpr a -> Feature -> Layer -> SType
+evalFeatureExpr (Negation e) f l = SBool $ not $ unwrapSBool $ evalFeatureExpr e f l
+evalFeatureExpr (FeqE a b)   f l = evalFilterEq a b f l
+evalFeatureExpr (FinE a b)   f l = evalFilterIn a b f l
+evalFeatureExpr (FallE v)    f l = evalAll v f l
+evalFeatureExpr (FgetE k)    f l = evalFilterGet k f l
+evalFeatureExpr FgeometryE f l   = evalGeometryType f
 
 evalFilterEq :: FilterBy -> SType -> Feature -> Layer -> SType
-evalFilterEq FTypeOf (SString s) f l     = SBool $ (Just (T.toCaseFold s) ==) $ T.toCaseFold <$> geometryTypeToString f
-evalFilterEq (FId id) (SString s) f l    = SBool $ (Just s ==) $ featureIdToString f
+evalFilterEq FTypeOf (SString s)     f l = SBool $ (Just (T.toCaseFold s) ==) $ T.toCaseFold <$> geometryTypeToString f
+evalFilterEq (FId id) (SString s)    f l = SBool $ (Just s ==) $ featureIdToString f
 evalFilterEq (FProp key) (SString s) f l = SBool $ (Just s ==) $ key `MP.lookup` featureProperties l f
 evalFilterEq _ _ f l                     = error "wrong params"
 
@@ -106,8 +90,12 @@ evalFilterGet :: SType -> Feature -> Layer -> SType
 evalFilterGet (SString key) f l = maybe SNull SString (key `MP.lookup` featureProperties l f)
 evalFilterGet _             f l = error "get property must be of type String"
 
-evalAll :: [FilterExpr ('SBool b)] -> Feature -> Layer -> SType
-evalAll exprs f l = SBool $ all (\e -> unwrapSBool $ evalFilterExpr e f l) exprs
+evalAll :: [FeatureExpr ('SBool b)] -> Feature -> Layer -> SType
+evalAll exprs f l = SBool $ all (\e -> unwrapSBool $ evalFeatureExpr e f l) exprs
+
+-- defaults to linestring if geometry cannot be retrieved from feature
+evalGeometryType :: Feature -> SType
+evalGeometryType f = maybe (SString "LINESTRING") SString (geometryTypeToString f)
 
 unwrapSBool :: SType -> Bool
 unwrapSBool (SBool b) = b
