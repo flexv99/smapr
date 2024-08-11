@@ -12,7 +12,6 @@ import Style.FilterExpressions
 import Proto.Util
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
-import ApiClient
 
 spec :: Spec
 spec = do
@@ -36,10 +35,13 @@ spec = do
       parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
   describe "Style.Parser.SType.SColor" $ do
     it "parse hsl color" $ do
-      fmap showSColor (parseMaybe pHslColor "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
-  describe "Style.Parser.SType.SType" $ do
+      fmap showSColor (parseMaybe pAtom "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
+  describe "Style.Parser.SType.SArray" $ do
     it "parse array" $ do
-      parseMaybe arrayLitP "[-1, 0, 4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SInt 4])
+      parseMaybe pAtom "[-1, 0, 4]" `shouldBe` Just (SArray [SInt (-1), SInt 0, SInt 4])
+  describe "Style.Parser.SType.SNull" $ do
+    it "parse null" $ do
+      parseMaybe pAtom "null" `shouldBe` Just SNull
   describe "Style.Expressions.sumP" $ do
     it "can parse and evaluate sum expression" $ do
       evalExpr <$> parseMaybe numRetExprP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" `shouldBe` Just (SInt 5)
@@ -62,11 +64,16 @@ spec = do
     it "can evaluate a in Expression" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fInP "[\"!in\", \"brunnel\", \"tunnel\", \"bridge\"]"
-      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just True
+      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+  describe "Style.FilterExpressions.evalFilterGetter" $ do
+    it "can evaluate a in getter Expression on feature properties" $ do
+      t <- testLayerAndFeature
+      let expr = parseMaybe fgetP "[\"get\",\"stream\"]"
+      (\ (a, b) -> evalFilterExpr <$> expr <*> b <*> a) t `shouldBe` Just SNull
 
 
 waterLayerStyle :: T.Text
-waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"],[\"!=\",\"intermittent\",1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
+waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:autocomposite\":false,\"mapbox:type\":\"template\",\"maputnik:renderer\":\"mbgljs\",\"openmaptiles:version\":\"3.x\",\"openmaptiles:mapbox:owner\":\"openmaptiles\",\"openmaptiles:mapbox:source:url\":\"mapbox://openmaptiles.4qljc88t\"},\"sources\":{\"openmaptiles\":{\"type\":\"vector\",\"url\":\"https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key={key}\"}},\"sprite\":\"https://openmaptiles.github.io/maptiler-basic-gl-style/sprite\",\"glyphs\":\"https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}\",\"layers\":[{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}],\"id\":\"basic\"}"
 
 testLayerAndFeature :: IO (Maybe Layer, Maybe Feature)
 testLayerAndFeature = do

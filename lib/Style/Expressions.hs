@@ -1,4 +1,9 @@
-{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, TypeOperators, DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures#-}
+{-# LANGUAGE RankNTypes#-}
+{-# LANGUAGE FlexibleInstances#-}
+{-# LANGUAGE StandaloneDeriving#-}
+{-# LANGUAGE DataKinds #-}
 
 module Style.Expressions where
 
@@ -25,7 +30,7 @@ data Expr :: SType -> Type where
   -- | addition
   AddE    :: SType -> Expr a
   -- | product
-  ProdE    :: SType -> Expr a
+  ProdE   :: SType -> Expr a
   -- | subtraction
   SubE    :: SType -> SType -> Expr a
   -- | division
@@ -193,7 +198,7 @@ numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `
 -- true
 eqP :: Parser (Expr ('SBool b))
 eqP = exprBaseP "==" $ do
-  val1 <- exprChoicheP
+  val1 <- try exprChoicheP <|> (wrap <$> (numRetExprP :: (Parser (Expr (SInt i)))))
   _ <- char ',' >> space
   EqE val1 <$> exprChoicheP
 

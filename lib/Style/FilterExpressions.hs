@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, TypeOperators, DataKinds #-}
+{-# LANGUAGE GADTs, KindSignatures, RankNTypes, FlexibleInstances, StandaloneDeriving, DataKinds #-}
 
 module Style.FilterExpressions where
 
@@ -28,17 +28,20 @@ data FilterExpr :: SType -> Type where
   StringFe :: T.Text -> FilterExpr (SString s)
   ArrayFe  :: SType -> FilterExpr (SArray a)
   Negation :: FilterExpr (SBool s) -> FilterExpr (SBool b)
+  -- | all expr
+  FallE    :: [FilterExpr (SBool b)] -> FilterExpr (SBool b)
   -- | filter by equality
-  FeqE  :: FilterBy -> SType -> FilterExpr (SBool b)
+  FeqE     :: FilterBy -> SType -> FilterExpr (SBool b)
   -- | in lookup
-  FinE  :: FilterBy -> SType -> FilterExpr (SBool b)
+  FinE     :: FilterBy -> SType -> FilterExpr (SBool b)
+  -- | getter on feature properties
+  FgetE    :: SType -> FilterExpr a
 
 deriving instance Show (FilterExpr res)
 
 typeParser :: Parser T.Text
-typeParser = label "type" $ betweenDoubleQuotes $ do
-  _ <- char '$'
-  string "type"
+typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
+  string "geometry-type"
 
 -- | choice of possible filtering types:
 -- id, type, feature properties
@@ -68,19 +71,44 @@ fInP = betweenSquareBrackets $ do
   let expr = FinE val props
   if T.isPrefixOf "!" key then return $ Negation expr else return expr
 
+fAllP :: Parser (FilterExpr ('SBool a))
+fAllP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "all"
+  _ <- char ',' >> space
+  FallE <$> filterParsers `sepBy` (char ',' >> space)
 
-evalFilterExpr :: FilterExpr a -> Feature -> Layer -> Bool
-evalFilterExpr (Negation e) f l = not $ evalFilterExpr e f l
+fgetP :: Parser (FilterExpr a)
+fgetP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "get"
+  _ <- char ',' >> space
+  FgetE <$> stringLitP
+
+filterParsers :: Parser (FilterExpr ('SBool b))
+filterParsers = choice [try fAllP, try fEqP, try fInP, try fgetP]
+
+evalFilterExpr :: FilterExpr a -> Feature -> Layer -> SType
+evalFilterExpr (Negation e) f l = SBool $ not $ unwrapSBool $ evalFilterExpr e f l
 evalFilterExpr (FeqE a b)   f l = evalFilterEq a b f l
 evalFilterExpr (FinE a b)   f l = evalFilterIn a b f l
+evalFilterExpr (FallE v)    f l = evalAll v f l
+evalFilterExpr (FgetE k)    f l = evalFilterGet k f l
 
-evalFilterEq :: FilterBy -> SType -> Feature -> Layer -> Bool
-evalFilterEq FTypeOf (SString s) f l     = (Just (T.toCaseFold s) ==) $ T.toCaseFold <$> geometryTypeToString f
-evalFilterEq (FId id) (SString s) f l    = (Just s ==) $ featureIdToString f
-evalFilterEq (FProp key) (SString s) f l = (Just s ==) $ key `MP.lookup` featureProperties l f
+evalFilterEq :: FilterBy -> SType -> Feature -> Layer -> SType
+evalFilterEq FTypeOf (SString s) f l     = SBool $ (Just (T.toCaseFold s) ==) $ T.toCaseFold <$> geometryTypeToString f
+evalFilterEq (FId id) (SString s) f l    = SBool $ (Just s ==) $ featureIdToString f
+evalFilterEq (FProp key) (SString s) f l = SBool $ (Just s ==) $ key `MP.lookup` featureProperties l f
 evalFilterEq _ _ f l                     = error "wrong params"
 
-evalFilterIn :: FilterBy -> SType -> Feature -> Layer -> Bool
-evalFilterIn (FProp key) (SArray a) f l = maybe False (\v -> any (T.isInfixOf v . T.pack . show) a) $  key `MP.lookup` featureProperties l f
+evalFilterIn :: FilterBy -> SType -> Feature -> Layer -> SType
+evalFilterIn (FProp key) (SArray a) f l = SBool $ maybe False (\v -> any (T.isInfixOf v . T.pack . show) a) $  key `MP.lookup` featureProperties l f
 
+evalFilterGet :: SType -> Feature -> Layer -> SType
+evalFilterGet (SString key) f l = maybe SNull SString (key `MP.lookup` featureProperties l f)
+evalFilterGet _             f l = error "get property must be of type String"
 
+evalAll :: [FilterExpr ('SBool b)] -> Feature -> Layer -> SType
+evalAll exprs f l = SBool $ all (\e -> unwrapSBool $ evalFilterExpr e f l) exprs
+
+unwrapSBool :: SType -> Bool
+unwrapSBool (SBool b) = b
+unwrapSBool _         = error "cannot unwrap values other than bool"

@@ -32,6 +32,7 @@ data SType
   | SBool Bool
   | SColor Color
   | SArray [SType]
+  | SNull
   deriving (Show, Generic, Eq)
 
 --- HELPERS
@@ -78,11 +79,15 @@ pString = fmap
           (lexeme (many snakeCaseChar) <?> "string"))
 
 pBool :: Parser Bool
-pBool =
-  label "bool" $
-    lexeme $
+pBool = lexeme
       (False <$ (string "false" *> notFollowedBy alphaNumChar))
-        <|> (True <$ (string "true" *> notFollowedBy alphaNumChar))
+        <|> (True <$ (string "true" *> notFollowedBy alphaNumChar)) <?> "bool"
+
+pInteger :: Parser Int
+pInteger = lexeme (L.signed space L.decimal) <?> "integer"
+
+pDouble :: Parser Double
+pDouble = lexeme (L.signed space L.float) <?> "float"
 
 pAtom :: Parser SType
 pAtom =
@@ -90,6 +95,8 @@ pAtom =
     choice
       [ numberLitP
       , boolLitP
+      , nullP
+      , try pHslColor -- todo needs to be generalized color parser
       , stringLitP
       , arrayLitP
       ]
@@ -101,6 +108,7 @@ parserForType t = case t of
   SBool _   -> boolLitP
   SString _ -> stringLitP
   SArray _  -> arrayLitP
+  SNull     -> nullP
   _         -> pAtom
 
 pArray :: Parser [SType]
@@ -110,12 +118,6 @@ pArray =
   _ <- char ',' >> space
   restElems <- parserForType firstElem `sepBy` (char ',' >> space)
   return (firstElem : restElems)
-
-pInteger :: Parser Int
-pInteger = lexeme (L.signed space L.decimal) <?> "integer"
-
-pDouble :: Parser Double
-pDouble = lexeme (L.signed space L.float) <?> "float"
 
 stringLitP :: Parser SType
 stringLitP = SString <$> pString
@@ -134,6 +136,9 @@ numberLitP = try doubleLitP <|> intLitP <?> "number"
 
 arrayLitP :: Parser SType
 arrayLitP = SArray <$> pArray
+
+nullP :: Parser SType
+nullP = lexeme (SNull <$ (string "null" *> notFollowedBy alphaNumChar)) <?> "null"
 
 -- Color
 -- The color type is a color in the sRGB color space. Colors are JSON strings in a variety of permitted formats: HTML-style hex values, RGB, RGBA, HSL, and HSLA. Predefined HTML colors names, like yellow and blue, are also permitted.
@@ -154,7 +159,7 @@ hslToColor h s l = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
 
 pHslColor :: Parser SType
 pHslColor = do
-           key <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
+           _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
            betweenBrackets $ do
              hue        <- pInt
              _          <- char ',' >> space
