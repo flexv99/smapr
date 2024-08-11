@@ -25,20 +25,23 @@ drawTour tour = tourPoints <> D.strokeP tourPath
     dot = D.circle 0.05 D.# D.fc D.black
 
 featureToDiagram :: Feature -> D.Diagram D.B
-featureToDiagram (Feature _ _ (Just POLYGON) g) = foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' g :: [PolygonG])
+featureToDiagram (Feature _ _ (Just POLYGON) g)    = foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' g :: [PolygonG])
 featureToDiagram (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTour . lineToPoints) (decode' g :: [LineG])
-featureToDiagram _ = D.strutX 0
+featureToDiagram _                                 = D.strutX 0
 
 decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
+
+
 
 renderLayer :: String -> Tile -> D.Diagram D.B
 renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $ getLayers l t
 
 test :: IO ()
 test = do
-  t <- fakerTile
+  t <- getNextzenTile testCoord
   let roads     = renderLayer "roads" <$> t
   let water     = renderLayer "water" <$> t
+  let buildings = renderLayer "buildings" <$> t
   let d         = fmap (<>) roads <*> water
   maybe (putStrLn "Nothing") writeSvg d

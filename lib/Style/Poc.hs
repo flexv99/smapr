@@ -1,6 +1,9 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Style.Poc where
 
@@ -16,29 +19,29 @@ import qualified Data.Sequence as S
 import GHC.Generics
 import Style.Parser
 import Style.Expressions
+import Style.FilterExpressions
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Text.Megaparsec
 import Proto.Util
+import Style.Layers.Line
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
 
-data POCLayer = POCLayer
+data POCLayer = forall (b :: Bool). POCLayer
   { id :: T.Text
   , layerType :: T.Text
   , source :: T.Text
   , sourceLayer :: T.Text
-  , filter :: T.Text
-  , paint :: Maybe POCPaint
-  } deriving (Show, Eq, Generic)
+  , lfilter :: FilterExpr ('SBool b)
+  , paint :: Maybe LineS
+  }
+deriving instance Show POCLayer
 
-data POCPaint = POCPaint
-  { lineColor :: Maybe SType
-  , lineOpacity :: Maybe SType
-  , base :: Maybe SType
-  , stops :: Maybe [SType]
-  , lineWidth :: Maybe POCPaint
+data Width = Width
+  { base :: Maybe SType
+  , stops :: Maybe SType
   } deriving (Show, Eq, Generic)
 
 -- Helper for use in combination with .:? to provide default values for optional JSON object fields.
@@ -58,16 +61,11 @@ instance A.FromJSON SType where
             Right res -> return res
       ) a
 
-
-
-instance A.FromJSON POCPaint where
-  parseJSON = A.withObject "POCPaint" $ \obj ->
-    POCPaint
-      <$> obj A..:? "line-color"
-      <*> obj A..:? "line-opacity"
-      <*> obj A..:? "base"
+instance A.FromJSON Width where
+  parseJSON = A.withObject "Width" $ \obj ->
+    Width
+      <$> obj A..:? "base"
       <*> obj A..:? "stops"
-      <*> obj A..:? "line-width"
 
 instance A.FromJSON POCLayer where
   parseJSON = A.withObject "POCLayer" $ \obj ->
@@ -76,37 +74,36 @@ instance A.FromJSON POCLayer where
       <*> obj A..: "type"
       <*> obj A..: "source"
       <*> obj A..: "source-layer"
-      <*> obj A..: "filter"
+      <*> (obj A..: "filter" >>= fexpr)
       <*> obj A..:? "paint"
+    where
+      fexpr  = A.withArray "FilterExpression" $ \v ->
+        case parse filterParsers "" (A.encodeToLazyText v) of
+          Left err  -> fail $ errorBundlePretty err
+          Right res -> pure res
 
 tpaint :: B.ByteString
 tpaint = "{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}"
 
 tfilter :: B.ByteString
-tfilter = "[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]]"
-
+tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\", \"intermittent\"], 1],[\"!=\", [\"get\", \"brunnel\"], \"tunnel\"]]"
 
 twaterway :: B.ByteString
 twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]],\"paint\":{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
 
 {-
-  {
-  "id": "waterway",
-  "type": "line",
-  "source": "openmaptiles",
-  "source-layer": "waterway",
-  "filter": [
-    "all",
-    ["==", "$type", "LineString"],
-    ["!in", "brunnel", "tunnel", "bridge"]
-  ],
-  "paint": {
-    "line-color": "hsl(205, 56%, 73%)",
-    "line-opacity": 1,
-    "line-width": {"base": 1.4, "stops": [[8, 1], [20, 8]]}
-  }
-},
+{
+      "id": "water",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "water",
+      "filter": [
+        "all",
+        ["==", ["geometry-type"], "Polygon"],
+        ["!=", ["get", "intermittent"], 1],
+        ["!=", ["get", "brunnel"], "tunnel"]
+      ],
+      "layout": {"visibility": "visible"},
+      "paint": {"fill-color": "hsl(205,56%,73%)"}
+    }
 -}
-waterLayer :: IO (Maybe Layer)
-waterLayer = fakerTile <&> fmap (\l -> getLayers "water" l `S.index` 0)
-
