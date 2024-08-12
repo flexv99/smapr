@@ -13,6 +13,7 @@ import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.ExpressionsWrapper
+import Style.FeatureExpressions
 import Style.Parser
 
 stringExprP :: Parser (IsoExpr (SString s))
@@ -23,6 +24,9 @@ intExprP = IntE <$> pInteger <* hidden space
 
 doubleExprP :: Parser (IsoExpr (SNum (SDouble d)))
 doubleExprP = DoubleE <$> pDouble <* hidden space
+
+-- numExprP :: Parser (IsoExpr (SNum a))
+numExprP = NumE <$> (try doubleLitP <|> intLitP)
 
 boolExprP :: Parser (IsoExpr (SBool b))
 boolExprP = BoolE <$> pBool <* hidden space
@@ -85,14 +89,14 @@ stypeIn (SArray a) _               = error "param 2 must be an int"
 
 -- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
 -- 1.5
-numRetExprP :: Parser (IsoExpr a)
-numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
+numRetExprP :: Parser (IsoExpr (SNum a))
+numRetExprP = choice $ map try [ AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
                                , exprBaseP "-" $ SubE <$> argWithComma <*> singleArgP
-                               , ProdE . SArray <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
+                               , ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
                                , exprBaseP "/" $ DivE <$> argWithComma <*> singleArgP
                                ]
               where
-                singleArgP = (wrap <$> numberLitP) <|> (wrap <$> numRetExprP)
+                singleArgP = (wrap <$> numExprP) <|> (wrap <$> numRetExprP)
                 argWithComma = do
                   val <- singleArgP
                   _ <- char ',' >> space
@@ -104,7 +108,7 @@ numRetExprP = choice $ map try [ AddE . SArray <$> exprBaseP "+"  (singleArgP  `
 -- true
 eqP :: Parser (IsoExpr ('SBool b))
 eqP = exprBaseP "==" $ do
-  val1 <- try exprChoicheP <|> (wrap <$> (numRetExprP :: (Parser (IsoExpr (SNum i)))))
+  val1 <- try exprChoicheP <|> (wrap <$> numRetExprP) <|> try (fwrap <$> fgeometryP)
   _ <- char ',' >> space
   EqE val1 <$> exprChoicheP
 

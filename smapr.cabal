@@ -42,6 +42,7 @@ library
                     , Style.IsoExpressions
                     , Style.FeatureExpressions
                     , Style.ExpressionsWrapper
+                    , Style.ExpressionsEval
                     , Style.Layers.Line
                     , Util
                     , ApiClient

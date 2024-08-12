@@ -50,8 +50,8 @@ data Width = Width
 instance A.FromJSON SType where
   parseJSON (A.Number n) =
     if isFloating n
-      then pure $ SDouble (toRealFloat n)
-      else pure $ SInt (round n)
+      then pure $ SNum $ SDouble (toRealFloat n)
+      else pure $ SNum $ SInt (round n)
   parseJSON (A.Bool b)   = pure $ SBool b
   parseJSON (A.Array a)  = SArray <$> traverse A.parseJSON (V.toList a)
   parseJSON a            = A.withText

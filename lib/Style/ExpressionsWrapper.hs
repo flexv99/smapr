@@ -42,16 +42,18 @@ data IsoExpr :: SType -> Type where
   IntE    :: Int -> IsoExpr (SNum (SInt i))
   -- | double literal
   DoubleE :: Double -> IsoExpr (SNum (SDouble d))
+  -- | Num literal
+  NumE    :: INum -> IsoExpr (SNum n)
   -- | list literal
   ArrayE  :: SType -> IsoExpr (SArray a)
   -- | addition
-  AddE    :: SType -> IsoExpr a
+  AddE    :: [WrappedExpr] -> IsoExpr a
   -- | product
-  ProdE   :: SType -> IsoExpr a
+  ProdE   :: [WrappedExpr] -> IsoExpr a
   -- | subtraction
-  SubE    :: SType -> SType -> IsoExpr a
+  SubE    :: WrappedExpr -> WrappedExpr -> IsoExpr a
   -- | division
-  DivE    :: SType -> SType -> IsoExpr a
+  DivE    :: WrappedExpr -> WrappedExpr -> IsoExpr a
   -- | check for equaliy on polymorphic types
   EqE     :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | element at index

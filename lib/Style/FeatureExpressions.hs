@@ -56,7 +56,7 @@ fAllP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   FallE <$> filterParsers `sepBy` (char ',' >> space)
 
-fgetP :: Parser (FeatureExpr a)
+fgetP :: Parser (FeatureExpr (SString s))
 fgetP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
@@ -67,7 +67,7 @@ fgeometryP = betweenSquareBrackets $ do
   FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
 
 filterParsers :: Parser (FeatureExpr ('SBool b))
-filterParsers = choice [try fAllP, try fEqP, try fInP, try fgetP]
+filterParsers = choice [try fAllP, try fEqP, try fInP]
 
 evalFeatureExpr :: FeatureExpr a -> Feature -> Layer -> SType
 evalFeatureExpr (Negation e) f l = SBool $ not $ unwrapSBool $ evalFeatureExpr e f l
@@ -75,7 +75,7 @@ evalFeatureExpr (FeqE a b)   f l = evalFilterEq a b f l
 evalFeatureExpr (FinE a b)   f l = evalFilterIn a b f l
 evalFeatureExpr (FallE v)    f l = evalAll v f l
 evalFeatureExpr (FgetE k)    f l = evalFilterGet k f l
-evalFeatureExpr FgeometryE f l   = evalGeometryType f
+evalFeatureExpr FgeometryE   f l = evalGeometryType f
 
 evalFilterEq :: FilterBy -> SType -> Feature -> Layer -> SType
 evalFilterEq FTypeOf (SString s)     f l = SBool $ (Just (T.toCaseFold s) ==) $ T.toCaseFold <$> geometryTypeToString f

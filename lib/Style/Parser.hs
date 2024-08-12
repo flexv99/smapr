@@ -117,8 +117,8 @@ parserForType t = case t of
                        _         -> pAtom
   where
      numP :: INum -> Parser SType
-     numP (SInt _)    = intLitP
-     numP (SDouble _) = doubleLitP
+     numP (SInt _)    = SNum <$> intLitP
+     numP (SDouble _) = SNum <$> doubleLitP
   
 
 pArray :: Parser [SType]
@@ -135,14 +135,14 @@ stringLitP = SString <$> pString
 boolLitP :: Parser SType
 boolLitP = SBool <$> pBool
 
-intLitP :: Parser SType
-intLitP = SNum . SInt <$> pInteger
+intLitP :: Parser INum
+intLitP = SInt <$> pInteger
 
-doubleLitP :: Parser SType
-doubleLitP = SNum . SDouble <$> pDouble
+doubleLitP :: Parser INum
+doubleLitP = SDouble <$> pDouble
 
 numberLitP :: Parser SType
-numberLitP = try doubleLitP <|> intLitP <?> "number"
+numberLitP = SNum <$> (try doubleLitP <|> intLitP) <?> "number"
 
 arrayLitP :: Parser SType
 arrayLitP = SArray <$> pArray
