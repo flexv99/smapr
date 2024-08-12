@@ -7,6 +7,8 @@
 module Style.ExpressionsWrapper where
 
 import Data.Kind (Type)
+import Proto.Vector_tile.Tile.Feature (Feature(..))
+import Proto.Vector_tile.Tile.Layer (Layer(..))
 import qualified Data.Text.Lazy as T
 import Style.Parser
 
@@ -37,9 +39,9 @@ data IsoExpr :: SType -> Type where
   -- | bool-value
   BoolE   :: Bool -> IsoExpr (SBool b)
   -- | int literal
-  IntE    :: Int -> IsoExpr (SInt i)
+  IntE    :: Int -> IsoExpr (SNum (SInt i))
   -- | double literal
-  DoubleE :: Double -> IsoExpr (SDouble d)
+  DoubleE :: Double -> IsoExpr (SNum (SDouble d))
   -- | list literal
   ArrayE  :: SType -> IsoExpr (SArray a)
   -- | addition
@@ -53,21 +55,19 @@ data IsoExpr :: SType -> Type where
   -- | check for equaliy on polymorphic types
   EqE     :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | element at index
-  AtE    :: SType -> IsoExpr (SInt i) -> IsoExpr a
+  AtE    :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
 
 deriving instance Show (IsoExpr res)
 
 -- | runtime representation
 --   mainly useful for parsing
 data WrappedExpr where
-  StringExpr   :: IsoExpr (SString n)  -> WrappedExpr
-  IntExpr      :: IsoExpr (SInt i)     -> WrappedExpr
-  DoubleExpr   :: IsoExpr (SDouble d)  -> WrappedExpr
-  BoolExpr     :: IsoExpr (SBool b)    -> WrappedExpr
-  ArrayExpr    :: IsoExpr (SArray a)   -> WrappedExpr
+  StringExpr   :: IsoExpr (SString n)      -> WrappedExpr
+  NumExpr      :: IsoExpr (SNum a)         -> WrappedExpr
+  BoolExpr     :: IsoExpr (SBool b)        -> WrappedExpr
+  ArrayExpr    :: IsoExpr (SArray a)       -> WrappedExpr
   FStringExpr  :: FeatureExpr (SString n)  -> WrappedExpr
-  FIntExpr     :: FeatureExpr (SInt i)     -> WrappedExpr
-  FDoubleExpr  :: FeatureExpr (SDouble d)  -> WrappedExpr
+  FNumExpr     :: FeatureExpr (SNum a)     -> WrappedExpr
   FBoolExpr    :: FeatureExpr (SBool b)    -> WrappedExpr
   FArrayExpr   :: FeatureExpr (SArray a)   -> WrappedExpr
   
@@ -83,20 +83,16 @@ deriving instance Show WrappedExpr
 -- >>> wrap (IsNullE (IntE 42))
 -- BoolExpr (IsNullE (IntE 42))
 class KnownResType a where
-  wrap  :: IsoExpr a -> WrappedExpr
+  wrap  :: IsoExpr a     -> WrappedExpr
   fwrap :: FeatureExpr a -> WrappedExpr
 
 instance KnownResType (SString b) where
   wrap  = StringExpr
   fwrap = FStringExpr
 
-instance KnownResType (SInt a) where
-  wrap  = IntExpr
-  fwrap = FIntExpr
-
-instance KnownResType (SDouble d) where
-  wrap  = DoubleExpr
-  fwrap = FDoubleExpr
+instance KnownResType (SNum a) where
+  wrap  = NumExpr
+  fwrap = FNumExpr
 
 instance KnownResType (SBool b) where
   wrap  = BoolExpr
