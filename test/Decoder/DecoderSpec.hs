@@ -10,7 +10,7 @@ import Test.Hspec
 import Data.Foldable
 import Proto.Util
 import Proto.Vector_tile.Tile.Layer
-import ApiClient
+import Style.Parser
 
 spec :: Spec
 spec = do
@@ -25,5 +25,5 @@ spec = do
       (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "1")
       
 
-featureTagsMapperRes :: Maybe (MP.Map T.Text T.Text)
-featureTagsMapperRes = Just (MP.fromList [("class","stream"),("intermittent","0"),("name_de",""),("name_en","")])
+featureTagsMapperRes :: Maybe (MP.Map T.Text SType)
+featureTagsMapperRes = Just (MP.fromList [("class", SString "stream"),("intermittent",SNum (SInt 0)),("name_de", SString ""),("name_en", SString"")])

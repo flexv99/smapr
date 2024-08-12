@@ -16,11 +16,9 @@ import Style.Parser
 data FeatureExpr :: SType -> Type where
   StringFe   :: T.Text -> FeatureExpr (SString s)
   ArrayFe    :: SType -> FeatureExpr (SArray a)
-  Negation   :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
+  NegationFe :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
   -- | all expr
   FallE      :: [FeatureExpr (SBool b)] -> FeatureExpr (SBool b)
-  -- | filter by equality
-  FeqE       :: FilterBy -> SType -> FeatureExpr (SBool b)
   -- | in lookup
   FinE       :: FilterBy -> SType -> FeatureExpr (SBool b)
   -- | getter on feature properties
@@ -35,29 +33,31 @@ deriving instance Show (FeatureExpr res)
 -- representing expressions that don't required layer or feature context
 data IsoExpr :: SType -> Type where
   -- | string literal
-  StringE :: T.Text -> IsoExpr (SString s)
+  StringE  :: T.Text -> IsoExpr (SString s)
   -- | bool-value
-  BoolE   :: Bool -> IsoExpr (SBool b)
+  BoolE    :: Bool -> IsoExpr (SBool b)
   -- | int literal
-  IntE    :: Int -> IsoExpr (SNum (SInt i))
+  IntE     :: Int -> IsoExpr (SNum (SInt i))
   -- | double literal
-  DoubleE :: Double -> IsoExpr (SNum (SDouble d))
+  DoubleE  :: Double -> IsoExpr (SNum (SDouble d))
   -- | Num literal
-  NumE    :: INum -> IsoExpr (SNum n)
+  NumE     :: INum -> IsoExpr (SNum n)
   -- | list literal
-  ArrayE  :: SType -> IsoExpr (SArray a)
+  ArrayE   :: SType -> IsoExpr (SArray a)
+  -- | negation of bool expressions
+  Negation :: IsoExpr (SBool s) -> IsoExpr (SBool b)
   -- | addition
-  AddE    :: [WrappedExpr] -> IsoExpr a
+  AddE     :: [WrappedExpr] -> IsoExpr a
   -- | product
-  ProdE   :: [WrappedExpr] -> IsoExpr a
+  ProdE    :: [WrappedExpr] -> IsoExpr a
   -- | subtraction
-  SubE    :: WrappedExpr -> WrappedExpr -> IsoExpr a
+  SubE     :: WrappedExpr -> WrappedExpr -> IsoExpr a
   -- | division
-  DivE    :: WrappedExpr -> WrappedExpr -> IsoExpr a
+  DivE     :: WrappedExpr -> WrappedExpr -> IsoExpr a
   -- | check for equaliy on polymorphic types
-  EqE     :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
+  EqE      :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | element at index
-  AtE    :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
+  AtE      :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
 
 deriving instance Show (IsoExpr res)
 

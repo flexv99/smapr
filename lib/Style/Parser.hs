@@ -191,3 +191,7 @@ exprBaseP id rest = betweenSquareBrackets $ do
   _ <- pKeyword id
   _ <- char ',' >> space
   rest
+
+unwrapSBool :: SType -> Bool
+unwrapSBool (SBool b) = b
+unwrapSBool _         = error "cannot unwrap values other than bool"

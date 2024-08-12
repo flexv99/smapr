@@ -39,7 +39,8 @@ exprChoicheP = choice [ wrap <$> intExprP
                       , wrap <$> doubleExprP
                       , wrap <$> boolExprP
                       , wrap <$> stringExprP
-                      , wrap <$> arrayExprP]
+                      -- , wrap <$> arrayExprP
+                      ]
 
 stypeSum :: [SType] -> SType
 stypeSum = foldr stypeAdd (SNum $ SInt 0)
@@ -49,31 +50,31 @@ stypeSum = foldr stypeAdd (SNum $ SInt 0)
     stypeAdd (SNum (SInt i))    (SNum (SDouble j))  = SNum $ SDouble $ fromIntegral i + j
     stypeAdd (SNum (SDouble i)) (SNum (SInt j))     = SNum $ SDouble $ i + fromIntegral j
     stypeAdd (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i + j
-    stypeAdd _ _                      = error "must be numeric type"
+    stypeAdd _ _                                    = error "must be numeric type"
 
 stypeProd :: [SType] -> SType
 stypeProd = foldr stypeProd (SNum $ SInt 1)
   where
     stypeProd :: SType -> SType -> SType
-    stypeProd (SNum (SInt i))    (SNum (SInt j))  = SNum $ SInt $ i * j
+    stypeProd (SNum (SInt i))    (SNum (SInt j))     = SNum $ SInt $ i * j
     stypeProd (SNum (SInt i))    (SNum (SDouble j))  = SNum $ SDouble $ fromIntegral i * j
     stypeProd (SNum (SDouble i)) (SNum (SInt j))     = SNum $ SDouble $ i * fromIntegral j
     stypeProd (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i * j
-    stypeProd _ _                      = error "must be numeric type"
+    stypeProd _ _                                    = error "must be numeric type"
 
 stypeSub :: SType -> SType -> SType
 stypeSub (SNum (SInt i))    (SNum (SInt j))    = SNum $ SInt $ i - j
 stypeSub (SNum (SInt i))    (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i - j
 stypeSub (SNum (SDouble i)) (SNum (SInt j))    = SNum $ SDouble $ i - fromIntegral j
 stypeSub (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i - j
-stypeSub _ _                     = error "must be numeric type"
+stypeSub _ _                                   = error "must be numeric type"
 
 stypeDiv :: SType -> SType -> SType
 stypeDiv (SNum (SInt i))    (SNum (SInt j))    = SNum $ SDouble $ fromIntegral i / fromIntegral j
 stypeDiv (SNum (SInt i))    (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i / j
 stypeDiv (SNum (SDouble i)) (SNum (SInt j))    = SNum $ SDouble $ i / fromIntegral j
 stypeDiv (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i / j
-stypeDiv _ _                     = error "must be numeric type"
+stypeDiv _ _                                   = error "must be numeric type"
 
 stypeEq :: SType -> SType -> SType
 stypeEq (SNum i)    (SNum j)    = SBool $ i == j
@@ -107,10 +108,15 @@ numRetExprP = choice $ map try [ AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (c
 -- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
 -- true
 eqP :: Parser (IsoExpr ('SBool b))
-eqP = exprBaseP "==" $ do
-  val1 <- try exprChoicheP <|> (wrap <$> numRetExprP) <|> try (fwrap <$> fgeometryP)
+eqP = betweenSquareBrackets $ do
+  let argsP = try exprChoicheP <|> (wrap <$> numRetExprP) <|> try (fwrap <$> fgeometryP) <|> try (fwrap <$> fgetP)
+  key <- betweenDoubleQuotes (string "!=" <|> string "==")
   _ <- char ',' >> space
-  EqE val1 <$> exprChoicheP
+  arg1 <- argsP
+  _ <- char ',' >> space
+  arg2 <- argsP
+  let expr = EqE arg1 arg2
+  if T.isPrefixOf "!" key then return $ Negation expr else return expr
 
 
 atP :: Parser (IsoExpr a)

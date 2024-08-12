@@ -11,8 +11,6 @@ import Style.FeatureExpressions
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
 import Proto.Util
-import Proto.Vector_tile.Tile.Layer
-import Proto.Vector_tile.Tile.Feature
 
 spec :: Spec
 spec = do
@@ -81,7 +79,7 @@ spec = do
     it "can evaluate a in getter Expression on feature properties" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fgetP "[\"get\",\"intermittent\"]"
-      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SString "0")
+      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SInt 0))
   describe "Style.ExpressionsEval.eval" $ do
     it "combination of feature and iso expressions" $ do
       t <- testLayerAndFeature
@@ -90,7 +88,12 @@ spec = do
   describe "Style.ExpressionsEval.eval" $ do
     it "combination of feature and iso expressions '" $ do
       t <- testLayerAndFeature
-      let expr = wrap <$> parseMaybe eqP "[\"!=\",[\"get\",\"intermittent\"],1]"
+      let expr = wrap <$> parseMaybe eqP "[\"!=\",[\"get\",\"intermittent\"], 1]"
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+  describe "Style.ExpressionsEval.eval" $ do
+    it "combination of feature and iso expressions ''" $ do
+      t <- testLayerAndFeature
+      let expr = wrap <$> parseMaybe eqP "[\"==\",[\"get\",\"intermittent\"],0]"
       (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
 
 
