@@ -24,10 +24,10 @@ type Parser = Parsec Void T.Text
 
 type Color = Colour Double
 
+data INum = SInt Int | SDouble Double deriving (Show, Generic, Eq)
 
 data SType
-  = SInt Int
-  | SDouble Double
+  = SNum INum
   | SString T.Text
   | SBool Bool
   | SColor Color
@@ -109,13 +109,17 @@ pAtom =
 
 parserForType :: SType -> Parser SType
 parserForType t = case t of
-  SInt _    -> intLitP
-  SDouble _ -> doubleLitP
-  SBool _   -> boolLitP
-  SString _ -> stringLitP
-  SArray _  -> arrayLitP
-  SNull     -> nullP
-  _         -> pAtom
+                       SNum a    -> numP a
+                       SBool _   -> boolLitP
+                       SString _ -> stringLitP
+                       SArray _  -> arrayLitP
+                       SNull     -> nullP
+                       _         -> pAtom
+  where
+     numP :: INum -> Parser SType
+     numP (SInt _)    = intLitP
+     numP (SDouble _) = doubleLitP
+  
 
 pArray :: Parser [SType]
 pArray =
@@ -132,10 +136,10 @@ boolLitP :: Parser SType
 boolLitP = SBool <$> pBool
 
 intLitP :: Parser SType
-intLitP = SInt <$> pInteger
+intLitP = SNum . SInt <$> pInteger
 
 doubleLitP :: Parser SType
-doubleLitP = SDouble <$> pDouble
+doubleLitP = SNum . SDouble <$> pDouble
 
 numberLitP :: Parser SType
 numberLitP = try doubleLitP <|> intLitP <?> "number"
