@@ -17,8 +17,6 @@ data FeatureExpr :: SType -> Type where
   StringFe   :: T.Text -> FeatureExpr (SString s)
   ArrayFe    :: SType -> FeatureExpr (SArray a)
   NegationFe :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
-  -- | all expr
-  FallE      :: [FeatureExpr (SBool b)] -> FeatureExpr (SBool b)
   -- | in lookup
   FinE       :: FilterBy -> SType -> FeatureExpr (SBool b)
   -- | getter on feature properties
@@ -58,20 +56,24 @@ data IsoExpr :: SType -> Type where
   EqE      :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | element at index
   AtE      :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
+  -- | all expr
+  AllE    :: [ArgType (SBool b)] -> IsoExpr (SBool b)
 
 deriving instance Show (IsoExpr res)
+
+data ArgType t where
+  IsoArg     :: IsoExpr t     -> ArgType t
+  FeatureArg :: FeatureExpr t -> ArgType t
+
+deriving instance Show (ArgType t)
 
 -- | runtime representation
 --   mainly useful for parsing
 data WrappedExpr where
-  StringExpr   :: IsoExpr (SString n)      -> WrappedExpr
-  NumExpr      :: IsoExpr (SNum a)         -> WrappedExpr
-  BoolExpr     :: IsoExpr (SBool b)        -> WrappedExpr
-  ArrayExpr    :: IsoExpr (SArray a)       -> WrappedExpr
-  FStringExpr  :: FeatureExpr (SString n)  -> WrappedExpr
-  FNumExpr     :: FeatureExpr (SNum a)     -> WrappedExpr
-  FBoolExpr    :: FeatureExpr (SBool b)    -> WrappedExpr
-  FArrayExpr   :: FeatureExpr (SArray a)   -> WrappedExpr
+  StringExpr   :: ArgType (SString n)      -> WrappedExpr
+  NumExpr      :: ArgType (SNum a)         -> WrappedExpr
+  BoolExpr     :: ArgType (SBool b)        -> WrappedExpr
+  ArrayExpr    :: ArgType (SArray a)       -> WrappedExpr
   
 
 deriving instance Show WrappedExpr
@@ -85,21 +87,16 @@ deriving instance Show WrappedExpr
 -- >>> wrap (IsNullE (IntE 42))
 -- BoolExpr (IsNullE (IntE 42))
 class KnownResType a where
-  wrap  :: IsoExpr a     -> WrappedExpr
-  fwrap :: FeatureExpr a -> WrappedExpr
+  wrap  :: ArgType a     -> WrappedExpr
 
 instance KnownResType (SString b) where
   wrap  = StringExpr
-  fwrap = FStringExpr
 
 instance KnownResType (SNum a) where
   wrap  = NumExpr
-  fwrap = FNumExpr
 
 instance KnownResType (SBool b) where
   wrap  = BoolExpr
-  fwrap = FBoolExpr
 
 instance KnownResType (SArray a) where
   wrap  = ArrayExpr
-  fwrap = FArrayExpr

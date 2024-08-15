@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 
 module Parser.ParseSpec (spec) where
 
@@ -11,6 +12,7 @@ import Style.FeatureExpressions
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
 import Proto.Util
+import Style.Poc
 
 spec :: Spec
 spec = do
@@ -44,19 +46,19 @@ spec = do
   describe "Style.Expressions.sumP" $ do
     it "can parse and evaluate sum expression" $ do
       t <- testLayerAndFeature
-      (\(l, f) -> evalIsoExpr <$> parseMaybe numRetExprP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt 5)
+      (\(l, f) -> eval . wrap <$> parseMaybe numRetExprP "[\"+\", 1, 2, 3, [\"-\", 1, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt 5)
   describe "Style.Expressions.prodP" $ do
     it "can parse and evaluate multiplication expression" $ do
       t <- testLayerAndFeature
-      (\(l, f) -> evalIsoExpr <$> parseMaybe numRetExprP "[\"*\", 1, [\"-\", 1, 2], 5, 6]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt (-30))
+      (\(l, f) -> eval . wrap <$> parseMaybe numRetExprP "[\"*\", 1, [\"-\", 1, 2], 5, 6]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt (-30))
   describe "Style.Expressions.subP" $ do
     it "can parse and evaluate subtraction expression" $ do
       t <- testLayerAndFeature
-      (\(l, f) -> evalIsoExpr <$> parseMaybe numRetExprP "[\"-\", 1, [\"+\", 1, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt (-2))
+      (\(l, f) -> eval . wrap <$> parseMaybe numRetExprP "[\"-\", 1, [\"+\", 1, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SInt (-2))
   describe "Style.Expressions.divP" $ do
     it "can parse and evaluate division expression" $ do
       t <- testLayerAndFeature
-      (\(l, f) -> evalIsoExpr <$> parseMaybe numRetExprP "[\"/\", 1, [\"+\", 2, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SDouble 0.25)
+      (\(l, f) -> eval . wrap <$> parseMaybe numRetExprP "[\"/\", 1, [\"+\", 2, 2]]" <*> f <*> l) t `shouldBe` Just (SNum $ SDouble 0.25)
   describe "Style.Expressions.eqP" $ do
     it "can parse and evaluate eqality expression" $ do
       t <- testLayerAndFeature
@@ -64,22 +66,22 @@ spec = do
   describe "Style.Expressions.atP" $ do
     it "can parse and return element at index of a list" $ do
       t <- testLayerAndFeature
-      (\(l, f) -> evalIsoExpr <$> parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" <*> f <*> l) t  `shouldBe` Just (SString "bc")
+      (\(l, f) -> eval . wrap <$> (parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" :: Maybe (ArgType ('SString s))) <*> f <*> l) t  `shouldBe` Just (SString "bc")
   describe "Style.FilterExpressions.fgeometryP" $ do
     it "parse geometry type function that retrieves a feature's geometry" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fgeometryP "[\"geometry-type\"]"
-      (\ (a, b) -> eval . fwrap <$> expr <*> b <*> a) t `shouldBe` Just (SString "LINESTRING")
+      (\ (a, b) -> eval . wrap <$> expr <*> b <*> a) t `shouldBe` Just (SString "LINESTRING")
   describe "Style.FilterExpressions.evalFilterExpr" $ do
     it "can evaluate a in Expression" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fInP "[\"!in\", \"brunnel\", \"tunnel\", \"bridge\"]"
-      (\ (a, b) -> eval . fwrap <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+      (\ (a, b) -> eval . wrap <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
   describe "Style.FilterExpressions.evalFilterGetter" $ do
     it "can evaluate a in getter Expression on feature properties" $ do
       t <- testLayerAndFeature
       let expr = parseMaybe fgetP "[\"get\",\"intermittent\"]"
-      (\ (a, b) -> evalFeatureExpr <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SInt 0))
+      (\ (a, b) -> eval . wrap <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SInt 0))
   describe "Style.ExpressionsEval.eval" $ do
     it "combination of feature and iso expressions" $ do
       t <- testLayerAndFeature

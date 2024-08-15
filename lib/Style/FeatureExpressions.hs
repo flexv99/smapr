@@ -35,7 +35,7 @@ filterByP = choice [ FId <$> pInteger
                    , FProp <$> pString
                    ]
 
-fInP :: Parser (FeatureExpr ('SBool b))
+fInP :: Parser (ArgType ('SBool b))
 fInP = betweenSquareBrackets $ do
   key <- betweenDoubleQuotes (string "!in" <|> string "in")
   _ <- char ',' >> space
@@ -43,26 +43,20 @@ fInP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   props <- SArray <$> (stringLitP `sepBy` (char ',' >> space))
   let expr = FinE val props
-  if T.isPrefixOf "!" key then return $ NegationFe expr else return expr
+  if T.isPrefixOf "!" key then return $ FeatureArg $ NegationFe expr else return $ FeatureArg expr
 
-fAllP :: Parser (FeatureExpr ('SBool a))
-fAllP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "all"
-  _ <- char ',' >> space
-  FallE <$> filterParsers `sepBy` (char ',' >> space)
-
-fgetP :: Parser (FeatureExpr (SString s))
+fgetP :: Parser (ArgType (SString s))
 fgetP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
-  FgetE <$> stringLitP
+  FeatureArg . FgetE <$> stringLitP
 
-fgeometryP :: Parser (FeatureExpr (SString s))
+fgeometryP :: Parser (ArgType (SString s))
 fgeometryP = betweenSquareBrackets $ do
-  FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
+  FeatureArg FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
 
-filterParsers :: Parser (FeatureExpr ('SBool b))
-filterParsers = choice [try fAllP, try fInP]
+filterParsers :: Parser (ArgType ('SBool b))
+filterParsers = choice [try fInP]
 
 evalFilterIn :: FilterBy -> SType -> Feature -> Layer -> SType
 evalFilterIn (FProp key) (SArray a) f l = SBool $ maybe False (`elem` a) $  key `MP.lookup` featureProperties l f
@@ -70,9 +64,6 @@ evalFilterIn (FProp key) (SArray a) f l = SBool $ maybe False (`elem` a) $  key 
 evalFilterGet :: SType -> Feature -> Layer -> SType
 evalFilterGet (SString key) f l = fromMaybe SNull (key `MP.lookup` featureProperties l f)
 evalFilterGet _             f l = error "get property must be of type String"
-
-evalAll :: [FeatureExpr ('SBool b)] -> Feature -> Layer -> SType
-evalAll exprs f l = undefined -- SBool $ all (\e -> unwrapSBool $ eval e f l) exprs
 
 -- defaults to linestring if geometry cannot be retrieved from feature
 evalGeometryType :: Feature -> SType

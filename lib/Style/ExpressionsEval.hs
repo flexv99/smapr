@@ -15,17 +15,17 @@ import Style.Parser
 import Proto.Util -- for testLayerAndFeature
 
 -- | evaluates an 'WrappedExpr' to SType
--- >>> eval (IntExpr (AddE (IntE 4) (IntE 5)))
+-- >>> eval (IntExpr (AddE (IntE 4) (IntE 5))) f l
 -- SInt 9
 eval :: WrappedExpr -> Feature -> Layer -> SType
-eval (StringExpr s)  f l = evalIsoExpr s f l
-eval (BoolExpr b)    f l = evalIsoExpr b f l
-eval (NumExpr i)     f l = evalIsoExpr i f l
-eval (ArrayExpr a)   f l = evalIsoExpr a f l
-eval (FStringExpr s) f l = evalFeatureExpr s f l
-eval (FBoolExpr b)   f l = evalFeatureExpr b f l
-eval (FNumExpr i)    f l = evalFeatureExpr i f l
-eval (FArrayExpr a)  f l = evalFeatureExpr a f l
+eval (StringExpr (IsoArg s))     f l = evalIsoExpr s f l
+eval (StringExpr (FeatureArg s)) f l = evalFeatureExpr s f l
+eval (BoolExpr (IsoArg b))       f l = evalIsoExpr b f l
+eval (BoolExpr (FeatureArg b))   f l = evalFeatureExpr b f l
+eval (NumExpr (IsoArg i))        f l = evalIsoExpr i f l
+eval (NumExpr (FeatureArg i))    f l = evalFeatureExpr i f l
+eval (ArrayExpr (IsoArg a))      f l = evalIsoExpr a f l
+eval (ArrayExpr (FeatureArg a))  f l = evalFeatureExpr a f l
 
 
 -- | evaluates an 'Expr' to the tagged type f.e.
@@ -45,11 +45,11 @@ evalIsoExpr (SubE a b)           f l = stypeSub (eval a f l) (eval b f l)
 evalIsoExpr (DivE a b)           f l = stypeDiv (eval a f l) (eval b f l)
 evalIsoExpr (EqE o t)            f l = stypeEq (eval o f l) (eval t f l)
 evalIsoExpr (AtE a i)            f l = stypeIn a (evalIsoExpr i f l)
+evalIsoExpr (AllE v)             f l = evalAll v f l
 
 evalFeatureExpr :: FeatureExpr a -> Feature -> Layer -> SType
 evalFeatureExpr (NegationFe e) f l = SBool $ not $ unwrapSBool $ evalFeatureExpr e f l
 evalFeatureExpr (FinE a b)     f l = evalFilterIn a b f l
-evalFeatureExpr (FallE v)      f l = evalAll v f l
 evalFeatureExpr (FgetE k)      f l = evalFilterGet k f l
 evalFeatureExpr FgeometryE     f l = evalGeometryType f
 

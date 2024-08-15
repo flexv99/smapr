@@ -25,7 +25,7 @@ intExprP = IntE <$> pInteger <* hidden space
 doubleExprP :: Parser (IsoExpr (SNum (SDouble d)))
 doubleExprP = DoubleE <$> pDouble <* hidden space
 
--- numExprP :: Parser (IsoExpr (SNum a))
+numExprP :: Parser (IsoExpr (SNum a))
 numExprP = NumE <$> (try doubleLitP <|> intLitP)
 
 boolExprP :: Parser (IsoExpr (SBool b))
@@ -35,10 +35,10 @@ arrayExprP :: Parser (IsoExpr (SArray a))
 arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
 exprChoicheP :: Parser WrappedExpr
-exprChoicheP = choice [ wrap <$> intExprP
-                      , wrap <$> doubleExprP
-                      , wrap <$> boolExprP
-                      , wrap <$> stringExprP
+exprChoicheP = choice [ wrap . IsoArg <$> intExprP
+                      , wrap . IsoArg <$> doubleExprP
+                      , wrap . IsoArg <$> boolExprP
+                      , wrap . IsoArg <$> stringExprP
                       -- , wrap <$> arrayExprP
                       ]
 
@@ -88,16 +88,19 @@ stypeIn (SArray a) (SNum (SInt i)) = a !! i
 stypeIn _          (SNum (SInt i)) = error "param 1 must be an array"
 stypeIn (SArray a) _               = error "param 2 must be an int"
 
+evalAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType
+evalAll exprs f l = undefined -- SBool $ all (\e -> unwrapSBool $ eval e f l) exprs
+
 -- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
 -- 1.5
-numRetExprP :: Parser (IsoExpr (SNum a))
-numRetExprP = choice $ map try [ AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
-                               , exprBaseP "-" $ SubE <$> argWithComma <*> singleArgP
-                               , ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
-                               , exprBaseP "/" $ DivE <$> argWithComma <*> singleArgP
+numRetExprP :: Parser (ArgType (SNum a))
+numRetExprP = choice $ map try [ IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
+                               , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
+                               , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
+                               , IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
                                ]
               where
-                singleArgP = (wrap <$> numExprP) <|> (wrap <$> numRetExprP)
+                singleArgP = (wrap . IsoArg <$> numExprP) <|> (wrap <$> numRetExprP)
                 argWithComma = do
                   val <- singleArgP
                   _ <- char ',' >> space
@@ -107,20 +110,25 @@ numRetExprP = choice $ map try [ AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (c
 -- false
 -- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
 -- true
-eqP :: Parser (IsoExpr ('SBool b))
+eqP :: Parser (ArgType ('SBool b))
 eqP = betweenSquareBrackets $ do
-  let argsP = try exprChoicheP <|> (wrap <$> numRetExprP) <|> try (fwrap <$> fgeometryP) <|> try (fwrap <$> fgetP)
+  let argsP = try exprChoicheP <|> try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP)
   key <- betweenDoubleQuotes (string "!=" <|> string "==")
   _ <- char ',' >> space
   arg1 <- argsP
   _ <- char ',' >> space
   arg2 <- argsP
   let expr = EqE arg1 arg2
-  if T.isPrefixOf "!" key then return $ Negation expr else return expr
+  if T.isPrefixOf "!" key then return $ IsoArg $ Negation expr else return $ IsoArg expr
 
-
-atP :: Parser (IsoExpr a)
+atP :: Parser (ArgType a)
 atP = exprBaseP "at" $ do
   val1 <- arrayLitP
   _ <- char ',' >> space
-  AtE val1 <$> intExprP
+  IsoArg . AtE val1 <$> intExprP
+
+allP :: Parser (ArgType ('SBool a))
+allP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "all"
+  _ <- char ',' >> space
+  IsoArg . AllE <$> ((IsoArg <$> boolExprP) <|> eqP) `sepBy` (char ',' >> space)

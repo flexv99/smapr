@@ -32,10 +32,9 @@ import Style.Layers.Line
 
 data POCLayer = forall (b :: Bool). POCLayer
   { id :: T.Text
-  , layerType :: T.Text
   , source :: T.Text
   , sourceLayer :: T.Text
-  , lfilter :: FeatureExpr ('SBool b)
+  , lfilter :: ArgType ('SBool b)
   , paint :: Maybe LineS
   }
 deriving instance Show POCLayer
@@ -72,14 +71,13 @@ instance A.FromJSON POCLayer where
   parseJSON = A.withObject "POCLayer" $ \obj ->
     POCLayer
       <$> obj A..: "id"
-      <*> obj A..: "type"
       <*> obj A..: "source"
       <*> obj A..: "source-layer"
       <*> (obj A..: "filter" >>= fexpr)
       <*> obj A..:? "paint"
     where
       fexpr  = A.withArray "FilterExpression" $ \v ->
-        case parse filterParsers "" (A.encodeToLazyText v) of
+        case parse allP "" (A.encodeToLazyText v) of
           Left err  -> fail $ errorBundlePretty err
           Right res -> pure res
 
@@ -89,9 +87,10 @@ tpaint = "{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width
 tfilter :: B.ByteString
 tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\", \"intermittent\"], 1],[\"!=\", [\"get\", \"brunnel\"], \"tunnel\"]]"
 
-twaterway :: B.ByteString
-twaterway = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",\"$type\",\"LineString\"],[\"!in\",\"brunnel\",\"tunnel\",\"bridge\"]],\"paint\":{\"line-color\":\"hsl(205, 56%, 73%)\",\"line-opacity\":1,\"line-width\":{\"base\":1.4,\"stops\":[[8,1],[20,8]]}}}"
+waterLayerStyle :: B.ByteString
+waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:autocomposite\":false,\"mapbox:type\":\"template\",\"maputnik:renderer\":\"mbgljs\",\"openmaptiles:version\":\"3.x\",\"openmaptiles:mapbox:owner\":\"openmaptiles\",\"openmaptiles:mapbox:source:url\":\"mapbox://openmaptiles.4qljc88t\"},\"sources\":{\"openmaptiles\":{\"type\":\"vector\",\"url\":\"https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key={key}\"}},\"sprite\":\"https://openmaptiles.github.io/maptiler-basic-gl-style/sprite\",\"glyphs\":\"https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}\",\"layers\":[{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}],\"id\":\"basic\"}"
 
+-- >>> A.eitherDecode "{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}" :: Either String POCLayer
 {-
 {
       "id": "water",
