@@ -1,7 +1,7 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs          #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes     #-}
+{-# LANGUAGE DataKinds      #-}
 
 module Style.IsoExpressions where
 

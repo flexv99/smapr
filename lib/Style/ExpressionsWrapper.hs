@@ -1,8 +1,8 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE GADTs              #-}
+{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE KindSignatures     #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds          #-}
 
 module Style.ExpressionsWrapper where
 
@@ -12,7 +12,7 @@ import Proto.Vector_tile.Tile.Layer (Layer(..))
 import qualified Data.Text.Lazy as T
 import Style.Parser
 
--- | AST representation of filter expressions
+-- | AST representation of expressions requiring feature context
 data FeatureExpr :: SType -> Type where
   StringFe   :: T.Text -> FeatureExpr (SString s)
   ArrayFe    :: SType -> FeatureExpr (SArray a)
@@ -61,6 +61,9 @@ data IsoExpr :: SType -> Type where
 
 deriving instance Show (IsoExpr res)
 
+-- | representation of argument type
+-- | as the evaluator needs to know in which context
+-- | the expression stands
 data ArgType t where
   IsoArg     :: IsoExpr t     -> ArgType t
   FeatureArg :: FeatureExpr t -> ArgType t
@@ -68,7 +71,7 @@ data ArgType t where
 deriving instance Show (ArgType t)
 
 -- | runtime representation
---   mainly useful for parsing
+-- | mainly useful for parsing
 data WrappedExpr where
   StringExpr   :: ArgType (SString n)      -> WrappedExpr
   NumExpr      :: ArgType (SNum a)         -> WrappedExpr
