@@ -53,7 +53,16 @@ evalFeatureExpr (FinE a b)     f l = evalFilterIn a b f l
 evalFeatureExpr (FgetE k)      f l = evalFilterGet k f l
 evalFeatureExpr FgeometryE     f l = evalGeometryType f
 
+evalAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType
+evalAll exprs f l = SBool $ all ((\e -> unwrapSBool $ eval e f l) . wrap) exprs
+
+unwrapSBool :: SType -> Bool
+unwrapSBool (SBool b) = b
+unwrapSBool _         = error "cannot unwrap values other than bool"
+
 
 evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
 evalTester expr =
   testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
+
+

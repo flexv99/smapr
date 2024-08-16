@@ -14,15 +14,15 @@ import Style.Parser
 
 -- | AST representation of expressions requiring feature context
 data FeatureExpr :: SType -> Type where
-  StringFe   :: T.Text -> FeatureExpr (SString s)
-  ArrayFe    :: SType -> FeatureExpr (SArray a)
+  StringFe   :: T.Text                -> FeatureExpr (SString s)
+  ArrayFe    :: SType                 -> FeatureExpr (SArray a)
   NegationFe :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
   -- | in lookup
-  FinE       :: FilterBy -> SType -> FeatureExpr (SBool b)
+  FinE       :: FilterBy -> SType     -> FeatureExpr (SBool b)
   -- | getter on feature properties
-  FgetE      :: SType -> FeatureExpr a
+  FgetE      :: SType                 -> FeatureExpr a
   -- | Geometry type expression for a given feature
-  FgeometryE :: FeatureExpr (SString s)
+  FgeometryE ::                          FeatureExpr (SString s)
 
 deriving instance Show (FeatureExpr res)
 
@@ -31,34 +31,36 @@ deriving instance Show (FeatureExpr res)
 -- representing expressions that don't required layer or feature context
 data IsoExpr :: SType -> Type where
   -- | string literal
-  StringE  :: T.Text -> IsoExpr (SString s)
+  StringE  :: T.Text                                    -> IsoExpr (SString s)
   -- | bool-value
-  BoolE    :: Bool -> IsoExpr (SBool b)
+  BoolE    :: Bool                                      -> IsoExpr (SBool b)
   -- | int literal
-  IntE     :: Int -> IsoExpr (SNum (SInt i))
+  IntE     :: Int                                       -> IsoExpr (SNum (SInt i))
   -- | double literal
-  DoubleE  :: Double -> IsoExpr (SNum (SDouble d))
+  DoubleE  :: Double                                    -> IsoExpr (SNum (SDouble d))
   -- | Num literal
-  NumE     :: INum -> IsoExpr (SNum n)
+  NumE     :: INum                                      -> IsoExpr (SNum n)
   -- | list literal
-  ArrayE   :: SType -> IsoExpr (SArray a)
+  ArrayE   :: SType                                     -> IsoExpr (SArray a)
   -- | negation of bool expressions
-  Negation :: IsoExpr (SBool s) -> IsoExpr (SBool b)
+  Negation :: IsoExpr (SBool s)                         -> IsoExpr (SBool b)
   -- | addition
-  AddE     :: [WrappedExpr] -> IsoExpr a
+  AddE     :: [WrappedExpr]                             -> IsoExpr a
   -- | product
-  ProdE    :: [WrappedExpr] -> IsoExpr a
+  ProdE    :: [WrappedExpr]                             -> IsoExpr a
   -- | subtraction
-  SubE     :: WrappedExpr -> WrappedExpr -> IsoExpr a
+  SubE     :: WrappedExpr -> WrappedExpr                -> IsoExpr a
   -- | division
-  DivE     :: WrappedExpr -> WrappedExpr -> IsoExpr a
+  DivE     :: WrappedExpr -> WrappedExpr                -> IsoExpr a
   -- | check for equaliy on polymorphic types
-  EqE      :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
+  EqE      :: WrappedExpr -> WrappedExpr                -> IsoExpr (SBool b)
   -- | element at index
-  AtE      :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
+  AtE      :: SType -> IsoExpr (SNum (SInt i))          -> IsoExpr a
   -- | all expr
-  AllE    :: [ArgType (SBool b)] -> IsoExpr (SBool b)
-
+  AllE     :: [ArgType (SBool b)]                       -> IsoExpr (SBool b)
+  -- | match expr
+  MatchE   :: WrappedExpr -> MatchArg                   -> IsoExpr a
+  
 deriving instance Show (IsoExpr res)
 
 -- | representation of argument type
@@ -73,10 +75,10 @@ deriving instance Show (ArgType t)
 -- | runtime representation
 -- | mainly useful for parsing
 data WrappedExpr where
-  StringExpr   :: ArgType (SString n)      -> WrappedExpr
-  NumExpr      :: ArgType (SNum a)         -> WrappedExpr
-  BoolExpr     :: ArgType (SBool b)        -> WrappedExpr
-  ArrayExpr    :: ArgType (SArray a)       -> WrappedExpr
+  StringExpr   :: ArgType (SString n) -> WrappedExpr
+  NumExpr      :: ArgType (SNum a)    -> WrappedExpr
+  BoolExpr     :: ArgType (SBool b)   -> WrappedExpr
+  ArrayExpr    :: ArgType (SArray a)  -> WrappedExpr
   
 
 deriving instance Show WrappedExpr
@@ -90,7 +92,7 @@ deriving instance Show WrappedExpr
 -- >>> wrap (IsNullE (IntE 42))
 -- BoolExpr (IsNullE (IntE 42))
 class KnownResType a where
-  wrap  :: ArgType a     -> WrappedExpr
+  wrap  :: ArgType a -> WrappedExpr
 
 instance KnownResType (SString b) where
   wrap  = StringExpr
@@ -103,3 +105,11 @@ instance KnownResType (SBool b) where
 
 instance KnownResType (SArray a) where
   wrap  = ArrayExpr
+
+
+-- Helper types
+type ToBeMatched = (SType, SType)
+
+newtype MatchArg = MatchArg ([ToBeMatched], Maybe SType) deriving (Show, Eq)
+
+

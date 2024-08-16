@@ -16,6 +16,12 @@ import Style.ExpressionsWrapper
 import Style.FeatureExpressions
 import Style.Parser
 
+--------------------------------------------------------------------------------
+
+-- ISO Parsers
+
+--------------------------------------------------------------------------------
+
 stringExprP :: Parser (IsoExpr (SString s))
 stringExprP = StringE <$> pString <* hidden space
 
@@ -41,6 +47,67 @@ exprChoicheP = choice [ wrap . IsoArg <$> intExprP
                       , wrap . IsoArg <$> stringExprP
                       -- , wrap <$> arrayExprP
                       ]
+
+-- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
+-- 1.5
+numRetExprP :: Parser (ArgType (SNum a))
+numRetExprP = choice $ map try [ IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
+                               , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
+                               , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
+                               , IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
+                               ]
+              where
+                singleArgP = (wrap . IsoArg <$> numExprP) <|> (wrap <$> numRetExprP)
+                argWithComma = do
+                  val <- singleArgP
+                  _ <- char ',' >> space
+                  return val
+
+-- >>> fmap evalExpr $ parseMaybe eqP "[\"==\", [1, 2, 3], [123]]"
+-- false
+-- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
+-- true
+eqP :: Parser (ArgType ('SBool b))
+eqP = betweenSquareBrackets $ do
+  let argsP = try exprChoicheP <|> try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP)
+  key <- betweenDoubleQuotes (string "!=" <|> string "==")
+  _ <- char ',' >> space
+  arg1 <- argsP
+  _ <- char ',' >> space
+  arg2 <- argsP
+  let expr = EqE arg1 arg2
+  if T.isPrefixOf "!" key then return $ IsoArg $ Negation expr else return $ IsoArg expr
+
+atP :: Parser (ArgType a)
+atP = exprBaseP "at" $ do
+  val1 <- arrayLitP
+  _ <- char ',' >> space
+  IsoArg . AtE val1 <$> intExprP
+
+allP :: Parser (ArgType ('SBool a))
+allP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "all"
+  _ <- char ',' >> space
+  IsoArg . AllE <$> ((IsoArg <$> boolExprP) <|> eqP) `sepBy` (char ',' >> space)
+
+matchP :: Parser (ArgType a)
+matchP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "match"
+  expr <- wrap <$> fgetP
+  _ <- char ',' >> space
+  IsoArg . MatchE expr <$> matchArgsP
+    where
+      matchArgsP :: Parser MatchArg
+      matchArgsP = do
+        args <- pAtom  `sepBy` (char ',' >> space)
+        return $ MatchArg $ tuplify args
+
+
+--------------------------------------------------------------------------------
+
+-- ISO expressions evaluators
+
+--------------------------------------------------------------------------------
 
 stypeSum :: [SType] -> SType
 stypeSum = foldr stypeAdd (SNum $ SInt 0)
@@ -88,47 +155,10 @@ stypeIn (SArray a) (SNum (SInt i)) = a !! i
 stypeIn _          (SNum (SInt i)) = error "param 1 must be an array"
 stypeIn (SArray a) _               = error "param 2 must be an int"
 
-evalAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType
-evalAll exprs f l = undefined -- SBool $ all (\e -> unwrapSBool $ eval e f l) exprs
 
--- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
--- 1.5
-numRetExprP :: Parser (ArgType (SNum a))
-numRetExprP = choice $ map try [ IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
-                               , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
-                               , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
-                               , IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
-                               ]
-              where
-                singleArgP = (wrap . IsoArg <$> numExprP) <|> (wrap <$> numRetExprP)
-                argWithComma = do
-                  val <- singleArgP
-                  _ <- char ',' >> space
-                  return val
-
--- >>> fmap evalExpr $ parseMaybe eqP "[\"==\", [1, 2, 3], [123]]"
--- false
--- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
--- true
-eqP :: Parser (ArgType ('SBool b))
-eqP = betweenSquareBrackets $ do
-  let argsP = try exprChoicheP <|> try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP)
-  key <- betweenDoubleQuotes (string "!=" <|> string "==")
-  _ <- char ',' >> space
-  arg1 <- argsP
-  _ <- char ',' >> space
-  arg2 <- argsP
-  let expr = EqE arg1 arg2
-  if T.isPrefixOf "!" key then return $ IsoArg $ Negation expr else return $ IsoArg expr
-
-atP :: Parser (ArgType a)
-atP = exprBaseP "at" $ do
-  val1 <- arrayLitP
-  _ <- char ',' >> space
-  IsoArg . AtE val1 <$> intExprP
-
-allP :: Parser (ArgType ('SBool a))
-allP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "all"
-  _ <- char ',' >> space
-  IsoArg . AllE <$> ((IsoArg <$> boolExprP) <|> eqP) `sepBy` (char ',' >> space)
+tuplify :: [a] -> ([(a,a)], Maybe a)
+tuplify [] = ([], Nothing)
+tuplify [x] = ([], Just x)
+tuplify (x:y:xs) =
+  let (tuples, lastElem) = tuplify xs
+  in ((x, y) : tuples, lastElem)

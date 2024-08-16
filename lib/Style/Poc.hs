@@ -21,8 +21,10 @@ import Style.Parser
 import Style.IsoExpressions
 import Style.FeatureExpressions
 import Style.ExpressionsWrapper
+import Style.ExpressionsEval
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
+import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Text.Megaparsec
 import Proto.Util
 import Style.Layers.Line
@@ -90,6 +92,9 @@ tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\"
 waterLayerStyle :: B.ByteString
 waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:autocomposite\":false,\"mapbox:type\":\"template\",\"maputnik:renderer\":\"mbgljs\",\"openmaptiles:version\":\"3.x\",\"openmaptiles:mapbox:owner\":\"openmaptiles\",\"openmaptiles:mapbox:source:url\":\"mapbox://openmaptiles.4qljc88t\"},\"sources\":{\"openmaptiles\":{\"type\":\"vector\",\"url\":\"https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key={key}\"}},\"sprite\":\"https://openmaptiles.github.io/maptiler-basic-gl-style/sprite\",\"glyphs\":\"https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}\",\"layers\":[{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}],\"id\":\"basic\"}"
 
+evalLayer :: POCLayer -> Feature -> Layer -> SType
+evalLayer (POCLayer {lfilter = fltr}) = eval $ wrap fltr
+
 -- >>> A.eitherDecode "{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}" :: Either String POCLayer
 {-
 {
@@ -105,5 +110,34 @@ waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:auto
       ],
       "layout": {"visibility": "visible"},
       "paint": {"fill-color": "hsl(205,56%,73%)"}
+    }
+-}
+
+{-
+{
+      "id": "waterway",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "waterway",
+      "filter": [
+        "all",
+        ["==", ["geometry-type"], "LineString"],
+        ["match", ["get", "brunnel"], ["bridge", "tunnel"], false, true],
+        ["!=", ["get", "intermittent"], 1]
+      ],
+      "layout": {"visibility": "visible"},
+      "paint": {
+        "line-color": "hsl(205,56%,73%)",
+        "line-opacity": 1,
+        "line-width": [
+          "interpolate",
+          ["exponential", 1.4],
+          ["zoom"],
+          8,
+          1,
+          20,
+          8
+        ]
+      }
     }
 -}
