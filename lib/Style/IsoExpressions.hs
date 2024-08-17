@@ -93,6 +93,7 @@ allP = betweenSquareBrackets $ do
 matchP :: Parser (ArgType a)
 matchP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "match"
+  _ <- char ',' >> space
   expr <- wrap <$> fgetP
   _ <- char ',' >> space
   IsoArg . MatchE expr <$> matchArgsP
