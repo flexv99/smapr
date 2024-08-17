@@ -22,7 +22,7 @@ type Parser = Parsec Void T.Text
 -- reference: https://github.com/maplibre/maplibre-style-spec/blob/main/src/expression/types.ts#L133
 -- Docs: https://maplibre.org/maplibre-style-spec/expressions/#types
 
-type Color = Colour Double
+type Color = AlphaColour Double
 
 data INum = SInt Int | SDouble Double deriving (Show, Generic, Eq)
 
@@ -95,6 +95,9 @@ pInteger = lexeme (L.signed space L.decimal) <?> "integer"
 pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
 
+pColor :: Parser SType
+pColor = choice $ map try [pHslColor, pRgbaColor]
+
 pAtom :: Parser SType
 pAtom =
   try $
@@ -163,28 +166,47 @@ nullP = lexeme (SNull <$ (string "null" *> notFollowedBy alphaNumChar)) <?> "nul
 -- }
 
 hslToColor :: Double -> Double -> Double  -> Color
-hslToColor h s l = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
+hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
   where
     rgb = hsl h (s / 100) (l / 100)
 
 pHslColor :: Parser SType
 pHslColor = do
-           _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
-           betweenBrackets $ do
-             hue        <- pInt
-             _          <- char ',' >> space
-             saturation <- pColorPercentage
-             _          <- char ',' >> space
-             SColor . hslToColor hue saturation <$> pColorPercentage
-               where
-                 pInt = lexeme (L.signed space L.decimal)
-                 pColorPercentage = do
-                   num <- pInt
-                   _   <- char '%'
-                   return num
+  _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
+  betweenBrackets $ do
+    hue        <- pInt
+    _          <- char ',' >> space
+    saturation <- pColorPercentage
+    _          <- char ',' >> space
+    SColor . hslToColor hue saturation <$> pColorPercentage
+      where
+        pInt = lexeme (L.signed space L.decimal)
+        pColorPercentage = do
+          num <- pInt
+          _   <- char '%'
+          return num
+                   
+pRgbaColor :: Parser SType
+pRgbaColor = do
+  _ <- lexeme (string "rgba" <* notFollowedBy alphaNumChar)
+  betweenBrackets $ do
+    r       <- fromIntegral <$> pInteger
+    _ <- char ',' >> space
+    g       <- fromIntegral <$> pInteger
+    _ <- char ',' >> space
+    b       <- fromIntegral <$> pInteger
+    _ <- char ',' >> space
+    opacity <- pDouble
+    return $ SColor $ sRGB24 r g b `withOpacity` opacity
+
 
 showSColor :: SType -> String
-showSColor (SColor a) = sRGB24show a
+showSColor (SColor a) = sRGB24show $ pureColour a
+  where
+    pureColour ac | a > 0 = darken (recip a) (ac `over` black)
+                  | otherwise = error "transparent has no pure colour"
+      where
+        a = alphaChannel ac
 
 exprBaseP :: T.Text -> Parser a -> Parser a
 exprBaseP id rest = betweenSquareBrackets $ do
