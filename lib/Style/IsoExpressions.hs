@@ -2,6 +2,8 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes     #-}
 {-# LANGUAGE DataKinds      #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use tuple-section" #-}
 
 module Style.IsoExpressions where
 
@@ -99,14 +101,56 @@ matchP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   IsoArg . MatchE expr <$> matchArgsP
     where
+      tuplify :: [a] -> ([(a,a)], a)
+      tuplify []       = error "no fallback value"
+      tuplify [x]      = ([], x)
+      tuplify (x:y:xs) =
+        let (tuples, lastElem) = tuplify xs
+        in ((x, y) : tuples, lastElem)
       matchArgsP :: Parser MatchArg
       matchArgsP = do
         args <- pAtom  `sepBy` (char ',' >> space)
         return $ MatchArg $ tuplify args
 
-interpolateP :: Parser (ArgType ('SNum n))
-interpolateP = undefined
+interpolationTypeP :: Parser InterpolationType
+interpolationTypeP = betweenSquareBrackets $ do
+    choice [try linear, try exponential, try cubicBezier]
+      where
+        linear      = do
+          _ <- betweenDoubleQuotes $ string "linear"
+          return Linear
+        exponential = do
+          _ <- betweenDoubleQuotes $ string "exponential"
+          _ <- char ',' >> space
+          Exponential <$> numberLitINumP
+        cubicBezier = do
+          _ <- betweenDoubleQuotes $ string "cubic-bezier"
+          _ <- char ',' >> space
+          x1 <- numberLitINumP
+          _ <- char ',' >> space
+          x2 <- numberLitINumP
+          _ <- char ',' >> space
+          y1 <- numberLitINumP
+          _ <- char ',' >> space
+          CubicBezier x1 x2 y1 <$> numberLitINumP
 
+interpolateP :: Parser (ArgType ('SNum n))
+interpolateP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "interpolate"
+  _ <- char ',' >> space
+  interType <- interpolationTypeP
+  _ <- char ',' >> space
+  input <- numRetExprP <|> IsoArg <$> numExprP
+  _ <- char ',' >> space
+  IsoArg . InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+    where
+      inOutPairs :: Parser (SType, ArgType (SNum n))
+      inOutPairs = do
+        num1 <- numberLitP
+        _ <- char ',' >> space
+        num2 <- numRetExprP <|> IsoArg <$> numExprP
+        return (num1, num2)
+        
 
 --------------------------------------------------------------------------------
 
@@ -165,9 +209,27 @@ stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ 
   where
     isIn t = mapMaybe (\(a, b) -> if a == t then Just b else Nothing)
 
-tuplify :: [a] -> ([(a,a)], a)
-tuplify []  = error "no fallback value"
-tuplify [x] = ([], x)
-tuplify (x:y:xs) =
-  let (tuples, lastElem) = tuplify xs
-  in ((x, y) : tuples, lastElem)
+-- maybe move from associated list to map?
+-- https://cmears.id.au/articles/linear-interpolation.html
+stypeInterpolate :: InterpolationType -> SType -> [(SType, SType)] -> SType
+stypeInterpolate Linear (SNum n) pts = SNum $ linearLookup (unwrap pts) n
+  where
+    unwrap :: [(SType, SType)] -> [(INum, INum)]
+    unwrap ((SNum a , SNum b):xs) = (a, b) : unwrap xs
+    unwrap _                      = error "table must consist of numeric types"
+
+
+linearLookup :: [(INum, INum)] -> INum -> INum
+linearLookup [] x = error "linearLookup: empty table"
+linearLookup ((a,av):rest) x | x <= a = av
+                             | otherwise = loop ((a,av):rest)
+  where 
+    loop [(a,av)] = av
+    loop ((a,av):(b,bv):rest)
+         | x <= b = interpolate (a,av) (b,bv) x
+         | otherwise = loop ((b,bv):rest)
+
+interpolate :: (INum, INum) -> (INum, INum) -> INum -> INum
+interpolate (SInt a, SInt av) (SInt b, SInt bv) (SInt x) = SDouble $
+  fromIntegral av + (fromIntegral x - fromIntegral a) * (fromIntegral bv - fromIntegral av) / (fromIntegral b - fromIntegral a)
+interpolate (SDouble a, SDouble av) (SDouble b, SDouble bv) (SDouble x) = SDouble $ av + (x - a) * (bv - av) / (b - a)

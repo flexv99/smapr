@@ -24,7 +24,7 @@ type Parser = Parsec Void T.Text
 
 type Color = AlphaColour Double
 
-data INum = SInt Int | SDouble Double deriving (Show, Generic, Eq)
+data INum = SInt Int | SDouble Double deriving (Show, Generic, Eq, Ord)
 
 data SType
   = SNum INum
@@ -34,12 +34,6 @@ data SType
   | SArray [SType]
   | SNull
   deriving (Show, Generic, Eq)
-
-data FilterBy
-  = FTypeOf
-  | FId Int
-  | FProp T.Text
-  deriving (Eq, Show)
 
 --- HELPERS
 
@@ -150,8 +144,11 @@ intLitP = SInt <$> pInteger
 doubleLitP :: Parser INum
 doubleLitP = SDouble <$> pDouble
 
+numberLitINumP :: Parser INum
+numberLitINumP = (try doubleLitP <|> intLitP) <?> "number"
+
 numberLitP :: Parser SType
-numberLitP = SNum <$> (try doubleLitP <|> intLitP) <?> "number"
+numberLitP = SNum <$> numberLitINumP
 
 arrayLitP :: Parser SType
 arrayLitP = SArray <$> pArray
