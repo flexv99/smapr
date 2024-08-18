@@ -10,6 +10,7 @@ import qualified Data.Text.Lazy as T
 import qualified Text.Megaparsec.Char.Lexer as L
 import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Proto.Vector_tile.Tile.Layer (Layer(..))
+import Data.Maybe
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.ExpressionsWrapper
@@ -103,6 +104,9 @@ matchP = betweenSquareBrackets $ do
         args <- pAtom  `sepBy` (char ',' >> space)
         return $ MatchArg $ tuplify args
 
+interpolateP :: Parser (ArgType ('SNum n))
+interpolateP = undefined
+
 
 --------------------------------------------------------------------------------
 
@@ -156,10 +160,14 @@ stypeIn (SArray a) (SNum (SInt i)) = a !! i
 stypeIn _          (SNum (SInt i)) = error "param 1 must be an array"
 stypeIn (SArray a) _               = error "param 2 must be an int"
 
+stypeMatch :: SType -> MatchArg -> SType
+stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn t matches)
+  where
+    isIn t = mapMaybe (\(a, b) -> if a == t then Just b else Nothing)
 
-tuplify :: [a] -> ([(a,a)], Maybe a)
-tuplify [] = ([], Nothing)
-tuplify [x] = ([], Just x)
+tuplify :: [a] -> ([(a,a)], a)
+tuplify []  = error "no fallback value"
+tuplify [x] = ([], x)
 tuplify (x:y:xs) =
   let (tuples, lastElem) = tuplify xs
   in ((x, y) : tuples, lastElem)

@@ -45,7 +45,8 @@ evalIsoExpr (SubE a b)           f l = stypeSub (eval a f l) (eval b f l)
 evalIsoExpr (DivE a b)           f l = stypeDiv (eval a f l) (eval b f l)
 evalIsoExpr (EqE o t)            f l = stypeEq (eval o f l) (eval t f l)
 evalIsoExpr (AtE a i)            f l = stypeIn a (evalIsoExpr i f l)
-evalIsoExpr (AllE v)             f l = evalAll v f l
+evalIsoExpr (AllE v)             f l = stypeAll v f l
+evalIsoExpr (MatchE m v)         f l = stypeMatch (eval m f l) v
 
 evalFeatureExpr :: FeatureExpr a -> Feature -> Layer -> SType
 evalFeatureExpr (NegationFe e) f l = SBool $ not $ unwrapSBool $ evalFeatureExpr e f l
@@ -53,8 +54,8 @@ evalFeatureExpr (FinE a b)     f l = evalFilterIn a b f l
 evalFeatureExpr (FgetE k)      f l = evalFilterGet k f l
 evalFeatureExpr FgeometryE     f l = evalGeometryType f
 
-evalAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType
-evalAll exprs f l = SBool $ all ((\e -> unwrapSBool $ eval e f l) . wrap) exprs
+stypeAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType
+stypeAll exprs f l = SBool $ all ((\e -> unwrapSBool $ eval e f l) . wrap) exprs
 
 unwrapSBool :: SType -> Bool
 unwrapSBool (SBool b) = b

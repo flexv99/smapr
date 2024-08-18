@@ -36,7 +36,13 @@ spec = do
       parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
   describe "Style.Parser.SType.SColor" $ do
     it "parse hsl color" $ do
-      fmap showSColor (parseMaybe pAtom "hsl(205,56%,73%)") `shouldBe` Just "#94c1e1"
+      fmap showSColor (parseMaybe pAtom "\"hsl(205,56%,73%)\"") `shouldBe` Just "#94c1e1"
+  describe "Style.Parser.SType.SColor" $ do
+    it "parse rgba color" $ do
+      fmap showSColor (parseMaybe pAtom "\"rgba(179,222,155,0.6)\"") `shouldBe` Just "#b3de9b"
+  describe "Style.Parser.SType.SColor" $ do
+    it "parse rgb color" $ do
+      fmap showSColor (parseMaybe pAtom "\"rgb(183,220,163)\"") `shouldBe` Just "#b7dca3"
   describe "Style.Parser.SType.SArray" $ do
     it "parse array" $ do
       parseMaybe pAtom "[-1, 0, 4]" `shouldBe` Just (SArray $ map SNum [SInt (-1), SInt 0, SInt 4])
@@ -97,9 +103,13 @@ spec = do
       t <- testLayerAndFeature
       let expr = wrap <$> parseMaybe eqP "[\"==\",[\"get\",\"intermittent\"],0]"
       (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+  describe "Style.ExpressionsEval.eval" $ do
+    it "match expression" $ do
+      t <- testLayerAndFeature
+      let expr = wrap <$> (parseMaybe matchP "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (ArgType ('SBool b)))
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
+  
 
 
 waterLayerStyle :: T.Text
 waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:autocomposite\":false,\"mapbox:type\":\"template\",\"maputnik:renderer\":\"mbgljs\",\"openmaptiles:version\":\"3.x\",\"openmaptiles:mapbox:owner\":\"openmaptiles\",\"openmaptiles:mapbox:source:url\":\"mapbox://openmaptiles.4qljc88t\"},\"sources\":{\"openmaptiles\":{\"type\":\"vector\",\"url\":\"https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key={key}\"}},\"sprite\":\"https://openmaptiles.github.io/maptiler-basic-gl-style/sprite\",\"glyphs\":\"https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}\",\"layers\":[{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}],\"id\":\"basic\"}"
-
-

@@ -43,6 +43,12 @@ data FilterBy
 
 --- HELPERS
 
+exprBaseP :: T.Text -> Parser a -> Parser a
+exprBaseP id rest = betweenSquareBrackets $ do
+  _ <- pKeyword id
+  _ <- char ',' >> space
+  rest
+
 -- the space consumer
 sc :: Parser ()
 sc = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")
@@ -96,7 +102,7 @@ pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
 
 pColor :: Parser SType
-pColor = choice $ map try [pHslColor, pRgbaColor]
+pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor]
 
 pAtom :: Parser SType
 pAtom =
@@ -105,7 +111,7 @@ pAtom =
       [ numberLitP
       , boolLitP
       , nullP
-      , try pHslColor -- todo needs to be generalized color parser
+      , try pColor
       , stringLitP
       , arrayLitP
       ]
@@ -165,13 +171,8 @@ nullP = lexeme (SNull <$ (string "null" *> notFollowedBy alphaNumChar)) <?> "nul
 --     "line-color": "yellow"
 -- }
 
-hslToColor :: Double -> Double -> Double  -> Color
-hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
-  where
-    rgb = hsl h (s / 100) (l / 100)
-
 pHslColor :: Parser SType
-pHslColor = do
+pHslColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
     hue        <- pInt
@@ -185,9 +186,20 @@ pHslColor = do
           num <- pInt
           _   <- char '%'
           return num
-                   
+
+pRgbColor :: Parser SType
+pRgbColor = betweenDoubleQuotes $ do
+  _ <- lexeme (string "rgb" <* notFollowedBy alphaNumChar)
+  betweenBrackets $ do
+    r       <- fromIntegral <$> pInteger
+    _ <- char ',' >> space
+    g       <- fromIntegral <$> pInteger
+    _ <- char ',' >> space
+    b       <- fromIntegral <$> pInteger
+    return $ SColor $ sRGB24 r g b `withOpacity` 1
+            
 pRgbaColor :: Parser SType
-pRgbaColor = do
+pRgbaColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgba" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
     r       <- fromIntegral <$> pInteger
@@ -199,6 +211,10 @@ pRgbaColor = do
     opacity <- pDouble
     return $ SColor $ sRGB24 r g b `withOpacity` opacity
 
+hslToColor :: Double -> Double -> Double  -> Color
+hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
+  where
+    rgb = hsl h (s / 100) (l / 100)
 
 showSColor :: SType -> String
 showSColor (SColor a) = sRGB24show $ pureColour a
@@ -207,9 +223,3 @@ showSColor (SColor a) = sRGB24show $ pureColour a
                   | otherwise = error "transparent has no pure colour"
       where
         a = alphaChannel ac
-
-exprBaseP :: T.Text -> Parser a -> Parser a
-exprBaseP id rest = betweenSquareBrackets $ do
-  _ <- pKeyword id
-  _ <- char ',' >> space
-  rest
