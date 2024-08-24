@@ -214,22 +214,28 @@ stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ 
 -- https://cmears.id.au/articles/linear-interpolation.html
 -- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
 stypeInterpolate :: InterpolationType -> SType -> [(SType, SType)] -> SType
-stypeInterpolate Linear (SNum n) pts          = SNum undefined-- exponentialInterpolation (interpolationArgs n pts)
-stypeInterpolate (Exponential e) (SNum n) pts = SNum undefined-- exponentialLookup (numTupleToDouble pts) (numToDouble n) (numToDouble e)
-stypeInterpolate _ _ _                        = error "cubic-bezier not yet implemented"
+stypeInterpolate t (SNum i) pts   = let
+  (t', index) = interpolationFactor t i pts
+  output = map snd (numTupleToDouble pts)
+  in SNum $ SDouble $ interpolateNr (output !! index) (output !! (index + 1)) t'
+stypeInterpolate t (SColor c) pts = undefined
+stypeInterpolate t _ pts          = error "can only interpolate colors or numbers"
 
 findStopsLessThenOrEqualTo :: [Double] -> Double -> Int
 findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
 
-interpolationArgs :: INum -> [(SType, SType)] -> (Double, Double, Double, Double)
-interpolationArgs value pts = (labels !! index, labels !! index + 1, outputs !! index, outputs !! index + 1)
+interpolationFactor :: InterpolationType -> INum -> [(SType, SType)] -> (Double, Int)
+interpolationFactor t v pts = (pMatch t (numToDouble v) pts, index)
   where
-    labels  = map fst (numTupleToDouble pts)
-    outputs = map snd (numTupleToDouble pts)
-    index   = findStopsLessThenOrEqualTo labels (numToDouble value)
+    pMatch  Linear v pts         = exponentialInterpolation v 1 (labels !! index) (labels !! (index + 1))
+    pMatch (Exponential e) v pts = exponentialInterpolation v (numToDouble e) (labels !! index) (labels !! (index + 1))
+    pMatch _               v pts = error "cubic bezier not yet supported"
+    toNums  = numTupleToDouble pts
+    labels  = map fst toNums
+    index   = findStopsLessThenOrEqualTo labels (numToDouble v)
 
-exponentialInterpolation :: (Eq a, Floating a) => (a , a , a , a) -> a
-exponentialInterpolation (input, base, lower, upper)
+exponentialInterpolation :: (Eq a, Floating a) => a -> a -> a -> a -> a
+exponentialInterpolation input base lower upper
   | difference == 0 = 0
   | base == 1 = progress / difference
   | otherwise = (base ** progress - 1) / (base ** difference - 1)

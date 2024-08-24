@@ -111,10 +111,10 @@ spec = do
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression linear" $ do
       t <- testLayerAndFeature
-      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"linear\"],14,8,1,20,8]"
-      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 4.5))
+      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"linear\"],5,0, 100, 10, 200]"
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 150))
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression exponential" $ do
       t <- testLayerAndFeature
-      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 1.4],14,8,1,20,8]"
-      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 4.5))
+      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],1,1,2,3,6]"
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 2))
