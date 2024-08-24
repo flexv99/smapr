@@ -13,6 +13,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Data.Maybe
+import Data.List
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.ExpressionsWrapper
@@ -150,7 +151,7 @@ interpolateP = betweenSquareBrackets $ do
         _ <- char ',' >> space
         num2 <- numRetExprP <|> IsoArg <$> numExprP
         return (num1, num2)
-        
+
 
 --------------------------------------------------------------------------------
 
@@ -211,25 +212,36 @@ stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ 
 
 -- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
+-- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
 stypeInterpolate :: InterpolationType -> SType -> [(SType, SType)] -> SType
-stypeInterpolate Linear (SNum n) pts = SNum $ linearLookup (unwrap pts) n
+stypeInterpolate Linear (SNum n) pts          = SNum undefined-- exponentialInterpolation (interpolationArgs n pts)
+stypeInterpolate (Exponential e) (SNum n) pts = SNum undefined-- exponentialLookup (numTupleToDouble pts) (numToDouble n) (numToDouble e)
+stypeInterpolate _ _ _                        = error "cubic-bezier not yet implemented"
+
+findStopsLessThenOrEqualTo :: [Double] -> Double -> Int
+findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
+
+interpolationArgs :: INum -> [(SType, SType)] -> (Double, Double, Double, Double)
+interpolationArgs value pts = (labels !! index, labels !! index + 1, outputs !! index, outputs !! index + 1)
   where
-    unwrap :: [(SType, SType)] -> [(INum, INum)]
-    unwrap ((SNum a , SNum b):xs) = (a, b) : unwrap xs
-    unwrap _                      = error "table must consist of numeric types"
+    labels  = map fst (numTupleToDouble pts)
+    outputs = map snd (numTupleToDouble pts)
+    index   = findStopsLessThenOrEqualTo labels (numToDouble value)
 
+exponentialInterpolation :: (Eq a, Floating a) => (a , a , a , a) -> a
+exponentialInterpolation (input, base, lower, upper)
+  | difference == 0 = 0
+  | base == 1 = progress / difference
+  | otherwise = (base ** progress - 1) / (base ** difference - 1)
+  where
+      difference = upper - lower
+      progress   = input - lower
 
-linearLookup :: [(INum, INum)] -> INum -> INum
-linearLookup [] x = error "linearLookup: empty table"
-linearLookup ((a,av):rest) x | x <= a = av
-                             | otherwise = loop ((a,av):rest)
-  where 
-    loop [(a,av)] = av
-    loop ((a,av):(b,bv):rest)
-         | x <= b = interpolate (a,av) (b,bv) x
-         | otherwise = loop ((b,bv):rest)
+numTupleToDouble :: [(SType, SType)] -> [(Double, Double)]
+numTupleToDouble ((SNum a, SNum b):xs) = (numToDouble a, numToDouble b) : numTupleToDouble xs
+numTupleToDouble ((_ , _):xs)          = error "tuples must be of numerical type"
+numTupleToDouble []                    = []
 
-interpolate :: (INum, INum) -> (INum, INum) -> INum -> INum
-interpolate (SInt a, SInt av) (SInt b, SInt bv) (SInt x) = SDouble $
-  fromIntegral av + (fromIntegral x - fromIntegral a) * (fromIntegral bv - fromIntegral av) / (fromIntegral b - fromIntegral a)
-interpolate (SDouble a, SDouble av) (SDouble b, SDouble bv) (SDouble x) = SDouble $ av + (x - a) * (bv - av) / (b - a)
+interpolateNr :: Floating a => a -> a -> a -> a
+interpolateNr from to t = from + t * (to - from)
+

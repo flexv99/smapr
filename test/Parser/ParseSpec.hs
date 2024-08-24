@@ -109,7 +109,12 @@ spec = do
       let expr = wrap <$> (parseMaybe matchP "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (ArgType ('SBool b)))
       (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SBool True)
   describe "Style.ExpressionsEval.eval" $ do
-    it "interpolate expression" $ do
+    it "interpolate expression linear" $ do
       t <- testLayerAndFeature
       let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"linear\"],14,8,1,20,8]"
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 4.5))
+  describe "Style.ExpressionsEval.eval" $ do
+    it "interpolate expression exponential" $ do
+      t <- testLayerAndFeature
+      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 1.4],14,8,1,20,8]"
       (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 4.5))

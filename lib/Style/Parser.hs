@@ -69,6 +69,10 @@ betweenSquareBrackets = between (char '[' >> space) (char ']' >> space)
 betweenDoubleQuotes :: (Token s ~ Char, MonadParsec e s m) => m a -> m a
 betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 
+numToDouble :: INum -> Double
+numToDouble (SDouble d) = d
+numToDouble (SInt i)    = fromIntegral i
+
 
 --- PARSER
 

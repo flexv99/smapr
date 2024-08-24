@@ -63,7 +63,7 @@ data IsoExpr :: SType -> Type where
   -- | interpolate expr
   InterpolateE :: InterpolationType
     -> ArgType (SNum a)
-    -> [(SType, ArgType (SNum a))]            -> IsoExpr (SNum n)
+    -> [(SType, ArgType (SNum a))]             -> IsoExpr (SNum n)
   
 deriving instance Show (IsoExpr res)
 
