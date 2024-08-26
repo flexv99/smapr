@@ -118,3 +118,8 @@ spec = do
       t <- testLayerAndFeature
       let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],1,1,2,3,6]"
       (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 2))
+  describe "Style.ExpressionsEval.eval" $ do
+    it "interpolate expression exponential '" $ do
+      t <- testLayerAndFeature
+      let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],2,1,2,3,6]"
+      (\ (a, b) -> eval <$> expr <*> b <*> a) t `shouldBe` Just (SNum (SDouble 3.333333333333333))

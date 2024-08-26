@@ -1,12 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Style.Layers.Line where
 
-import GHC.Enum
-import qualified Data.Aeson as A
-import Control.Lens
 import Data.Text (toLower)
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Types as A
+import qualified Data.Aeson.Text as A
+import GHC.Enum
+import Control.Lens
+import Text.Megaparsec
+import Style.Parser
+import Style.ExpressionsWrapper
+import Style.IsoExpressions
 
 -- - Butt: A cap with a squared-off end which is drawn to the exact endpoint of the line.
 -- - CRound: A cap with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
@@ -63,42 +71,48 @@ instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS 
-  { _lineCap :: Maybe LineCap
-  , _lineJoin :: Maybe LineJoin
-  , _lineMiterLimit :: Maybe Int -- defaults to 2
-  , _lineRoundLimit :: Maybe Double -- defaults to 1.05
-  , _lineSortKey :: Maybe Int
-  , _visibility :: Maybe Visibility
-  , _lineOpacity :: Maybe Double -- defaults to 1
-  , _lineColor :: Maybe String
-  , _lineTranslate :: Maybe [Int] -- defaults to [0, 0]
+  { _lineCap             :: Maybe LineCap
+  , _lineJoin            :: Maybe LineJoin
+  , _lineMiterLimit      :: WrappedExpr             -- defaults to 2
+  , _lineRoundLimit      :: WrappedExpr             -- defaults to 1.05
+  , _lineSortKey         :: Maybe WrappedExpr
+  , _visibility          :: Visibility      -- defaults to Visible
+  , _lineOpacity         :: WrappedExpr          -- defaults to 1
+  , _lineColor           :: Maybe String    -- defaults to #000000
+  , _lineTranslate       :: Maybe [Int]     -- defaults to [0, 0]
   , _lineTranslateAnchor :: Maybe LineTranslateAnchor
-  , _lineWidth :: Maybe Double -- defaults to 1
-  , _lineGapWidth :: Maybe Double -- defaults to 0
-  , _lineOffset :: Maybe Double -- defaults to 0
-  , _lineBlur :: Maybe Double -- defaults to 0
-  , _lineDasharray :: Maybe [Double]
-  , _linePattern :: Maybe ResolvedImage
-  , _lineGradient :: Maybe String
-  } deriving (Show, Eq)
+  , _lineWidth           :: WrappedExpr          -- defaults to 1
+  , _lineGapWidth        :: Double          -- defaults to 0
+  , _lineOffset          :: Double          -- defaults to 0
+  , _lineBlur            :: Double          -- defaults to 0
+  , _lineDasharray       :: Maybe [Double]
+  , _linePattern         :: Maybe ResolvedImage
+  , _lineGradient        :: Maybe String
+  } deriving (Show)
 makeLenses ''LineS
 
 instance A.FromJSON LineS where
   parseJSON = A.withObject "LineS" $ \t -> LineS
     <$> t A..:? "line-cap"
     <*> t A..:? "line-join"
-    <*> t A..:? "line-miter-limit"
-    <*> t A..:? "line-round-limit"
-    <*> t A..:? "line-sort-key"
-    <*> t A..:? "visibility"
-    <*> t A..:? "line-opacity"
+    <*> (t A..:? "line-miter-limit" >>= expr) A..!= wrap (IsoArg $ IntE 2)
+    <*> (t A..:? "line-round-limit" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.05)
+    <*> (t A..:? "line-sort-key" >>= expr)
+    <*> t A..:? "visibility" A..!= Visible
+    <*> (t A..:? "line-opacity" >>= expr) A..!= wrap (IsoArg $ IntE 1)
     <*> t A..:? "line-color"
     <*> t A..:? "line-translate"
     <*> t A..:? "line-translate-anchor"
-    <*> t A..:? "line-width"
-    <*> t A..:? "line-gap-width"
-    <*> t A..:? "line-offset"
-    <*> t A..:? "line-blur"
+    <*> (t A..:? "line-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.0)
+    <*> t A..:? "line-gap-width" A..!= 0
+    <*> t A..:? "line-offset" A..!= 0
+    <*> t A..:? "line-blur" A..!= 0
     <*> t A..:? "line-dash-array"
     <*> t A..:? "line-pattern"
     <*> t A..:? "line-gradient"
+    where
+      expr :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
+      expr  (Just v) = case parse (try interpolateP <|> numRetExprP) "" (A.encodeToLazyText v) of
+                                   Left err  -> fail $ errorBundlePretty err
+                                   Right res -> pure $ Just $ wrap res
+      expr Nothing   = pure Nothing

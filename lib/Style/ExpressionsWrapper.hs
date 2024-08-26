@@ -32,7 +32,7 @@ deriving instance Show (FeatureExpr res)
 data IsoExpr :: SType -> Type where
   -- | string literal
   StringE  :: T.Text                           -> IsoExpr (SString s)
-  -- | bool-value
+  -- | bool literal
   BoolE    :: Bool                             -> IsoExpr (SBool b)
   -- | int literal
   IntE     :: Int                              -> IsoExpr (SNum (SInt i))
@@ -42,6 +42,8 @@ data IsoExpr :: SType -> Type where
   NumE     :: INum                             -> IsoExpr (SNum n)
   -- | list literal
   ArrayE   :: SType                            -> IsoExpr (SArray a)
+  -- | Color literal
+  ColorE   :: String                           -> IsoExpr (SColor c)
   -- | negation of bool expressions
   Negation :: IsoExpr (SBool s)                -> IsoExpr (SBool b)
   -- | addition

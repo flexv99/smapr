@@ -55,7 +55,8 @@ exprChoicheP = choice [ wrap . IsoArg <$> intExprP
 -- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
 -- 1.5
 numRetExprP :: Parser (ArgType (SNum a))
-numRetExprP = choice $ map try [ IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
+numRetExprP = choice $ map try [ IsoArg <$> numExprP
+                               , IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
                                , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
                                , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
                                , IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
@@ -92,7 +93,7 @@ allP :: Parser (ArgType ('SBool a))
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
   _ <- char ',' >> space
-  IsoArg . AllE <$> ((IsoArg <$> boolExprP) <|> eqP) `sepBy` (char ',' >> space)
+  IsoArg . AllE <$> (try (IsoArg <$> boolExprP) <|> try eqP <|> try matchP) `sepBy` (char ',' >> space)
 
 matchP :: Parser (ArgType a)
 matchP = betweenSquareBrackets $ do
@@ -159,6 +160,7 @@ interpolateP = betweenSquareBrackets $ do
 
 --------------------------------------------------------------------------------
 
+-- | +
 stypeSum :: [SType] -> SType
 stypeSum = foldr stypeAdd (SNum $ SInt 0)
   where
@@ -169,6 +171,7 @@ stypeSum = foldr stypeAdd (SNum $ SInt 0)
     stypeAdd (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i + j
     stypeAdd _ _                                    = error "must be numeric type"
 
+-- | *
 stypeProd :: [SType] -> SType
 stypeProd = foldr stypeProd (SNum $ SInt 1)
   where
@@ -179,6 +182,7 @@ stypeProd = foldr stypeProd (SNum $ SInt 1)
     stypeProd (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i * j
     stypeProd _ _                                    = error "must be numeric type"
 
+-- | -
 stypeSub :: SType -> SType -> SType
 stypeSub (SNum (SInt i))    (SNum (SInt j))    = SNum $ SInt $ i - j
 stypeSub (SNum (SInt i))    (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i - j
@@ -186,6 +190,7 @@ stypeSub (SNum (SDouble i)) (SNum (SInt j))    = SNum $ SDouble $ i - fromIntegr
 stypeSub (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i - j
 stypeSub _ _                                   = error "must be numeric type"
 
+-- | :
 stypeDiv :: SType -> SType -> SType
 stypeDiv (SNum (SInt i))    (SNum (SInt j))    = SNum $ SDouble $ fromIntegral i / fromIntegral j
 stypeDiv (SNum (SInt i))    (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i / j
@@ -193,6 +198,7 @@ stypeDiv (SNum (SDouble i)) (SNum (SInt j))    = SNum $ SDouble $ i / fromIntegr
 stypeDiv (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i / j
 stypeDiv _ _                                   = error "must be numeric type"
 
+-- | == & /=
 stypeEq :: SType -> SType -> SType
 stypeEq (SNum i)    (SNum j)    = SBool $ i == j
 stypeEq (SString i) (SString j) = SBool $ i == j
@@ -200,16 +206,19 @@ stypeEq (SBool i)   (SBool j)   = SBool $ i == j
 stypeEq (SArray i)  (SArray j)  = SBool $ i == j
 stypeEq _ _                     = error "eq on not supported types"
 
+-- | in & !in
 stypeIn :: SType -> SType -> SType
 stypeIn (SArray a) (SNum (SInt i)) = a !! i
 stypeIn _          (SNum (SInt i)) = error "param 1 must be an array"
 stypeIn (SArray a) _               = error "param 2 must be an int"
 
+-- | match
 stypeMatch :: SType -> MatchArg -> SType
 stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn t matches)
   where
     isIn t = mapMaybe (\(a, b) -> if a == t then Just b else Nothing)
 
+-- | interpolate
 -- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
 -- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
