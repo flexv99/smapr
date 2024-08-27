@@ -12,7 +12,6 @@ import Style.FeatureExpressions
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
 import Proto.Util
-import Style.Poc
 
 spec :: Spec
 spec = do
@@ -43,6 +42,12 @@ spec = do
   describe "Style.Parser.SType.SColor" $ do
     it "parse rgb color" $ do
       fmap showSColor (parseMaybe pAtom "\"rgb(183,220,163)\"") `shouldBe` Just "#b7dca3"
+  describe "Style.Parser.SType.SColor" $ do
+    it "parse hex color" $ do
+      fmap showSColor (parseMaybe pAtom "\"#00aaff\"") `shouldBe` Just "#00aaff"
+  describe "Style.Parser.SType.SColor" $ do
+    it "parse short hex color" $ do
+      fmap showSColor (parseMaybe pAtom "\"#0af\"") `shouldBe` Just "#00aaff"
   describe "Style.Parser.SType.SArray" $ do
     it "parse array" $ do
       parseMaybe pAtom "[-1, 0, 4]" `shouldBe` Just (SArray $ map SNum [SInt (-1), SInt 0, SInt 4])
