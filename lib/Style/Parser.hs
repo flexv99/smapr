@@ -1,7 +1,11 @@
-{-# LANGUAGE TypeOperators, DeriveGeneric #-}
+{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Style.Parser where
 
+import GHC.Generics (Generic)
+import Data.List (singleton)
 import qualified Data.Aeson.Types as A
 import Data.Colour
 import Data.Colour.RGBSpace.HSL
@@ -9,7 +13,6 @@ import Data.Colour.SRGB
 import qualified Data.Text.Internal.Lazy as T
 import qualified Data.Text.Lazy as T
 import Data.Void
-import GHC.Generics (Generic)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -100,7 +103,7 @@ pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
 
 pColor :: Parser SType
-pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor]
+pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor, pHexColor]
 
 pAtom :: Parser SType
 pAtom =
@@ -126,7 +129,7 @@ parserForType t = case t of
      numP :: INum -> Parser SType
      numP (SInt _)    = SNum <$> intLitP
      numP (SDouble _) = SNum <$> doubleLitP
-  
+
 
 pArray :: Parser [SType]
 pArray =
@@ -198,7 +201,7 @@ pRgbColor = betweenDoubleQuotes $ do
     _ <- char ',' >> space
     b       <- fromIntegral <$> pInteger
     return $ SColor $ sRGB24 r g b `withOpacity` 1
-            
+
 pRgbaColor :: Parser SType
 pRgbaColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgba" <* notFollowedBy alphaNumChar)
@@ -211,6 +214,20 @@ pRgbaColor = betweenDoubleQuotes $ do
     _ <- char ',' >> space
     opacity <- pDouble
     return $ SColor $ sRGB24 r g b `withOpacity` opacity
+
+expandShortHex :: String -> String
+expandShortHex hex
+    | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
+    | otherwise = hex
+
+pHexColor :: Parser SType
+pHexColor = betweenDoubleQuotes $ do
+    _ <- char '#'
+    hexDigits <- try (some hexDigitChar)
+    let validLength = length hexDigits == 6 || length hexDigits == 3
+    if validLength
+        then return $ SColor $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
+        else fail "Invalid hex color code length"
 
 hslToColor :: Double -> Double -> Double  -> Color
 hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
