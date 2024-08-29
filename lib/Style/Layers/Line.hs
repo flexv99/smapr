@@ -73,21 +73,21 @@ instance A.FromJSON ResolvedImage where
 data LineS = LineS 
   { _lineCap             :: Maybe LineCap
   , _lineJoin            :: Maybe LineJoin
-  , _lineMiterLimit      :: WrappedExpr             -- defaults to 2
-  , _lineRoundLimit      :: WrappedExpr             -- defaults to 1.05
+  , _lineMiterLimit      :: WrappedExpr     -- defaults to 2
+  , _lineRoundLimit      :: WrappedExpr     -- defaults to 1.05
   , _lineSortKey         :: Maybe WrappedExpr
   , _visibility          :: Visibility      -- defaults to Visible
-  , _lineOpacity         :: WrappedExpr          -- defaults to 1
-  , _lineColor           :: Maybe String    -- defaults to #000000
-  , _lineTranslate       :: Maybe [Int]     -- defaults to [0, 0]
+  , _lineOpacity         :: WrappedExpr     -- defaults to 1
+  , _lineColor           :: Maybe SType     -- defaults to #000000
+  , _lineTranslate       :: WrappedExpr     -- defaults to [0, 0]
   , _lineTranslateAnchor :: Maybe LineTranslateAnchor
-  , _lineWidth           :: WrappedExpr          -- defaults to 1
-  , _lineGapWidth        :: Double          -- defaults to 0
-  , _lineOffset          :: Double          -- defaults to 0
-  , _lineBlur            :: Double          -- defaults to 0
-  , _lineDasharray       :: Maybe [Double]
+  , _lineWidth           :: WrappedExpr     -- defaults to 1
+  , _lineGapWidth        :: WrappedExpr     -- defaults to 0
+  , _lineOffset          :: WrappedExpr     -- defaults to 0
+  , _lineBlur            :: WrappedExpr     -- defaults to 0
+  , _lineDasharray       :: Maybe WrappedExpr
   , _linePattern         :: Maybe ResolvedImage
-  , _lineGradient        :: Maybe String
+  , _lineGradient        :: Maybe WrappedExpr
   } deriving (Show)
 makeLenses ''LineS
 
@@ -100,19 +100,25 @@ instance A.FromJSON LineS where
     <*> (t A..:? "line-sort-key" >>= expr)
     <*> t A..:? "visibility" A..!= Visible
     <*> (t A..:? "line-opacity" >>= expr) A..!= wrap (IsoArg $ IntE 1)
-    <*> t A..:? "line-color"
-    <*> t A..:? "line-translate"
+    <*> (t A..:? "line-color" >>= color)
+    <*> (t A..:? "line-translate" >>= expr) A..!= wrap (IsoArg $ ArrayE $ SArray [SNum $ SInt 0, SNum $ SInt 0])
     <*> t A..:? "line-translate-anchor"
     <*> (t A..:? "line-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.0)
-    <*> t A..:? "line-gap-width" A..!= 0
-    <*> t A..:? "line-offset" A..!= 0
-    <*> t A..:? "line-blur" A..!= 0
-    <*> t A..:? "line-dash-array"
+    <*> (t A..:? "line-gap-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 0.0)
+    <*> (t A..:? "line-offset" >>= expr) A..!= wrap (IsoArg $ DoubleE 0.0)
+    <*> (t A..:? "line-blur" >>= expr) A..!= wrap (IsoArg $ DoubleE 0.0)
+    <*> (t A..:? "line-dash-array" >>= expr)
     <*> t A..:? "line-pattern"
-    <*> t A..:? "line-gradient"
+    <*> (t A..:? "line-gradient" >>= expr)
     where
       expr :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
       expr  (Just v) = case parse (try interpolateP <|> numRetExprP) "" (A.encodeToLazyText v) of
                                    Left err  -> fail $ errorBundlePretty err
                                    Right res -> pure $ Just $ wrap res
       expr Nothing   = pure Nothing
+      color :: Maybe A.Value -> A.Parser (Maybe SType)
+      color (Just v) = case parse pColor "" (A.encodeToLazyText v) of
+                                   Left err  -> fail $ errorBundlePretty err
+                                   Right res -> pure $ Just res
+      color Nothing  = pure Nothing
+
