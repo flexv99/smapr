@@ -44,18 +44,19 @@ boolExprP = BoolE <$> pBool <* hidden space
 arrayExprP :: Parser (IsoExpr (SArray a))
 arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
-exprChoicheP :: Parser WrappedExpr
-exprChoicheP = choice [ wrap . IsoArg <$> intExprP
-                      , wrap . IsoArg <$> doubleExprP
-                      , wrap . IsoArg <$> boolExprP
-                      , wrap . IsoArg <$> stringExprP
-                      -- , wrap <$> arrayExprP
-                      ]
+litExprChoicheP :: Parser WrappedExpr
+litExprChoicheP = choice [ wrap . IsoArg <$> intExprP
+                         , wrap . IsoArg <$> doubleExprP
+                         , wrap . IsoArg <$> boolExprP
+                         , wrap . IsoArg <$> stringExprP
+                         , wrap . IsoArg <$> arrayExprP
+                         ]
 
 -- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
 -- 1.5
 numRetExprP :: Parser (ArgType (SNum a))
 numRetExprP = choice $ map try [ IsoArg <$> numExprP
+                               , fzoomP
                                , IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
                                , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
                                , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
@@ -74,7 +75,7 @@ numRetExprP = choice $ map try [ IsoArg <$> numExprP
 -- true
 eqP :: Parser (ArgType ('SBool b))
 eqP = betweenSquareBrackets $ do
-  let argsP = try exprChoicheP <|> try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP)
+  let argsP = try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP) <|> try litExprChoicheP
   key <- betweenDoubleQuotes (string "!=" <|> string "==")
   _ <- char ',' >> space
   arg1 <- argsP
@@ -116,7 +117,7 @@ matchP = betweenSquareBrackets $ do
 
 interpolationTypeP :: Parser InterpolationType
 interpolationTypeP = betweenSquareBrackets $ do
-    choice [try linear, try exponential, try cubicBezier]
+    try linear <|> try exponential <|> try cubicBezier
       where
         linear      = do
           _ <- betweenDoubleQuotes $ string "linear"
@@ -142,7 +143,7 @@ interpolateP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   interType <- interpolationTypeP
   _ <- char ',' >> space
-  input <- numRetExprP <|> IsoArg <$> numExprP
+  input <- numRetExprP
   _ <- char ',' >> space
   IsoArg . InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
     where

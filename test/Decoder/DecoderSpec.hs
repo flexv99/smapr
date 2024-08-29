@@ -3,7 +3,6 @@
 module Decoder.DecoderSpec (spec) where
 
 import Data.Functor ((<&>))
-import qualified Data.Sequence as S
 import qualified Data.Map as MP
 import qualified Data.Text.Lazy as T
 import Test.Hspec

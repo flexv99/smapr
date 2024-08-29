@@ -3,7 +3,6 @@
 
 module Parser.ParseSpec (spec) where
 
-import qualified Data.Text.Lazy as T
 import Test.Hspec
 import Text.Megaparsec
 import Style.Parser
