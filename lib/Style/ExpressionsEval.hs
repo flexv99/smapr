@@ -54,6 +54,7 @@ evalFeatureExpr (NegationFe e) f l = SBool $ not $ unwrapSBool $ evalFeatureExpr
 evalFeatureExpr (FinE a b)     f l = evalFilterIn a b f l
 evalFeatureExpr (FgetE k)      f l = evalFilterGet k f l
 evalFeatureExpr FgeometryE     f l = evalGeometryType f
+evalFeatureExpr FzoomE         f l = evalZoom
 
 
 stypeAll :: [ArgType ('SBool b)] -> Feature -> Layer -> SType

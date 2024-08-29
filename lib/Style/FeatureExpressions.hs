@@ -55,6 +55,10 @@ fgeometryP :: Parser (ArgType (SString s))
 fgeometryP = betweenSquareBrackets $ do
   FeatureArg FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
 
+fzoomP :: Parser (ArgType (SNum a))
+fzoomP = betweenSquareBrackets $ do
+  FeatureArg FzoomE <$ betweenDoubleQuotes (string "zoom")
+
 filterParsers :: Parser (ArgType ('SBool b))
 filterParsers = choice [try fInP]
 
@@ -68,3 +72,7 @@ evalFilterGet _             f l = error "get property must be of type String"
 -- defaults to linestring if geometry cannot be retrieved from feature
 evalGeometryType :: Feature -> SType
 evalGeometryType f = maybe (SString "LINESTRING") SString (geometryTypeToString f)
+
+-- TODO as soon as we have a context set up this needs to be properly impolemented
+evalZoom :: SType
+evalZoom = SNum (SInt 14)

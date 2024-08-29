@@ -23,6 +23,8 @@ data FeatureExpr :: SType -> Type where
   FgetE      :: SType                 -> FeatureExpr a
   -- | Geometry type expression for a given feature
   FgeometryE ::                          FeatureExpr (SString s)
+  -- | Zoom
+  FzoomE     ::                          FeatureExpr (SNum a)
 
 deriving instance Show (FeatureExpr res)
 
