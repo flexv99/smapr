@@ -43,6 +43,7 @@ library
                     , Style.FeatureExpressions
                     , Style.ExpressionsWrapper
                     , Style.ExpressionsEval
+                    , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Util
                     , ApiClient
