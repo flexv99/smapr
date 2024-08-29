@@ -22,14 +22,6 @@ import Proto.Vector_tile.Tile.Feature
 import ApiClient
 import Style.Parser
 
-data FeatureVal
-  = ValStr String
-  | ValFload Float
-  | ValDouble Double
-  | ValInt Int
-  | ValBool Bool
-  deriving (Show, Eq)
-
 geometryTypeToString :: Feature -> Maybe T.Text
 geometryTypeToString f = T.pack . show <$> type' f
 
@@ -43,7 +35,6 @@ featureProperties l f = MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegral
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
     value = extractMappers $ toList $ values l
-
 
 extractMappers :: [Value] -> [SType]
 extractMappers = concatMap extractMapper
