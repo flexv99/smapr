@@ -2,17 +2,18 @@ module Renderer.Lines
   ( lineToPoints
   ) where
 
-import Control.Monad
+import Proto.Vector_tile.Tile (Tile(..))
 import qualified Data.Text as T
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.TwoD.Size as D
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Trail as D
+import Control.Monad
 import Util
 import ApiClient
 import Decoder.Geometry
 import Decoder.Lines
-import Proto.Vector_tile.Tile (Tile(..))
+import Style.Layers.Line
 
 render2DVector :: D.Diagram D.B -> IO ()
 render2DVector v = do
@@ -29,3 +30,14 @@ lineToPoints :: LineG -> [D.P2 Double]
 lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parameters lLineTo
   where
     toDPoint = map geometryPointToDPoint
+
+drawTourWithStyle :: Tile -> LineS -> D.Diagram D.B
+drawTourWithStyle = undefined
+
+{-
+drawTourWithStyle tour = tourPoints <> D.strokeP tourPath
+  where
+    tourPath = D.fromVertices tour
+    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+    dot = D.circle 0.05 D.# D.fc D.black
+-}
