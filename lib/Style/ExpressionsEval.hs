@@ -64,9 +64,3 @@ unwrapSBool :: SType -> Bool
 unwrapSBool (SBool b) = b
 unwrapSBool _         = error "cannot unwrap values other than bool"
 
-
-evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
-evalTester expr =
-  testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
-
-
