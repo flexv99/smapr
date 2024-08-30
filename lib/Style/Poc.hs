@@ -13,9 +13,10 @@ import qualified Data.ByteString.Lazy.Internal as B
 import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Colour (transparent)
+import Data.Foldable (toList)
 import Data.Functor ((<&>))
 import qualified Data.Vector as V
-import qualified Data.Sequence as S
+import qualified Data.Sequence as SQ
 import GHC.Generics
 import Style.Parser
 import Style.IsoExpressions
@@ -25,6 +26,7 @@ import Style.ExpressionsEval
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Proto.Vector_tile.Tile.Feature (Feature(..))
+import Proto.Vector_tile.Tile (Tile(..))
 import Text.Megaparsec
 import Proto.Util
 import Style.Layers.Line
@@ -95,9 +97,25 @@ waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:auto
 evalLayer :: POCLayer -> Feature -> Layer -> SType
 evalLayer (POCLayer {lfilter = fltr}) = eval $ wrap fltr
 
--- >>> A.eitherDecode "{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}" :: Either String POCLayer
+evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
+evalTester expr =
+  testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
 
--- >>> A.eitherDecode "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}" :: Either String POCLayer
+
+toBeDrawn :: Tile -> POCLayer -> SQ.Seq Feature
+toBeDrawn t s = iter layers
+  where
+   layers = getLayers (T.unpack $ sourceLayer s) t
+   iter :: SQ.Seq Layer -> SQ.Seq Feature
+   iter (l SQ.:<| xs) = SQ.filter (\f -> unwrapSBool $ evalLayer s f l) (features l) SQ.>< iter xs
+   iter SQ.Empty      = SQ.empty
+
+{-
+>>> t <- fakerTile
+>>> stile = A.decode "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}" :: Maybe POCLayer
+>>> toBeDrawn <$> t <*> stile
+-}
+
 {-
 {
       "id": "water",
