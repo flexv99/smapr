@@ -10,6 +10,7 @@ import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Text as A
 import qualified Diagrams.Attributes as D
+import Data.Colour
 import GHC.Enum
 import Control.Lens
 import Text.Megaparsec
@@ -69,14 +70,14 @@ instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS 
-  { _lineCap             :: Maybe D.LineCap
+  { _lineCap             :: D.LineCap
   , _lineJoin            :: Maybe D.LineJoin
   , _lineMiterLimit      :: WrappedExpr     -- defaults to 2
   , _lineRoundLimit      :: WrappedExpr     -- defaults to 1.05
   , _lineSortKey         :: Maybe WrappedExpr
   , _visibility          :: Visibility      -- defaults to Visible
   , _lineOpacity         :: WrappedExpr     -- defaults to 1
-  , _lineColor           :: Maybe SType     -- defaults to #000000
+  , _lineColor           :: SType     -- defaults to #000000
   , _lineTranslate       :: WrappedExpr     -- defaults to [0, 0]
   , _lineTranslateAnchor :: Maybe LineTranslateAnchor
   , _lineWidth           :: WrappedExpr     -- defaults to 1
@@ -91,14 +92,14 @@ makeLenses ''LineS
 
 instance A.FromJSON LineS where
   parseJSON = A.withObject "LineS" $ \t -> LineS
-    <$> t A..:? "line-cap"
+    <$> t A..:? "line-cap" A..!= D.LineCapButt
     <*> t A..:? "line-join"
     <*> (t A..:? "line-miter-limit" >>= expr) A..!= wrap (IsoArg $ IntE 2)
     <*> (t A..:? "line-round-limit" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.05)
     <*> (t A..:? "line-sort-key" >>= expr)
     <*> t A..:? "visibility" A..!= Visible
     <*> (t A..:? "line-opacity" >>= expr) A..!= wrap (IsoArg $ IntE 1)
-    <*> (t A..:? "line-color" >>= color)
+    <*> (t A..:? "line-color" >>= color) A..!= SColor (black `withOpacity` 1)
     <*> (t A..:? "line-translate" >>= expr) A..!= wrap (IsoArg $ ArrayE $ SArray [SNum $ SInt 0, SNum $ SInt 0])
     <*> t A..:? "line-translate-anchor"
     <*> (t A..:? "line-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.0)
@@ -119,4 +120,5 @@ instance A.FromJSON LineS where
                                    Left err  -> fail $ errorBundlePretty err
                                    Right res -> pure $ Just res
       color Nothing  = pure Nothing
+
 
