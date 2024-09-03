@@ -16,7 +16,7 @@ import Data.Colour (transparent)
 import Data.Foldable (toList)
 import Data.Functor ((<&>))
 import qualified Data.Vector as V
-import qualified Data.Sequence as SQ
+import qualified Data.Sequence as S
 import GHC.Generics
 import Style.Parser
 import Style.IsoExpressions
@@ -29,7 +29,10 @@ import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Proto.Vector_tile.Tile (Tile(..))
 import Text.Megaparsec
 import Proto.Util
+import Util
 import Style.Layers.Line
+import Renderer.Geometry
+
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
@@ -92,7 +95,7 @@ tfilter :: B.ByteString
 tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\", \"intermittent\"], 1],[\"!=\", [\"get\", \"brunnel\"], \"tunnel\"]]"
 
 waterLayerStyle :: B.ByteString
-waterLayerStyle = "{\"version\":8,\"name\":\"Basic\",\"metadata\":{\"mapbox:autocomposite\":false,\"mapbox:type\":\"template\",\"maputnik:renderer\":\"mbgljs\",\"openmaptiles:version\":\"3.x\",\"openmaptiles:mapbox:owner\":\"openmaptiles\",\"openmaptiles:mapbox:source:url\":\"mapbox://openmaptiles.4qljc88t\"},\"sources\":{\"openmaptiles\":{\"type\":\"vector\",\"url\":\"https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key={key}\"}},\"sprite\":\"https://openmaptiles.github.io/maptiler-basic-gl-style/sprite\",\"glyphs\":\"https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={key}\",\"layers\":[{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}],\"id\":\"basic\"}"
+waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
 
 evalLayer :: POCLayer -> Feature -> Layer -> SType
 evalLayer (POCLayer {lfilter = fltr}) = eval $ wrap fltr
@@ -102,13 +105,21 @@ evalTester expr =
   testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
 
 
-toBeDrawn :: Tile -> POCLayer -> SQ.Seq Feature
+toBeDrawn :: Tile -> POCLayer -> S.Seq Feature
 toBeDrawn t s = iter layers
   where
    layers = getLayers (T.unpack $ sourceLayer s) t
-   iter :: SQ.Seq Layer -> SQ.Seq Feature
-   iter (l SQ.:<| xs) = SQ.filter (\f -> unwrapSBool $ evalLayer s f l) (features l) SQ.>< iter xs
-   iter SQ.Empty      = SQ.empty
+   iter :: S.Seq Layer -> S.Seq Feature
+   iter (l S.:<| xs) = S.filter (\f -> unwrapSBool $ evalLayer s f l) (features l) S.>< iter xs
+   iter S.Empty      = S.empty
+
+test :: IO ()
+test = do
+  t <- fakerTile
+  let stile   = A.decode waterLayerStyle :: Maybe POCLayer
+  let tbD     = toBeDrawn <$> t <*> stile
+  let diagram = renderLayer' . toList <$> tbD
+  maybe (putStrLn "Nothing") writeSvg diagram
 
 {-
 >>> t <- fakerTile
