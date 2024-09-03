@@ -12,11 +12,17 @@ import qualified Data.Aeson.Text as A
 import qualified Data.ByteString.Lazy.Internal as B
 import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Lazy as T
-import Data.Colour (transparent)
+import qualified Data.Colour as C
 import Data.Foldable (toList)
 import Data.Functor ((<&>))
 import qualified Data.Vector as V
 import qualified Data.Sequence as S
+import qualified Diagrams.Prelude as D
+import qualified Diagrams.Backend.SVG as D
+import qualified Diagrams.Trail as D
+import qualified Diagrams.TwoD.Size as D
+import qualified Diagrams.Located as D
+import Control.Lens
 import GHC.Generics
 import Style.Parser
 import Style.IsoExpressions
@@ -42,7 +48,7 @@ data POCLayer = forall (b :: Bool). POCLayer
   , source :: T.Text
   , sourceLayer :: T.Text
   , lfilter :: ArgType ('SBool b)
-  , paint :: Maybe LineS
+  , paint :: LineS
   }
 deriving instance Show POCLayer
 
@@ -81,7 +87,7 @@ instance A.FromJSON POCLayer where
       <*> obj A..: "source"
       <*> obj A..: "source-layer"
       <*> (obj A..: "filter" >>= fexpr)
-      <*> obj A..:? "paint"
+      <*> obj A..: "paint"
     where
       fexpr  = A.withArray "FilterExpression" $ \v ->
         case parse allP "" (A.encodeToLazyText v) of
@@ -104,7 +110,6 @@ evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
 evalTester expr =
   testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
 
-
 toBeDrawn :: Tile -> POCLayer -> S.Seq Feature
 toBeDrawn t s = iter layers
   where
@@ -112,6 +117,13 @@ toBeDrawn t s = iter layers
    iter :: S.Seq Layer -> S.Seq Feature
    iter (l S.:<| xs) = S.filter (\f -> unwrapSBool $ evalLayer s f l) (features l) S.>< iter xs
    iter S.Empty      = S.empty
+
+withStyle :: forall {b}. D.HasStyle b => LineS -> b -> b
+withStyle style d = d
+  D.# D.lineCap (style ^. lineCap)
+  -- D.# D.lc (unwrapC (style ^. lineColor))
+
+  
 
 test :: IO ()
 test = do
@@ -124,7 +136,7 @@ test = do
 {-
 >>> t <- fakerTile
 >>> stile = A.decode "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}" :: Maybe POCLayer
->>> toBeDrawn <$> t <*> stile
+>>> toBeDrawn <$> t <*> stileview lineCap
 -}
 
 {-
