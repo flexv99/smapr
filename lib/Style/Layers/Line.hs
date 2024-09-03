@@ -9,6 +9,7 @@ import Data.Text (toLower)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Text as A
+import qualified Diagrams.Attributes as D
 import GHC.Enum
 import Control.Lens
 import Text.Megaparsec
@@ -20,26 +21,23 @@ import Style.IsoExpressions
 -- - CRound: A cap with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
 -- - Square: A cap with a squared-off end which is drawn beyond the endpoint of the line at a distance of one-half of the line's width.
 -- defaults to Butt
-data LineCap = Butt | CRound | Square deriving (Enum, Eq, Show)
-
-instance A.FromJSON LineCap where
+instance A.FromJSON D.LineCap where
   parseJSON = A.withText "LineCap" $ \t -> case toLower t of
-    "butt"   -> return Butt
-    "round"  -> return CRound
-    "square" -> return Square
-    _        -> return Butt
+    "butt"   -> return D.LineCapButt
+    "round"  -> return D.LineCapRound
+    "square" -> return D.LineCapSquare
+    _        -> return D.LineCapButt
 
 -- - Bevel: A join with a squared-off end which is drawn beyond the endpoint of the line at a distance of one-half of the line's width.
 -- - JRound: A join with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
 -- - Miter: A join with a sharp, angled corner which is drawn with the outer sides beyond the endpoint of the path until they meet.
 -- optional
-data LineJoin = Bevel | JRound | Miter deriving (Enum, Eq, Show)
 
-instance A.FromJSON LineJoin where
+instance A.FromJSON D.LineJoin where
   parseJSON = A.withText "LineJoin" $ \t -> case toLower t of
-    "bevel" -> return Bevel
-    "round" -> return JRound
-    "miter" -> return Miter
+    "bevel" -> return D.LineJoinBevel
+    "round" -> return D.LineJoinRound
+    "miter" -> return D.LineJoinMiter
     _       -> error "[Fatal] invalid line-join enum type"
 
 -- - Visible: The layer is shown.
@@ -71,8 +69,8 @@ instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS 
-  { _lineCap             :: Maybe LineCap
-  , _lineJoin            :: Maybe LineJoin
+  { _lineCap             :: Maybe D.LineCap
+  , _lineJoin            :: Maybe D.LineJoin
   , _lineMiterLimit      :: WrappedExpr     -- defaults to 2
   , _lineRoundLimit      :: WrappedExpr     -- defaults to 1.05
   , _lineSortKey         :: Maybe WrappedExpr

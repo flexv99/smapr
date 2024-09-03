@@ -39,7 +39,6 @@ moveTo will determine where the origin is set
 drawLine :: [D.P2 Double] -> D.Diagram D.B
 drawLine tour = D.moveTo (head tour) (tourPath D.# D.strokeLine D.# D.lc D.blue D.# D.showOrigin)
   where
-    -- Create an unlocated line trail from the vertices
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
 
 featureToDiagram :: Feature -> D.Diagram D.B
