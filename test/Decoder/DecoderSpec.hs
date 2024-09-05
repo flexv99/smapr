@@ -15,7 +15,7 @@ spec :: Spec
 spec = do
   describe "key value mapper" $ do
     it "map a feature's tags to the according keys and values" $ do
-      (waterLayer >>= (\water -> return $ featureProperties <$> water <*> (head . toList . features <$> water))) `shouldReturn` featureTagsMapperRes
+      (testLayerAndFeature >>= (\water -> return $ featureProperties <$> water)) `shouldReturn` featureTagsMapperRes
   describe "feature's geometry as string" $ do
     it "retrieve a feature's geometry type" $ do
       (waterLayer <&> fmap (geometryTypeToString . head . toList . features)) `shouldReturn` Just (Just "LINESTRING")
