@@ -11,6 +11,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Text.ProtocolBuffers.Header as P'
 import qualified Data.Map as MP
 import qualified Data.Sequence as S
+import Control.Lens hiding (zoom)
 import Data.Foldable
 import GHC.Word
 import GHC.Float
@@ -20,6 +21,7 @@ import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
 import ApiClient
+import Style.ExpressionsContext
 import Style.Parser
 
 geometryTypeToString :: Feature -> Maybe T.Text
@@ -29,12 +31,12 @@ featureIdToString :: Feature -> Maybe T.Text
 featureIdToString f = T.pack . show <$> id f
 
 -- | mapping feature tags to key pairs
-featureProperties :: Layer -> Feature -> MP.Map T.Text SType
-featureProperties l f = MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegral x, fromIntegral y)
-                                           in ( T.pack (key !! i), value !! j)) $ tuplify $ toList $ tags f
+featureProperties :: ExpressionContext -> MP.Map T.Text SType
+featureProperties ctx = MP.fromList $ map (\(x, y) -> let (i, j) = (fromIntegral x, fromIntegral y)
+                                           in ( T.pack (key !! i), value !! j)) $ tuplify $ toList $ tags (ctx ^. feature)
   where
-    key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys l
-    value = extractMappers $ toList $ values l
+    key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys (ctx ^. layer)
+    value = extractMappers $ toList $ values (ctx ^. layer)
 
 extractMappers :: [Value] -> [SType]
 extractMappers = concatMap extractMapper
@@ -52,9 +54,8 @@ extractMappers = concatMap extractMapper
 waterLayer :: IO (Maybe Layer)
 waterLayer = fakerTile <&> fmap (\l -> getLayers "waterway" l `S.index` 0)
 
-testLayerAndFeature :: IO (Maybe Layer, Maybe Feature)
+testLayerAndFeature :: IO (Maybe ExpressionContext)
 testLayerAndFeature = do
-  testLayer <- waterLayer
-  let f = fmap (`S.index` 0) (features <$> testLayer)
-  return (testLayer, f)
-
+  l <- waterLayer
+  let f = fmap (`S.index` 0) (features <$> l)
+  return $ ExpressionContext <$> f <*> l <*> Just 14

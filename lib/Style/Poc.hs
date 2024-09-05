@@ -29,6 +29,7 @@ import Style.IsoExpressions
 import Style.FeatureExpressions
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
+import Style.ExpressionsContext
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Proto.Vector_tile.Tile.Feature (Feature(..))
@@ -103,19 +104,27 @@ tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\"
 waterLayerStyle :: B.ByteString
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
 
-evalLayer :: POCLayer -> Feature -> Layer -> SType
-evalLayer (POCLayer {lfilter = fltr}) = eval $ wrap fltr
-
 evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
 evalTester expr =
-  testLayerAndFeature >>= (\(l, f) -> return (eval <$> expr <*> f <*> l))
+  testLayerAndFeature >>= (\ctx -> return (eval <$> expr <*> ctx))
 
-toBeDrawn :: Tile -> POCLayer -> S.Seq Feature
+evalLayer :: POCLayer -> ExpressionContext -> SType
+evalLayer (POCLayer {lfilter = fltr}) = eval $ wrap fltr
+
+constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
+constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
+  where
+    create :: Layer -> S.Seq ExpressionContext
+    create l = fmap (\f -> ExpressionContext f l 14 ) (features l)
+constructCtx S.Empty      = S.empty
+
+toBeDrawn :: Tile -> POCLayer -> S.Seq ExpressionContext
 toBeDrawn t s = iter layers
   where
    layers = getLayers (T.unpack $ sourceLayer s) t
-   iter :: S.Seq Layer -> S.Seq Feature
-   iter (l S.:<| xs) = S.filter (\f -> unwrapSBool $ evalLayer s f l) (features l) S.>< iter xs
+   ctx    = constructCtx layers
+   iter :: S.Seq Layer -> S.Seq ExpressionContext
+   iter (l S.:<| xs) = S.filter (unwrapSBool . evalLayer s) ctx S.>< iter xs
    iter S.Empty      = S.empty
 
 withStyle :: forall {b}. D.HasStyle b => LineS -> b -> b
@@ -124,14 +133,14 @@ withStyle style d = d
   -- D.# D.lc (unwrapC (style ^. lineColor))
 
   
-
 test :: IO ()
 test = do
   t <- fakerTile
   let stile   = A.decode waterLayerStyle :: Maybe POCLayer
   let tbD     = toBeDrawn <$> t <*> stile
-  let diagram = renderLayer' . toList <$> tbD
+  let diagram = renderLayer' <$> tbD
   maybe (putStrLn "Nothing") writeSvg diagram
+-- $> Prelude.show "Hello"
 
 {-
 >>> t <- fakerTile

@@ -14,11 +14,13 @@ import qualified Data.Text.Lazy as T
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Data.Sequence as S
 import qualified Data.Map as MP
+import Control.Lens
 import Data.Maybe
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Style.Parser
 import Style.ExpressionsWrapper
+import Style.ExpressionsContext
 import Proto.Util
 import ApiClient
 
@@ -62,16 +64,16 @@ fzoomP = betweenSquareBrackets $ do
 filterParsers :: Parser (ArgType ('SBool b))
 filterParsers = choice [try fInP]
 
-evalFilterIn :: FilterBy -> SType -> Feature -> Layer -> SType
-evalFilterIn (FProp key) (SArray a) f l = SBool $ maybe False (`elem` a) $  key `MP.lookup` featureProperties l f
+evalFilterIn :: FilterBy -> SType -> ExpressionContext -> SType
+evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $  key `MP.lookup` featureProperties ctx
 
-evalFilterGet :: SType -> Feature -> Layer -> SType
-evalFilterGet (SString key) f l = fromMaybe SNull (key `MP.lookup` featureProperties l f)
-evalFilterGet _             f l = error "get property must be of type String"
+evalFilterGet :: SType -> ExpressionContext -> SType
+evalFilterGet (SString key) ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
+evalFilterGet _             ctx = error "get property must be of type String"
 
 -- defaults to linestring if geometry cannot be retrieved from feature
-evalGeometryType :: Feature -> SType
-evalGeometryType f = maybe (SString "LINESTRING") SString (geometryTypeToString f)
+evalGeometryType :: ExpressionContext -> SType
+evalGeometryType ctx = maybe (SString "LINESTRING") SString (geometryTypeToString (ctx ^. feature))
 
 -- TODO as soon as we have a context set up this needs to be properly impolemented
 evalZoom :: SType

@@ -7,11 +7,13 @@ import qualified Diagrams.Trail as D
 import qualified Diagrams.TwoD.Size as D
 import qualified Diagrams.Located as D
 import GHC.Word
+import Control.Lens
 import Data.Foldable
 import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
+import Style.ExpressionsContext
 import Renderer.Lines
 import Renderer.Polygons
 import Decoder.Geometry
@@ -53,5 +55,5 @@ decode' g = decode $ map fromIntegral $ toList g
 renderLayer :: String -> Tile -> D.Diagram D.B
 renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $ getLayers l t
 
-renderLayer' :: [Feature] -> D.Diagram D.B
-renderLayer' f = D.reflectY $ foldl1 D.atop $ map featureToDiagram f
+renderLayer' :: S.Seq ExpressionContext -> D.Diagram D.B
+renderLayer' f = D.reflectY $ foldl1 D.atop $ fmap (\ctx -> featureToDiagram (ctx ^. feature)) f

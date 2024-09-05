@@ -120,5 +120,3 @@ instance A.FromJSON LineS where
                                    Left err  -> fail $ errorBundlePretty err
                                    Right res -> pure $ Just res
       color Nothing  = pure Nothing
-
-
