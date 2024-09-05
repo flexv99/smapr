@@ -37,6 +37,7 @@ data SType
   | SArray [SType]
   | SNull
   deriving (Show, Generic, Eq)
+  
 
 --- HELPERS
 

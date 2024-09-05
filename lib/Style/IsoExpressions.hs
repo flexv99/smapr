@@ -56,14 +56,14 @@ litExprChoicheP = choice [ wrap . IsoArg <$> intExprP
 -- 1.5
 numRetExprP :: Parser (ArgType (SNum a))
 numRetExprP = choice $ map try [ IsoArg <$> numExprP
-                               , fzoomP
+                               , fzoomP -- todo Move to a combined one isolate iso and feature ones
                                , IsoArg . AddE <$> exprBaseP "+"  (singleArgP  `sepBy` (char ',' >> space))
                                , IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP)
                                , IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space))
                                , IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
                                ]
               where
-                singleArgP = (wrap . IsoArg <$> numExprP) <|> (wrap <$> numRetExprP)
+                singleArgP = (IsoArg <$> numExprP) <|> numRetExprP
                 argWithComma = do
                   val <- singleArgP
                   _ <- char ',' >> space
@@ -88,7 +88,7 @@ atP :: Parser (ArgType a)
 atP = exprBaseP "at" $ do
   val1 <- arrayLitP
   _ <- char ',' >> space
-  IsoArg . AtE val1 <$> intExprP
+  IsoArg . AtE val1 . IsoArg <$> intExprP
 
 allP :: Parser (ArgType ('SBool a))
 allP = betweenSquareBrackets $ do
@@ -215,9 +215,12 @@ stypeIn (SArray a) _               = error "param 2 must be an int"
 
 -- | match
 stypeMatch :: SType -> MatchArg -> SType
-stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn t matches)
+stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn matches)
   where
-    isIn t = mapMaybe (\(a, b) -> if a == t then Just b else Nothing)
+    binary :: ToBeMatched -> Maybe SType
+    binary (SArray a, b) = if t `elem` a then Just b else Nothing
+    binary (a, b)        = if a == t then Just b else Nothing
+    isIn = mapMaybe binary
 
 -- | interpolate
 -- maybe move from associated list to map?

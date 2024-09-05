@@ -4,6 +4,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Style.Poc where
 
@@ -22,6 +24,7 @@ import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Trail as D
 import qualified Diagrams.TwoD.Size as D
 import qualified Diagrams.Located as D
+import Data.Typeable
 import Control.Lens
 import GHC.Generics
 import Style.Parser
@@ -104,6 +107,9 @@ tfilter = "[\"all\",[\"==\", [\"geometry-type\"], \"Polygon\"],[\"!=\", [\"get\"
 waterLayerStyle :: B.ByteString
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
 
+transportationLayerStyle :: B.ByteString
+transportationLayerStyle = "{\"id\":\"road_trunk_primary\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"transportation\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"class\"],[\"primary\",\"trunk\"],true,false]],\"layout\":{\"line-cap\":\"round\",\"line-join\":\"round\"},\"paint\":{\"line-color\":\"#fff\",\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],6,0.5,20,30]}}"
+
 evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
 evalTester expr =
   testLayerAndFeature >>= (\ctx -> return (eval <$> expr <*> ctx))
@@ -127,18 +133,20 @@ toBeDrawn t s = iter layers
    iter (l S.:<| xs) = S.filter (unwrapSBool . evalLayer s) ctx S.>< iter xs
    iter S.Empty      = S.empty
 
-withStyle :: forall {b}. D.HasStyle b => LineS -> b -> b
-withStyle style d = d
+withStyle :: forall {b} {p}. (D.V b ~ D.V2,
+                              D.HasStyle b, Floating (D.N b),
+                              Typeable (D.N b)) => ExpressionContext -> LineS -> b -> b
+withStyle ctx style d = d
   D.# D.lineCap (style ^. lineCap)
-  -- D.# D.lc (unwrapC (style ^. lineColor))
+  D.# D.lcA (unwrapSColor (style ^. lineColor))
 
-  
+
 test :: IO ()
 test = do
   t <- fakerTile
-  let stile   = A.decode waterLayerStyle :: Maybe POCLayer
+  let stile   = A.decode transportationLayerStyle :: Maybe POCLayer
   let tbD     = toBeDrawn <$> t <*> stile
-  let diagram = renderLayer' <$> tbD
+  let diagram = (renderLayer . paint <$> stile) <*> tbD
   maybe (putStrLn "Nothing") writeSvg diagram
 -- $> Prelude.show "Hello"
 

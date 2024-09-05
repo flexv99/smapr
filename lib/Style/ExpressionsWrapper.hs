@@ -47,27 +47,27 @@ data IsoExpr :: SType -> Type where
   -- | Color literal
   ColorE   :: String                           -> IsoExpr (SColor c)
   -- | negation of bool expressions
-  Negation :: IsoExpr (SBool s)                -> IsoExpr (SBool b)
+  Negation :: IsoExpr (SBool s)                     -> IsoExpr (SBool b)
   -- | addition
-  AddE     :: [WrappedExpr]                    -> IsoExpr a
+  AddE     :: [ArgType (SNum n)]                    -> IsoExpr a
   -- | product
-  ProdE    :: [WrappedExpr]                    -> IsoExpr a
+  ProdE    :: [ArgType (SNum n)]                    -> IsoExpr a
   -- | subtraction
-  SubE     :: WrappedExpr -> WrappedExpr       -> IsoExpr a
+  SubE     :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | division
-  DivE     :: WrappedExpr -> WrappedExpr       -> IsoExpr a
+  DivE     :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | check for equaliy on polymorphic types
-  EqE      :: WrappedExpr -> WrappedExpr       -> IsoExpr (SBool b)
+  EqE      :: WrappedExpr -> WrappedExpr           -> IsoExpr (SBool b)
   -- | element at index
-  AtE      :: SType -> IsoExpr (SNum (SInt i)) -> IsoExpr a
+  AtE      :: SType -> ArgType (SNum (SInt i))     -> IsoExpr a
   -- | all expr
-  AllE     :: [ArgType (SBool b)]              -> IsoExpr (SBool b)
+  AllE     :: [ArgType (SBool b)]                  -> IsoExpr (SBool b)
   -- | match expr
-  MatchE   :: WrappedExpr -> MatchArg          -> IsoExpr a
+  MatchE   :: WrappedExpr -> MatchArg              -> IsoExpr a
   -- | interpolate expr
   InterpolateE :: InterpolationType
     -> ArgType (SNum a)
-    -> [(SType, ArgType (SNum a))]             -> IsoExpr (SNum n)
+    -> [(SType, ArgType (SNum a))]                 -> IsoExpr (SNum n)
   
 deriving instance Show (IsoExpr res)
 

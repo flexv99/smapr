@@ -69,7 +69,7 @@ newtype ResolvedImage = ResolvedImage
 instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
-data LineS = LineS 
+data LineS = LineS
   { _lineCap             :: D.LineCap
   , _lineJoin            :: Maybe D.LineJoin
   , _lineMiterLimit      :: WrappedExpr     -- defaults to 2
@@ -77,7 +77,7 @@ data LineS = LineS
   , _lineSortKey         :: Maybe WrappedExpr
   , _visibility          :: Visibility      -- defaults to Visible
   , _lineOpacity         :: WrappedExpr     -- defaults to 1
-  , _lineColor           :: SType     -- defaults to #000000
+  , _lineColor           :: SType           -- defaults to #000000
   , _lineTranslate       :: WrappedExpr     -- defaults to [0, 0]
   , _lineTranslateAnchor :: Maybe LineTranslateAnchor
   , _lineWidth           :: WrappedExpr     -- defaults to 1
@@ -120,3 +120,4 @@ instance A.FromJSON LineS where
                                    Left err  -> fail $ errorBundlePretty err
                                    Right res -> pure $ Just res
       color Nothing  = pure Nothing
+
