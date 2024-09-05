@@ -21,7 +21,7 @@ import Util
 data Coord = Coord
   { lat :: Double
   , lon :: Double
-  , zoom :: Double
+  , rZoom :: Double
   } deriving Show
 
 -- helpers
@@ -32,18 +32,18 @@ lat2tileY :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lat2tileY lat z = floor((1.0 - log(tan(lat * pi / 180.0) + 1.0 / cos(lat * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
 
 tilerequestUrl :: LocalApi -> Coord -> String
-tilerequestUrl l c = base ++ "/" ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y
+tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ show x ++ "/" ++ show y
   where
     base = localBaseUrl l ++ linesPath l
-    x = lon2tileX (lon c) (zoom c)
-    y = lat2tileY (lat c) (zoom c)
+    x = lon2tileX (lon c) (rZoom c)
+    y = lat2tileY (lat c) (rZoom c)
 
 nextzenTileUrl :: NextzenApi -> Coord -> String
-nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (zoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ suffix
+nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ suffix
   where
     suffix = "." ++ format n ++ "?api_key=" ++ apiKey n
-    x = lon2tileX (lon c) (zoom c)
-    y = lat2tileY (lat c) (zoom c)
+    x = lon2tileX (lon c) (rZoom c)
+    y = lat2tileY (lat c) (rZoom c)
 
 testCoord :: Coord
 testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
