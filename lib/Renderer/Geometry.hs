@@ -43,17 +43,13 @@ drawLine tour = D.moveTo (head tour) (tourPath D.# D.strokeLine D.# D.lc D.blue 
   where
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
 
-featureToDiagram :: Feature -> D.Diagram D.B
-featureToDiagram (Feature _ _ (Just POLYGON) g)    = foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' g :: [PolygonG])
-featureToDiagram (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawLine . lineToPoints) (decode' g :: [LineG])
+featureToDiagram :: ExpressionContext -> D.Diagram D.B
+featureToDiagram (ExpressionContext (Feature _ _ (Just POLYGON) g) _ _)    = foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' g :: [PolygonG])
+featureToDiagram (ExpressionContext (Feature _ _ (Just LINESTRING) g) _ _) = foldl1 D.atop $ map (drawLine . lineToPoints) (decode' g :: [LineG])
 featureToDiagram _                                 = D.strutX 0
 
 decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
 
--- Will be deprecated soon
-renderLayer :: String -> Tile -> D.Diagram D.B
-renderLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagram . head . map toList . (map features <$> toList) $ getLayers l t
-
 renderLayer' :: S.Seq ExpressionContext -> D.Diagram D.B
-renderLayer' f = D.reflectY $ foldl1 D.atop $ fmap (\ctx -> featureToDiagram (ctx ^. feature)) f
+renderLayer' f = D.reflectY $ foldl1 D.atop $ fmap featureToDiagram f
