@@ -1,9 +1,14 @@
 module Renderer.Lines
   ( lineToPoints
+  , drawLine
   ) where
 
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.Backend.SVG as D
+import Style.Layers.Line
+import Style.ExpressionsContext
+import Style.ExpressionsEval
+import Control.Lens
 import Util
 import Decoder.Geometry
 import Decoder.Lines
@@ -24,14 +29,10 @@ lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parame
   where
     toDPoint = map geometryPointToDPoint
 
--- drawTourWithStyle :: Tile -> POCLayer -> D.Diagram D.B
--- drawTourWithStyle = undefined
-
-
-{-
-drawTourWithStyle tour = tourPoints <> D.strokeP tourPath
+drawLine :: LineS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
+drawLine style ctx tour = D.moveTo (head tour)
+  (tourPath D.# D.strokeLine D.# D.lcA color D.# D.lwO stroke D.# D.showOrigin)
   where
-    tourPath = D.fromVertices tour
-    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-    dot = D.circle 0.05 D.# D.fc D.black
--}
+    color    = unwrapSColor (style ^. lineColor)
+    stroke   = unwrapSDouble $ eval (style ^. lineWidth) ctx
+    tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double

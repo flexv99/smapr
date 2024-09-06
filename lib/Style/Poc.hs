@@ -5,7 +5,6 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Style.Poc where
 
@@ -14,28 +13,16 @@ import qualified Data.Aeson.Text as A
 import qualified Data.ByteString.Lazy.Internal as B
 import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Lazy as T
-import qualified Data.Colour as C
-import Data.Foldable (toList)
-import Data.Functor ((<&>))
 import qualified Data.Vector as V
 import qualified Data.Sequence as S
-import qualified Diagrams.Prelude as D
-import qualified Diagrams.Backend.SVG as D
-import qualified Diagrams.Trail as D
-import qualified Diagrams.TwoD.Size as D
-import qualified Diagrams.Located as D
-import Data.Typeable
-import Control.Lens
 import GHC.Generics
 import Style.Parser
 import Style.IsoExpressions
-import Style.FeatureExpressions
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
 import Style.ExpressionsContext
 import ApiClient
 import Proto.Vector_tile.Tile.Layer (Layer(..))
-import Proto.Vector_tile.Tile.Feature (Feature(..))
 import Proto.Vector_tile.Tile (Tile(..))
 import Text.Megaparsec
 import Proto.Util
@@ -62,21 +49,6 @@ data Width = Width
   } deriving (Show, Eq, Generic)
 
 -- Helper for use in combination with .:? to provide default values for optional JSON object fields.
-
-instance A.FromJSON SType where
-  parseJSON (A.Number n) =
-    if isFloating n
-      then pure $ SNum $ SDouble (toRealFloat n)
-      else pure $ SNum $ SInt (round n)
-  parseJSON (A.Bool b)   = pure $ SBool b
-  parseJSON (A.Array a)  = SArray <$> traverse A.parseJSON (V.toList a)
-  parseJSON a            = A.withText
-      "SType"
-      ( \v ->
-          case parse pAtom "" (T.fromStrict v) of
-            Left err  -> fail $ errorBundlePretty err
-            Right res -> return res
-      ) a
 
 instance A.FromJSON Width where
   parseJSON = A.withObject "Width" $ \obj ->
@@ -121,25 +93,13 @@ constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
 constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
   where
     create :: Layer -> S.Seq ExpressionContext
-    create l = fmap (\f -> ExpressionContext f l 14 ) (features l)
+    create l' = fmap (\f -> ExpressionContext f l' 14 ) (features l')
 constructCtx S.Empty      = S.empty
 
 toBeDrawn :: Tile -> POCLayer -> S.Seq ExpressionContext
-toBeDrawn t s = iter layers
+toBeDrawn t s = fmap (S.filter (unwrapSBool . evalLayer s)) constructCtx layers'
   where
-   layers = getLayers (T.unpack $ sourceLayer s) t
-   ctx    = constructCtx layers
-   iter :: S.Seq Layer -> S.Seq ExpressionContext
-   iter (l S.:<| xs) = S.filter (unwrapSBool . evalLayer s) ctx S.>< iter xs
-   iter S.Empty      = S.empty
-
-withStyle :: forall {b} {p}. (D.V b ~ D.V2,
-                              D.HasStyle b, Floating (D.N b),
-                              Typeable (D.N b)) => ExpressionContext -> LineS -> b -> b
-withStyle ctx style d = d
-  D.# D.lineCap (style ^. lineCap)
-  D.# D.lcA (unwrapSColor (style ^. lineColor))
-
+   layers' = getLayers (T.unpack $ sourceLayer s) t
 
 test :: IO ()
 test = do
@@ -148,7 +108,6 @@ test = do
   let tbD     = toBeDrawn <$> t <*> stile
   let diagram = (renderLayer . paint <$> stile) <*> tbD
   maybe (putStrLn "Nothing") writeSvg diagram
--- $> Prelude.show "Hello"
 
 {-
 >>> t <- fakerTile

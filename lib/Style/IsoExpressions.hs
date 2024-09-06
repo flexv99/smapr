@@ -7,11 +7,7 @@
 
 module Style.IsoExpressions where
 
-import Data.Kind (Type)
 import qualified Data.Text.Lazy as T
-import qualified Text.Megaparsec.Char.Lexer as L
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Data.Maybe
 import Data.List
 import Text.Megaparsec
@@ -174,14 +170,14 @@ stypeSum = foldr stypeAdd (SNum $ SInt 0)
 
 -- | *
 stypeProd :: [SType] -> SType
-stypeProd = foldr stypeProd (SNum $ SInt 1)
+stypeProd = foldr prod (SNum $ SInt 1)
   where
-    stypeProd :: SType -> SType -> SType
-    stypeProd (SNum (SInt i))    (SNum (SInt j))     = SNum $ SInt $ i * j
-    stypeProd (SNum (SInt i))    (SNum (SDouble j))  = SNum $ SDouble $ fromIntegral i * j
-    stypeProd (SNum (SDouble i)) (SNum (SInt j))     = SNum $ SDouble $ i * fromIntegral j
-    stypeProd (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i * j
-    stypeProd _ _                                    = error "must be numeric type"
+    prod :: SType -> SType -> SType
+    prod (SNum (SInt i))    (SNum (SInt j))     = SNum $ SInt $ i * j
+    prod (SNum (SInt i))    (SNum (SDouble j))  = SNum $ SDouble $ fromIntegral i * j
+    prod (SNum (SDouble i)) (SNum (SInt j))     = SNum $ SDouble $ i * fromIntegral j
+    prod (SNum (SDouble i)) (SNum (SDouble j))  = SNum $ SDouble $ i * j
+    prod _ _                                    = error "must be numeric type"
 
 -- | -
 stypeSub :: SType -> SType -> SType
@@ -210,8 +206,7 @@ stypeEq _ _                     = error "eq on not supported types"
 -- | in & !in
 stypeIn :: SType -> SType -> SType
 stypeIn (SArray a) (SNum (SInt i)) = a !! i
-stypeIn _          (SNum (SInt i)) = error "param 1 must be an array"
-stypeIn (SArray a) _               = error "param 2 must be an int"
+stypeIn _          _               = error "args not matching"
 
 -- | match
 stypeMatch :: SType -> MatchArg -> SType
@@ -231,18 +226,18 @@ stypeInterpolate t (SNum i) pts   = let
   (t', index) = interpolationFactor t i pts
   output = map snd (numTupleToDouble pts)
   in SNum $ SDouble $ interpolateNr (output !! index) (output !! (index + 1)) t'
-stypeInterpolate t (SColor c) pts = undefined
-stypeInterpolate t _ pts          = error "can only interpolate colors or numbers"
+stypeInterpolate _ (SColor _) _   = undefined
+stypeInterpolate _ _ _            = error "can only interpolate colors or numbers"
 
 findStopsLessThenOrEqualTo :: [Double] -> Double -> Int
 findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
 
 interpolationFactor :: InterpolationType -> INum -> [(SType, SType)] -> (Double, Int)
-interpolationFactor t v pts = (pMatch t (numToDouble v) pts, index)
+interpolationFactor t v pts = (pMatch t (numToDouble v), index)
   where
-    pMatch  Linear v pts         = exponentialInterpolation v 1 (labels !! index) (labels !! (index + 1))
-    pMatch (Exponential e) v pts = exponentialInterpolation v (numToDouble e) (labels !! index) (labels !! (index + 1))
-    pMatch _               v pts = error "cubic bezier not yet supported"
+    pMatch  Linear         v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
+    pMatch (Exponential e) v' = exponentialInterpolation v' (numToDouble e) (labels !! index) (labels !! (index + 1))
+    pMatch _               _   = error "cubic bezier not yet supported"
     toNums  = numTupleToDouble pts
     labels  = map fst toNums
     index   = findStopsLessThenOrEqualTo labels (numToDouble v)
@@ -258,7 +253,7 @@ exponentialInterpolation input base lower upper
 
 numTupleToDouble :: [(SType, SType)] -> [(Double, Double)]
 numTupleToDouble ((SNum a, SNum b):xs) = (numToDouble a, numToDouble b) : numTupleToDouble xs
-numTupleToDouble ((_ , _):xs)          = error "tuples must be of numerical type"
+numTupleToDouble ((_ , _):_)           = error "tuples must be of numerical type"
 numTupleToDouble []                    = []
 
 interpolateNr :: Floating a => a -> a -> a -> a

@@ -8,7 +8,6 @@ import Data.Foldable
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Style.ExpressionsContext
-import Style.ExpressionsEval
 import Style.Layers.Line
 import Renderer.Lines
 import Renderer.Polygons
@@ -31,14 +30,6 @@ on this type we can then apply our line appearence properties
 
 moveTo will determine where the origin is set
 -}
-
-drawLine :: LineS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
-drawLine style ctx tour = D.moveTo (head tour)
-  (tourPath D.# D.strokeLine D.# D.lcA color D.# D.lwO stroke D.# D.showOrigin)
-  where
-    color    = unwrapSColor (style ^. lineColor)
-    stroke   = unwrapSDouble $ eval (style ^. lineWidth) ctx
-    tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
 
 featureToDiagram :: LineS -> ExpressionContext -> D.Diagram D.B
 featureToDiagram style ctx = case featureGeometryType ctx of

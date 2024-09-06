@@ -6,15 +6,18 @@ module Style.Parser where
 
 import GHC.Generics (Generic)
 import Data.List (singleton)
-import Data.Colour
-import Data.Colour.RGBSpace.HSL
-import Data.Colour.SRGB
+import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Internal.Lazy as T
 import qualified Data.Text.Lazy as T
+import qualified Text.Megaparsec.Char.Lexer as L
+import qualified Data.Aeson as A
+import qualified Data.Vector as V
 import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Colour
+import Data.Colour.RGBSpace.HSL
+import Data.Colour.SRGB
 
 -- Void: The type for custom error messages. We have none, so use `Void`.
 -- T.Text: The input stream type.
@@ -36,6 +39,21 @@ data SType
   | SArray [SType]
   | SNull
   deriving (Show, Generic, Eq)
+
+instance A.FromJSON SType where
+  parseJSON (A.Number n) =
+    if isFloating n
+      then pure $ SNum $ SDouble (toRealFloat n)
+      else pure $ SNum $ SInt (round n)
+  parseJSON (A.Bool b)   = pure $ SBool b
+  parseJSON (A.Array a)  = SArray <$> traverse A.parseJSON (V.toList a)
+  parseJSON a            = A.withText
+      "SType"
+      ( \v ->
+          case parse pAtom "" (T.fromStrict v) of
+            Left err  -> fail $ errorBundlePretty err
+            Right res -> return res
+      ) a
   
 
 --- HELPERS
