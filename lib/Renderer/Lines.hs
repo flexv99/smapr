@@ -2,22 +2,11 @@ module Renderer.Lines
   ( lineToPoints
   ) where
 
-import Proto.Vector_tile.Tile.Layer (Layer(..))
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Proto.Vector_tile.Tile (Tile(..))
-import Data.Foldable (toList)
-import qualified Data.Text.Lazy as T
 import qualified Diagrams.Prelude as D
-import qualified Diagrams.TwoD.Size as D
 import qualified Diagrams.Backend.SVG as D
-import qualified Diagrams.Trail as D
-import qualified Data.Sequence as SQ
-import Control.Monad
 import Util
-import ApiClient
 import Decoder.Geometry
 import Decoder.Lines
-import Style.ExpressionsEval
 
 render2DVector :: D.Diagram D.B -> IO ()
 render2DVector v = do

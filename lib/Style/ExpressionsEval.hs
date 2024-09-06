@@ -6,8 +6,6 @@
 module Style.ExpressionsEval where
 
 import qualified Data.Text.Internal.Lazy as T
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Proto.Vector_tile.Tile.Layer (Layer(..))
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
 import Style.FeatureExpressions
@@ -44,12 +42,12 @@ evalStringExpr (FeatureArg f) ctx = evalFeatureExpr f ctx
 -- 42
 evalIsoExpr :: IsoExpr res -> ExpressionContext -> SType
 evalIsoExpr (Negation e)         ctx = SBool $ not $ unwrapSBool $ evalIsoExpr e ctx
-evalIsoExpr (StringE s)          ctx = SString s
-evalIsoExpr (BoolE b)            ctx = SBool b
-evalIsoExpr (IntE i)             ctx = SNum $ SInt i
-evalIsoExpr (DoubleE d)          ctx = SNum $ SDouble d
-evalIsoExpr (NumE e)             ctx = SNum e
-evalIsoExpr (ArrayE (SArray a))  ctx = SArray a
+evalIsoExpr (StringE s)          _   = SString s
+evalIsoExpr (BoolE b)            _   = SBool b
+evalIsoExpr (IntE i)             _   = SNum $ SInt i
+evalIsoExpr (DoubleE d)          _   = SNum $ SDouble d
+evalIsoExpr (NumE e)             _   = SNum e
+evalIsoExpr (ArrayE (SArray a))  _   = SArray a
 evalIsoExpr (AddE a)             ctx = stypeSum (map (`evalNumExpr` ctx) a)
 evalIsoExpr (ProdE a)            ctx = stypeProd (map (`evalNumExpr` ctx) a)
 evalIsoExpr (SubE a b)           ctx = stypeSub (evalNumExpr a ctx) (evalNumExpr b ctx)
@@ -59,13 +57,15 @@ evalIsoExpr (AtE a i)            ctx = stypeIn a (evalNumExpr i ctx)
 evalIsoExpr (AllE v)             ctx = stypeAll v ctx
 evalIsoExpr (MatchE m v)         ctx = stypeMatch (eval m ctx) v
 evalIsoExpr (InterpolateE t e a) ctx = stypeInterpolate t (eval (wrap e) ctx) (map (\(a', b) -> (a', eval (wrap b) ctx)) a)
+evalIsoExpr _                    _   = undefined
 
 evalFeatureExpr :: FeatureExpr a -> ExpressionContext -> SType
 evalFeatureExpr (NegationFe e) ctx = SBool $ not $ unwrapSBool $ evalFeatureExpr e ctx
 evalFeatureExpr (FinE a b)     ctx = evalFilterIn a b ctx
 evalFeatureExpr (FgetE k)      ctx = evalFilterGet k ctx
 evalFeatureExpr FgeometryE     ctx = evalGeometryType ctx
-evalFeatureExpr FzoomE         ctx = evalZoom
+evalFeatureExpr FzoomE         ctx = evalZoom ctx
+evalFeatureExpr _              _   = undefined
 
 
 stypeAll :: [ArgType ('SBool b)] -> ExpressionContext -> SType

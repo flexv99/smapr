@@ -6,13 +6,7 @@
 
 module Style.FeatureExpressions where
 
-import Data.Kind (Type)
-import Data.Functor ((<&>))
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Proto.Vector_tile.Tile.Layer (Layer(..))
 import qualified Data.Text.Lazy as T
-import qualified Text.Megaparsec.Char.Lexer as L
-import qualified Data.Sequence as S
 import qualified Data.Map as MP
 import Control.Lens
 import Data.Maybe
@@ -22,7 +16,6 @@ import Style.Parser
 import Style.ExpressionsWrapper
 import Style.ExpressionsContext
 import Proto.Util
-import ApiClient
 
 
 typeParser :: Parser T.Text
@@ -66,15 +59,16 @@ filterParsers = choice [try fInP]
 
 evalFilterIn :: FilterBy -> SType -> ExpressionContext -> SType
 evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $  key `MP.lookup` featureProperties ctx
+evalFilterIn _           _          _   = error "second argument must be an array"
 
 evalFilterGet :: SType -> ExpressionContext -> SType
 evalFilterGet (SString key) ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
-evalFilterGet _             ctx = error "get property must be of type String"
+evalFilterGet _             _   = error "get property must be of type String"
 
 -- defaults to linestring if geometry cannot be retrieved from feature
 evalGeometryType :: ExpressionContext -> SType
 evalGeometryType ctx = maybe (SString "LINESTRING") SString (geometryTypeToString (ctx ^. feature))
 
 -- TODO as soon as we have a context set up this needs to be properly impolemented
-evalZoom :: SType
-evalZoom = SNum (SInt 14)
+evalZoom :: ExpressionContext -> SType
+evalZoom ctx = SNum (SInt (ctx ^. ctxZoom))

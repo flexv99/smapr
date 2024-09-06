@@ -5,19 +5,15 @@ module Proto.Util where
 import Prelude hiding (id)
 import Data.ByteString.Lazy.Char8 (unpack)
 import Decoder.Helper (tuplify)
-import Data.Functor ((<&>))
 import qualified Data.Text.Lazy as T
-import qualified Data.Text.Encoding as TE
 import qualified Text.ProtocolBuffers.Header as P'
 import qualified Data.Map as MP
 import qualified Data.Sequence as S
 import Control.Lens hiding (zoom)
 import Data.Foldable
-import GHC.Word
 import GHC.Float
 import Data.Maybe
 import Proto.Vector_tile.Tile.Value
-import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
 import ApiClient

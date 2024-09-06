@@ -7,8 +7,6 @@
 module Style.ExpressionsWrapper where
 
 import Data.Kind (Type)
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Proto.Vector_tile.Tile.Layer (Layer(..))
 import qualified Data.Text.Lazy as T
 import Style.Parser
             

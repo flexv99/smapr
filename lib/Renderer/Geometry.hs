@@ -3,24 +3,16 @@ module Renderer.Geometry where
 import qualified Data.Sequence as S
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
-import qualified Diagrams.Trail as D
-import qualified Diagrams.TwoD.Size as D
-import qualified Diagrams.Located as D
-import GHC.Word
 import Control.Lens
 import Data.Foldable
-import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
-import Proto.Vector_tile.Tile.Layer
 import Style.ExpressionsContext
 import Style.ExpressionsEval
 import Style.Layers.Line
 import Renderer.Lines
 import Renderer.Polygons
 import Decoder.Geometry
-import ApiClient
-import Util
 
 drawTour :: [D.P2 Double] -> D.Diagram D.B
 drawTour tour = tourPoints <> D.strokeP tourPath
@@ -41,10 +33,11 @@ moveTo will determine where the origin is set
 -}
 
 drawLine :: LineS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
-drawLine style ctx tour = D.moveTo (head tour) (tourPath D.# D.strokeLine D.# D.lcA color D.# D.lw stroke D.# D.showOrigin)
+drawLine style ctx tour = D.moveTo (head tour)
+  (tourPath D.# D.strokeLine D.# D.lcA color D.# D.lwO stroke D.# D.showOrigin)
   where
     color    = unwrapSColor (style ^. lineColor)
-    stroke   = D.output $ unwrapSDouble $ eval (style ^. lineWidth) ctx
+    stroke   = unwrapSDouble $ eval (style ^. lineWidth) ctx
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
 
 featureToDiagram :: LineS -> ExpressionContext -> D.Diagram D.B

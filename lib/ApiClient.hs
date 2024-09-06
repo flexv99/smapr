@@ -26,24 +26,24 @@ data Coord = Coord
 
 -- helpers
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b
-lon2tileX lon z = floor((lon + 180.0) / 360.0 * (2.0 ** z))
+lon2tileX lon' z = floor((lon' + 180.0) / 360.0 * (2.0 ** z))
 
 lat2tileY :: (RealFrac a, Integral b, Floating a) => a -> a -> b
-lat2tileY lat z = floor((1.0 - log(tan(lat * pi / 180.0) + 1.0 / cos(lat * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
+lat2tileY lat' z = floor((1.0 - log(tan(lat' * pi / 180.0) + 1.0 / cos(lat' * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
 
 tilerequestUrl :: LocalApi -> Coord -> String
-tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ show x ++ "/" ++ show y
+tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y
   where
     base = localBaseUrl l ++ linesPath l
-    x = lon2tileX (lon c) (rZoom c)
-    y = lat2tileY (lat c) (rZoom c)
+    x = show (lon2tileX (lon c) (rZoom c) :: Int)
+    y = show (lat2tileY (lat c) (rZoom c) :: Int)
 
 nextzenTileUrl :: NextzenApi -> Coord -> String
-nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ suffix
+nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y ++ suffix
   where
     suffix = "." ++ format n ++ "?api_key=" ++ apiKey n
-    x = lon2tileX (lon c) (rZoom c)
-    y = lat2tileY (lat c) (rZoom c)
+    x = show (lon2tileX (lon c) (rZoom c) :: Int)
+    y = show (lat2tileY (lat c) (rZoom c) :: Int)
 
 testCoord :: Coord
 testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14

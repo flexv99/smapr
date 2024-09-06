@@ -37,7 +37,6 @@ library
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
-                    , Style.Poc2
                     , Style.Parser
                     , Style.IsoExpressions
                     , Style.FeatureExpressions

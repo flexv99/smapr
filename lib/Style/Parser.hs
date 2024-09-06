@@ -6,7 +6,6 @@ module Style.Parser where
 
 import GHC.Generics (Generic)
 import Data.List (singleton)
-import qualified Data.Aeson.Types as A
 import Data.Colour
 import Data.Colour.RGBSpace.HSL
 import Data.Colour.SRGB
@@ -42,8 +41,8 @@ data SType
 --- HELPERS
 
 exprBaseP :: T.Text -> Parser a -> Parser a
-exprBaseP id rest = betweenSquareBrackets $ do
-  _ <- pKeyword id
+exprBaseP i rest = betweenSquareBrackets $ do
+  _ <- pKeyword i
   _ <- char ',' >> space
   rest
 
@@ -180,11 +179,11 @@ pHslColor :: Parser SType
 pHslColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
-    hue        <- pInt
+    h <- pInt
+    _ <- char ',' >> space
+    s <- pColorPercentage
     _          <- char ',' >> space
-    saturation <- pColorPercentage
-    _          <- char ',' >> space
-    SColor . hslToColor hue saturation <$> pColorPercentage
+    SColor . hslToColor h s <$> pColorPercentage
       where
         pInt = lexeme (L.signed space L.decimal)
         pColorPercentage = do
@@ -238,7 +237,7 @@ hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlu
 showSColor :: SType -> String
 showSColor (SColor a) = sRGB24show $ pureColour a
   where
-    pureColour ac | a > 0 = darken (recip a) (ac `over` black)
-                  | otherwise = error "transparent has no pure colour"
-      where
-        a = alphaChannel ac
+    pureColour ac
+      | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
+      | otherwise           = error "transparent has no pure colour"
+showSColor _          = error "can only show colors"
