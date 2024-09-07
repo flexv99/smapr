@@ -41,4 +41,4 @@ featureToDiagram style ctx = case featureGeometryType ctx of
     decode' g = decode $ map fromIntegral $ toList g
 
 renderLayer :: LineS -> S.Seq ExpressionContext -> D.Diagram D.B
-renderLayer style f = D.reflectY $ foldl1 D.atop $ fmap (featureToDiagram style) f
+renderLayer style f = D.reflectY (foldl1 D.atop $ fmap (featureToDiagram style) f)

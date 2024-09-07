@@ -7,18 +7,7 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Aeson as A
 import Data.Bits
-import Data.Foldable
-import qualified Data.Sequence as S
-import GHC.Float (int2Double)
-import GHC.Word
-import qualified Data.Map as MP
-import Proto.Vector_tile
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.GeomType
-import Proto.Vector_tile.Tile.Layer
-import Proto.Vector_tile.Tile.Value
-
-import ApiClient
+import GHC.Float
 
 type Point = (Double, Double)
 
@@ -41,12 +30,12 @@ data GeoAction = GeoAction
 makeLenses ''GeoAction
 
 instance A.ToJSON GeoAction where
-  toJSON (GeoAction command parameters) =
-    A.object ["command" A..= command, "parameters" A..= parameters]
+  toJSON (GeoAction command' parameters') =
+    A.object ["command" A..= command', "parameters" A..= parameters']
 
 instance A.ToJSON Command where
-  toJSON (Command cmd count) =
-    A.object ["cmd" A..= show cmd, "count" A..= count]
+  toJSON (Command cmd' count') =
+    A.object ["cmd" A..= show cmd', "count" A..= count']
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
@@ -97,7 +86,7 @@ splitCommands c =
 
 tuplify :: [a] -> [(a, a)]
 tuplify [] = []
-tuplify [x] = error "cannot tuplify single emelent"
+tuplify [_] = error "cannot tuplify single emelent"
 tuplify (x : x' : xs) = (x, x') : tuplify xs
 
 splitAtMove :: [GeoAction] -> [[GeoAction]]

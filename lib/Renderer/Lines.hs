@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Renderer.Lines
   ( lineToPoints
   , drawLine
@@ -31,8 +33,17 @@ lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parame
 
 drawLine :: LineS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
 drawLine style ctx tour = D.moveTo (head tour)
-  (tourPath D.# D.strokeLine D.# D.lcA color D.# D.lwO stroke D.# D.showOrigin)
+  (tourPath D.# D.strokeLine
+   D.# D.lcA color
+   D.# D.lwG stroke
+   D.# lineP
+   D.# D.showOrigin)
   where
+    lineP :: forall {c}. D.HasStyle c => c -> c
+    lineP    = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)
     color    = unwrapSColor (style ^. lineColor)
     stroke   = unwrapSDouble $ eval (style ^. lineWidth) ctx
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
+
+
+
