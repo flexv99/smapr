@@ -1,8 +1,9 @@
-{-# LANGUAGE GADTs              #-}
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE KindSignatures     #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE KindSignatures            #-}
+{-# LANGUAGE StandaloneDeriving        #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Style.ExpressionsWrapper where
 
@@ -31,25 +32,25 @@ deriving instance Show (FeatureExpr res)
 -- representing expressions that don't required layer or feature context
 data IsoExpr :: SType -> Type where
   -- | string literal
-  StringE  :: T.Text                           -> IsoExpr (SString s)
+  StringE  :: T.Text                               -> IsoExpr (SString s)
   -- | bool literal
-  BoolE    :: Bool                             -> IsoExpr (SBool b)
+  BoolE    :: Bool                                 -> IsoExpr (SBool b)
   -- | int literal
-  IntE     :: Int                              -> IsoExpr (SNum (SInt i))
+  IntE     :: Int                                  -> IsoExpr (SNum (SInt i))
   -- | double literal
-  DoubleE  :: Double                           -> IsoExpr (SNum (SDouble d))
+  DoubleE  :: Double                               -> IsoExpr (SNum (SDouble d))
   -- | Num literal
-  NumE     :: INum                             -> IsoExpr (SNum n)
+  NumE     :: INum                                 -> IsoExpr (SNum n)
   -- | list literal
-  ArrayE   :: SType                            -> IsoExpr (SArray a)
+  ArrayE   :: SType                                -> IsoExpr (SArray a)
   -- | Color literal
-  ColorE   :: String                           -> IsoExpr (SColor c)
+  ColorE   :: String                               -> IsoExpr (SColor c)
   -- | negation of bool expressions
-  Negation :: IsoExpr (SBool s)                     -> IsoExpr (SBool b)
+  Negation :: IsoExpr (SBool s)                    -> IsoExpr (SBool b)
   -- | addition
-  AddE     :: [ArgType (SNum n)]                    -> IsoExpr a
+  AddE     :: [ArgType (SNum n)]                   -> IsoExpr a
   -- | product
-  ProdE    :: [ArgType (SNum n)]                    -> IsoExpr a
+  ProdE    :: [ArgType (SNum n)]                   -> IsoExpr a
   -- | subtraction
   SubE     :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | division

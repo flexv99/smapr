@@ -7,16 +7,12 @@ module Style.Layers.Line where
 
 import Data.Text (toLower)
 import qualified Data.Aeson as A
-import qualified Data.Aeson.Types as A
-import qualified Data.Aeson.Text as A
 import qualified Diagrams.Attributes as D
 import Data.Colour
-import GHC.Enum
 import Control.Lens
-import Text.Megaparsec
+import Style.Layers.Util
 import Style.Parser
 import Style.ExpressionsWrapper
-import Style.IsoExpressions
 
 -- - Butt: A cap with a squared-off end which is drawn to the exact endpoint of the line.
 -- - CRound: A cap with a rounded end which is drawn beyond the endpoint of the line at a radius of one-half of the line's width and centered on the endpoint of the line.
@@ -41,27 +37,6 @@ instance A.FromJSON D.LineJoin where
     "miter" -> return D.LineJoinMiter
     _       -> error "[Fatal] invalid line-join enum type"
 
--- - Visible: The layer is shown.
--- - None: The layer is not shown.
--- defaults to Visible
-data Visibility = Visible | None deriving (Enum, Eq, Show)
-
-instance A.FromJSON Visibility where
-  parseJSON = A.withText "Visibility" $ \t -> case toLower t of
-    "visible" -> return Visible
-    "none"    -> return None
-    _         -> return Visible
-
--- - Map: The line is translated relative to the map.
--- - Viewport: The line is translated relative to the viewport.
--- defaults to Map
-data LineTranslateAnchor = Map | Viewport deriving (Enum, Eq, Show)
-
-instance A.FromJSON LineTranslateAnchor where
-  parseJSON = A.withText "LineTranslateAnchor" $ \t -> case toLower t of
-    "map"      -> return Map
-    "viewport" -> return Viewport
-    _          -> return Map 
 
 newtype ResolvedImage = ResolvedImage
   { iconImage :: [[String]] } deriving (Show, Eq)
@@ -71,15 +46,15 @@ instance A.FromJSON ResolvedImage where
 
 data LineS = LineS
   { _lineCap             :: D.LineCap
-  , _lineJoin            :: Maybe D.LineJoin
-  , _lineMiterLimit      :: WrappedExpr     -- defaults to 2
-  , _lineRoundLimit      :: WrappedExpr     -- defaults to 1.05
+  , _lineJoin            :: D.LineJoin
+  , _lineMiterLimit      :: WrappedExpr     -- defaults to 2, interpolate support
+  , _lineRoundLimit      :: WrappedExpr     -- defaults to 1.05, interpolate support
   , _lineSortKey         :: Maybe WrappedExpr
   , _visibility          :: Visibility      -- defaults to Visible
-  , _lineOpacity         :: WrappedExpr     -- defaults to 1
-  , _lineColor           :: SType           -- defaults to #000000
+  , _lineOpacity         :: WrappedExpr     -- defaults to 1, interpolate support
+  , _lineColor           :: SType           -- defaults to #000000, TODO interpolate support
   , _lineTranslate       :: WrappedExpr     -- defaults to [0, 0]
-  , _lineTranslateAnchor :: Maybe LineTranslateAnchor
+  , _lineTranslateAnchor :: TranslateAnchor -- defaults to Map
   , _lineWidth           :: WrappedExpr     -- defaults to 1
   , _lineGapWidth        :: WrappedExpr     -- defaults to 0
   , _lineOffset          :: WrappedExpr     -- defaults to 0
@@ -93,7 +68,7 @@ makeLenses ''LineS
 instance A.FromJSON LineS where
   parseJSON = A.withObject "LineS" $ \t -> LineS
     <$> t A..:? "line-cap" A..!= D.LineCapButt
-    <*> t A..:? "line-join"
+    <*> t A..:? "line-join" A..!= D.LineJoinMiter
     <*> (t A..:? "line-miter-limit" >>= expr) A..!= wrap (IsoArg $ IntE 2)
     <*> (t A..:? "line-round-limit" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.05)
     <*> (t A..:? "line-sort-key" >>= expr)
@@ -101,7 +76,7 @@ instance A.FromJSON LineS where
     <*> (t A..:? "line-opacity" >>= expr) A..!= wrap (IsoArg $ IntE 1)
     <*> (t A..:? "line-color" >>= color) A..!= SColor (black `withOpacity` 1)
     <*> (t A..:? "line-translate" >>= expr) A..!= wrap (IsoArg $ ArrayE $ SArray [SNum $ SInt 0, SNum $ SInt 0])
-    <*> t A..:? "line-translate-anchor"
+    <*> t A..:? "line-translate-anchor" A..!= Map
     <*> (t A..:? "line-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 1.0)
     <*> (t A..:? "line-gap-width" >>= expr) A..!= wrap (IsoArg $ DoubleE 0.0)
     <*> (t A..:? "line-offset" >>= expr) A..!= wrap (IsoArg $ DoubleE 0.0)
@@ -109,15 +84,3 @@ instance A.FromJSON LineS where
     <*> (t A..:? "line-dash-array" >>= expr)
     <*> t A..:? "line-pattern"
     <*> (t A..:? "line-gradient" >>= expr)
-    where
-      expr :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
-      expr  (Just v) = case parse (try interpolateP <|> numRetExprP) "" (A.encodeToLazyText v) of
-                                   Left err  -> fail $ errorBundlePretty err
-                                   Right res -> pure $ Just $ wrap res
-      expr Nothing   = pure Nothing
-      color :: Maybe A.Value -> A.Parser (Maybe SType)
-      color (Just v) = case parse pColor "" (A.encodeToLazyText v) of
-                                   Left err  -> fail $ errorBundlePretty err
-                                   Right res -> pure $ Just res
-      color Nothing  = pure Nothing
-

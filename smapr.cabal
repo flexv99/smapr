@@ -44,6 +44,9 @@ library
                     , Style.ExpressionsEval
                     , Style.ExpressionsContext
                     , Style.Layers.Line
+                    , Style.Layers.Fill
+                    , Style.Layers.Wrapper
+                    , Style.Layers.Util
                     , Util
                     , ApiClient
 
