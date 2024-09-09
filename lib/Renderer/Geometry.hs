@@ -47,7 +47,7 @@ constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
 constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
   where
     create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 14 ) (features l')
+    create l' = fmap (\f -> ExpressionContext f l' 19 ) (features l')
 constructCtx S.Empty      = S.empty
 
 toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
