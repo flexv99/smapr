@@ -5,17 +5,9 @@ module Decoder.Geometry
   , LineG(..)
   , MapGeometry(..) ) where
 
-import Data.Bits
-import Control.Monad
-import GHC.Float (int2Double)
-import GHC.Word
 import Data.Foldable
-import qualified Data.Sequence as S
-import Proto.Vector_tile
 import Proto.Vector_tile.Tile.GeomType
-import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
-import qualified Data.Aeson as A
 import Decoder.Polygons
 import Decoder.Lines
 

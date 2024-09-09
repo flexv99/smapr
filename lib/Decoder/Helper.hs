@@ -110,6 +110,13 @@ data PolygonG = PolygonG
 
 makeLenses ''PolygonG
 
+instance A.ToJSON PolygonG where
+  toJSON (PolygonG pMoveTo' pLineTo' pClosePath') =
+        A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo', "close_path" A..= pClosePath']
+
+  toEncoding (PolygonG pMoveTo' pLineTo' pClosePath') =
+        A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo' <> "close_path" A..= pClosePath'
+
 data LineG = LineG
   { _lMoveTo :: GeoAction
   , _lLineTo :: GeoAction
@@ -117,6 +124,13 @@ data LineG = LineG
   deriving (Show, Eq)
 
 makeLenses ''LineG
+
+instance A.ToJSON LineG where
+  toJSON (LineG pMoveTo' pLineTo') =
+        A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo']
+
+  toEncoding (LineG pMoveTo' pLineTo') =
+        A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo'
 
 data PointG = PointG
   { _pMoveT :: GeoAction

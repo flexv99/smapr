@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE KindSignatures #-}
@@ -10,17 +9,19 @@ module Style.Poc where
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.Text.Lazy as T
-import qualified Data.Sequence as S
+import qualified Diagrams.Prelude as D
+import qualified Diagrams.Backend.SVG as D
+import Util
+import Data.Colour.SRGB
 import GHC.Generics
+import Data.Maybe
 import Style.Parser
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
-import Style.ExpressionsContext
+import Proto.Vector_tile.Tile
 import ApiClient
-import Proto.Vector_tile.Tile.Layer (Layer(..))
-import Proto.Vector_tile.Tile (Tile(..))
 import Proto.Util
+import Renderer.Geometry
 import Style.Layers.Wrapper
 
 
@@ -48,29 +49,26 @@ waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmapti
 transportationLayerStyle :: B.ByteString
 transportationLayerStyle = "{\"id\":\"road_trunk_primary\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"transportation\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"class\"],[\"primary\",\"trunk\"],true,false]],\"layout\":{\"line-cap\":\"round\",\"line-join\":\"round\"},\"paint\":{\"line-color\":\"#fff\",\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],6,0.5,20,30]}}"
 
+buildingsLayerStyle :: B.ByteString
+buildingsLayerStyle = "{\"id\":\"building\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"building\",\"paint\":{\"fill-antialias\":true,\"fill-color\":\"rgba(222,211,190,1)\",\"fill-opacity\":[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,15,1],\"fill-outline-color\":[\"interpolate\",[\"linear\"],[\"zoom\"],15,\"rgba(212,177,146,0)\",16,\"rgba(212,177,146,0.5)\"]}}"
+
+testLayers :: [B.ByteString]
+testLayers = [waterLayerStyle, transportationLayerStyle, buildingsLayerStyle]
+
 evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
 evalTester expr =
   testLayerAndFeature >>= (\ctx -> return (eval <$> expr <*> ctx))
 
-evalLayer :: SLayer -> ExpressionContext -> SType
-evalLayer (SLayer {lfilter = fltr}) = eval $ wrap fltr
+renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
+renderStyles sts' t =
+  let stile   = A.decode sts' :: Maybe SLayer
+      tbD     = toBeDrawn t <$> stile
+  in (renderLayer . paint <$> stile) <*> tbD
 
-constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
-constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
-  where
-    create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 14 ) (features l')
-constructCtx S.Empty      = S.empty
-
-toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
-toBeDrawn t s = fmap (S.filter (unwrapSBool . evalLayer s)) constructCtx layers'
-  where
-   layers' = getLayers (T.unpack $ sourceLayer s) t
-
--- test :: IO ()
--- test = do
---   t <- fakerTile
---   let stile   = A.decode transportationLayerStyle :: Maybe SLayer
---   let tbD     = toBeDrawn <$> t <*> stile
---   let diagram = D.bg D.lightblue <$> ((renderLayer . paint <$> stile) <*> tbD)
---   maybe (putStrLn "Nothing") writeSvg diagram
+test :: IO ()
+test = do
+  t <- fakerTile
+  let renderedLayers = catMaybes $ mapMaybe (\x -> renderStyles x <$> t) testLayers
+  let diagram = D.bg (sRGB24 232 229 216) (foldl1 D.atop renderedLayers)
+  writeSvg diagram
+  -- maybe (putStrLn "Nothing") writeSvg diagram

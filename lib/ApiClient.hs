@@ -76,15 +76,6 @@ tileFeatures :: Tile -> [[Word32]]
 tileFeatures t = map (toList . geometry) $ head
                  $ map (toList . features) $ toList $ layers t
 
-getLayers :: String -> Tile -> S.Seq Layer
-getLayers lName t = S.filter (\x -> uToString (name x) == lName)
-                    $ layers t
-
-filterLayerByName :: String -> Tile -> [[Word32]]
-filterLayerByName lName t = map (toList . geometry)
-                            $ head $ map (toList . features) $ toList
-                                  $ getLayers lName t
-
 fakerTile :: IO (Maybe Tile)
 fakerTile = do
   conf <- smaprConfig

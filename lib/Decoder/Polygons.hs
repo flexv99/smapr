@@ -3,28 +3,20 @@
 module Decoder.Polygons
   ( decPolygon
   , PolygonG(..)
-  , Point(..)
+  , Point
   , GeoAction(..)
   ) where
 
 import Decoder.Helper
-import qualified Data.Aeson as A
 import Data.List
 import Control.Lens
-
-instance A.ToJSON PolygonG where
-  toJSON (PolygonG pMoveTo pLineTo pClosePath) =
-        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo, "close_path" A..= pClosePath]
-
-  toEncoding (PolygonG pMoveTo pLineTo pClosePath) =
-        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo <> "close_path" A..= pClosePath
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
-    singleDecoder (l:ls) = GeoAction
-      { _command = decodeCommand l
-      , _parameters = tuplify $ map decodeParam ls
+    singleDecoder l = GeoAction
+      { _command = decodeCommand (head l)
+      , _parameters = tuplify $ map decodeParam (tail l)
       }
 
 absolutePolygonG :: PolygonG -> PolygonG
@@ -67,22 +59,18 @@ decPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . dec
 -- |6 1|    |1 2|   |2  6|
 -- res is negative: inner polygon
 
-testPolygon :: [Int]
-testPolygon = [9,0,0,26,20,0,0,20,19,0,15,9,22,2,26,18,0,0,18,17,0,15,9,4,13,26,0,8,8,0,0,7,15]
-
-testShoelace :: [Point]
-testShoelace = [(1, 6), (3, 1), (7, 2), (4, 4), (8, 5)]
-
 polygonParams :: PolygonG -> [Point]
-polygonParams (PolygonG pMoveTo pLineTo pClosePath) = concat [view parameters pMoveTo, view parameters pLineTo, view parameters pClosePath]
+polygonParams (PolygonG pMoveTo' pLineTo' pClosePath') = concat [ pMoveTo' ^. parameters
+                                                                , pLineTo' ^. parameters
+                                                                , pClosePath' ^. parameters]
 
 shoelace :: [Point] -> Double
 shoelace p = sh' p / 2
   where
     sh' []                       = 0.0
-    sh' [x]                      = shoelaceStep x fst
+    sh' [x]                      = shoelaceStep x fst'
     sh' (x:x':xs)                = shoelaceStep x x' +  sh' (x':xs)
-    fst                          = head p
+    fst'                         = head p
     shoelaceStep (x, y) (x', y') = (x * y') - (y * x')
 
 isInner :: PolygonG -> Bool

@@ -3,28 +3,20 @@
 module Decoder.Lines (
   decLine
   , LineG(..)
-  , Point(..)
+  , Point
   , GeoAction(..)
   ) where
 
 import Decoder.Helper
-import qualified Data.Aeson as A
 import Data.List
 import Control.Lens
-
-instance A.ToJSON LineG where
-  toJSON (LineG pMoveTo pLineTo) =
-        A.object ["move_to" A..= pMoveTo, "line_to" A..= pLineTo]
-
-  toEncoding (LineG pMoveTo pLineTo) =
-        A.pairs $ "move_to" A..= pMoveTo <> "line_to" A..= pLineTo
 
 decodeLineCommands :: [Int] -> [[GeoAction]]
 decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
   where
-    singleDecoder (l:ls) = GeoAction
-      { _command = decodeCommand l
-      , _parameters = tuplify $ map decodeParam ls
+    singleDecoder l = GeoAction
+      { _command = decodeCommand (head l)
+      , _parameters = tuplify $ map decodeParam (tail l)
       }
 
 absoluteLineG :: LineG -> LineG
@@ -32,7 +24,6 @@ absoluteLineG p = set (lLineTo . parameters) progSumLineTo p
   where
     sumMoveTo     = foldl1 sumTuple $ view (lMoveTo . parameters) p
     progSumLineTo = tail $ scanl sumTuple sumMoveTo $ view (lLineTo . parameters) p
-    closePath     = last $ view (lMoveTo . parameters) p
 
 relativeMoveTo :: [LineG] -> [LineG]
 relativeMoveTo = f []
