@@ -56,7 +56,7 @@ evalIsoExpr (EqE o t)            ctx = stypeEq (eval o ctx) (eval t ctx)
 evalIsoExpr (AtE a i)            ctx = stypeIn a (evalNumExpr i ctx)
 evalIsoExpr (AllE v)             ctx = stypeAll v ctx
 evalIsoExpr (MatchE m v)         ctx = stypeMatch (eval m ctx) v
-evalIsoExpr (InterpolateE t e a) ctx = stypeInterpolate t (eval (wrap e) ctx) (map (\(a', b) -> (a', eval (wrap b) ctx)) a)
+evalIsoExpr (InterpolateE t e a) ctx = stypeInterpolate t (eval (wrap e) ctx) (map (\(a', b) -> (a', eval b ctx)) a)
 evalIsoExpr _                    _   = undefined
 
 evalFeatureExpr :: FeatureExpr a -> ExpressionContext -> SType

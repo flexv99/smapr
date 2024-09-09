@@ -3,22 +3,22 @@ module Renderer.Geometry where
 import qualified Data.Sequence as S
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
+import qualified Data.Text.Lazy as T
 import Control.Lens
+import GHC.Word
 import Data.Foldable
+import Proto.Util
+import Proto.Vector_tile.Tile
+import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Style.ExpressionsContext
-import Style.Layers.Line
+import Style.ExpressionsEval
+import Style.Layers.Wrapper
 import Renderer.Lines
 import Renderer.Polygons
 import Decoder.Geometry
 
-drawTour :: [D.P2 Double] -> D.Diagram D.B
-drawTour tour = tourPoints <> D.strokeP tourPath
-  where
-    tourPath = D.fromVertices tour
-    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-    dot = D.circle 0.05 D.# D.lc D.blue
 
 {-
 fromVertices returns an instance of TrailLike
@@ -31,14 +31,27 @@ on this type we can then apply our line appearence properties
 moveTo will determine where the origin is set
 -}
 
-featureToDiagram :: LineS -> ExpressionContext -> D.Diagram D.B
-featureToDiagram style ctx = case featureGeometryType ctx of
-                          Just LINESTRING -> foldl1 D.atop $ map (drawLine style ctx . lineToPoints) (decode' path :: [LineG])
-                          Just POLYGON    -> foldl1 D.atop $ map (drawTour . polygonToPoints) (decode' path :: [PolygonG])
-                          _               -> D.strutX 0
-  where
-    path      = geometry (ctx ^. feature)
-    decode' g = decode $ map fromIntegral $ toList g
+featureToDiagram :: Paint -> ExpressionContext -> D.Diagram D.B
+featureToDiagram (LinePaint l) ctx = foldl1 D.atop $ map (drawLine l ctx . lineToPoints) (decode' (geometry (ctx ^. feature)) :: [LineG])
+featureToDiagram (FillPaint f) ctx = foldl1 D.atop $ map (drawPolygon f ctx . polygonToPoints) (decode' (geometry (ctx ^. feature)) :: [PolygonG])
 
-renderLayer :: LineS -> S.Seq ExpressionContext -> D.Diagram D.B
+decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
+decode' g = decode $ map fromIntegral $ toList g
+
+renderLayer :: Paint -> S.Seq ExpressionContext -> D.Diagram D.B
 renderLayer style f = D.reflectY (foldl1 D.atop $ fmap (featureToDiagram style) f)
+
+
+-- TODO fix zoom
+constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
+constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
+  where
+    create :: Layer -> S.Seq ExpressionContext
+    create l' = fmap (\f -> ExpressionContext f l' 14 ) (features l')
+constructCtx S.Empty      = S.empty
+
+toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
+toBeDrawn t s = fmap (S.filter (unwrapSBool . evalLayer s)) constructCtx layers'
+  where
+   layers' = getLayers (T.unpack $ sourceLayer s) t
+

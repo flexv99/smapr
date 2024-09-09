@@ -44,7 +44,7 @@ data IsoExpr :: SType -> Type where
   -- | list literal
   ArrayE   :: SType                                -> IsoExpr (SArray a)
   -- | Color literal
-  ColorE   :: String                               -> IsoExpr (SColor c)
+  ColorE   :: SType                               -> IsoExpr (SColor c)
   -- | negation of bool expressions
   Negation :: IsoExpr (SBool s)                    -> IsoExpr (SBool b)
   -- | addition
@@ -65,8 +65,8 @@ data IsoExpr :: SType -> Type where
   MatchE   :: WrappedExpr -> MatchArg              -> IsoExpr a
   -- | interpolate expr
   InterpolateE :: InterpolationType
-    -> ArgType (SNum a)
-    -> [(SType, ArgType (SNum a))]                 -> IsoExpr (SNum n)
+    -> ArgType (SNum i)
+    -> [(SType, WrappedExpr)]                      -> IsoExpr a
   
 deriving instance Show (IsoExpr res)
 
@@ -86,6 +86,7 @@ data WrappedExpr where
   NumExpr      :: ArgType (SNum a)    -> WrappedExpr
   BoolExpr     :: ArgType (SBool b)   -> WrappedExpr
   ArrayExpr    :: ArgType (SArray a)  -> WrappedExpr
+  ColorExpr    :: ArgType (SColor c)  -> WrappedExpr
   
 
 deriving instance Show WrappedExpr
@@ -112,6 +113,9 @@ instance KnownResType (SBool b) where
 
 instance KnownResType (SArray a) where
   wrap  = ArrayExpr
+
+instance KnownResType (SColor c) where
+  wrap = ColorExpr
 
 -- Helper types
 type ToBeMatched = (SType, SType)

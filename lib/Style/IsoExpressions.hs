@@ -37,6 +37,9 @@ numExprP = NumE <$> (try doubleLitP <|> intLitP)
 boolExprP :: Parser (IsoExpr (SBool b))
 boolExprP = BoolE <$> pBool <* hidden space
 
+colorExprP :: Parser (IsoExpr (SColor c))
+colorExprP = ColorE <$> pColor <* hidden space
+
 arrayExprP :: Parser (IsoExpr (SArray a))
 arrayExprP = ArrayE <$> arrayLitP <* hidden space
 
@@ -143,11 +146,11 @@ interpolateP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   IsoArg . InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
     where
-      inOutPairs :: Parser (SType, ArgType (SNum n))
+      inOutPairs :: Parser (SType, WrappedExpr)
       inOutPairs = do
         num1 <- numberLitP
         _ <- char ',' >> space
-        num2 <- numRetExprP <|> IsoArg <$> numExprP
+        num2 <- (wrap . IsoArg <$> colorExprP) <|> (wrap <$> numRetExprP) <|> (wrap . IsoArg <$> numExprP)
         return (num1, num2)
 
 

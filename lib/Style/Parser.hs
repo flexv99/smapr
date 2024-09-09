@@ -230,8 +230,8 @@ pRgbaColor = betweenDoubleQuotes $ do
     _ <- char ',' >> space
     b       <- fromIntegral <$> pInteger
     _ <- char ',' >> space
-    opacity <- pDouble
-    return $ SColor $ sRGB24 r g b `withOpacity` opacity
+    opacity <- numberLitINumP
+    return $ SColor $ sRGB24 r g b `withOpacity` numToDouble opacity
 
 expandShortHex :: String -> String
 expandShortHex hex
