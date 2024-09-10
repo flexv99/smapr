@@ -8,7 +8,7 @@ module Util
   , writeSvg
   , Sconf(..)
   , LocalApi(..)
-  , NextzenApi(..)
+  , MTApi(..)
   ) where
 
 import GHC.Generics (Generic)
@@ -21,18 +21,19 @@ import qualified Diagrams.Backend.SVG as D
 
 data LocalApi = LocalApi
   { localBaseUrl :: String
-  , linesPath :: String
+  , path        :: String
+  , format'      :: String
   } deriving (Show, Generic)
 
-data NextzenApi = NextzenApi
+data MTApi = MTApi
   { nBaseUrl :: String
-  , apiKey :: String
-  , format :: String
+  , apiKey   :: String
+  , format   :: String
   } deriving (Show, Generic)
 
 data Sconf = Sconf
-  { localApi :: LocalApi
-  , nextzenApi :: NextzenApi
+  { localApi     :: LocalApi
+  , mtApi   :: MTApi
   , testTilePath :: String
   , testDestinationPath :: String
   } deriving (Show, Generic)
@@ -40,20 +41,21 @@ data Sconf = Sconf
 makeLocalApiConf :: C.Config -> IO (Maybe LocalApi)
 makeLocalApiConf conf = do
   localBaseUrl'   <- C.lookup conf "api.base_url" :: IO (Maybe String)
-  linesPath'      <- C.lookup conf "api.lines_path" :: IO (Maybe String)
-  return $ LocalApi <$> localBaseUrl' <*> linesPath'
+  path'           <- C.lookup conf "api.path" :: IO (Maybe String)
+  suffix          <- C.lookup conf "api.format" :: IO (Maybe String)
+  return $ LocalApi <$> localBaseUrl' <*> path' <*> suffix 
 
-makeNextzenApiConf :: C.Config -> IO (Maybe NextzenApi)
+makeNextzenApiConf :: C.Config -> IO (Maybe MTApi)
 makeNextzenApiConf conf = do
-  nBaseUrl'   <- C.lookup conf "nextzen_api.base_url" :: IO (Maybe String)
-  apiKey'     <- C.lookup conf "nextzen_api.api_key" :: IO (Maybe String)
-  format'     <- C.lookup conf "nextzen_api.format" :: IO (Maybe String)
-  return $ NextzenApi <$> nBaseUrl' <*> apiKey' <*> format'
+  nBaseUrl'   <- C.lookup conf "maptiler_api.base_url" :: IO (Maybe String)
+  apiKey'     <- C.lookup conf "maptiler_api.api_key" :: IO (Maybe String)
+  format'     <- C.lookup conf "maptiler_api.format" :: IO (Maybe String)
+  return $ MTApi <$> nBaseUrl' <*> apiKey' <*> format'
 
 makeSconf :: C.Config -> IO (Maybe Sconf)
 makeSconf conf = do
   localApi'             <- makeLocalApiConf conf :: IO (Maybe LocalApi)
-  nextzenApi'           <- makeNextzenApiConf conf :: IO (Maybe NextzenApi)
+  nextzenApi'           <- makeNextzenApiConf conf :: IO (Maybe MTApi)
   testDestinationPath'  <- C.lookup conf "test_dest_path" :: IO (Maybe String)
   testTilePath'         <- C.lookup conf "test_tile_path" :: IO (Maybe String)
   return $ Sconf <$> localApi'

@@ -71,7 +71,7 @@ l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\
 
 
 testLayers :: [B.ByteString]
-testLayers = [waterLayerStyle, transportationLayerStyle, l1, l2, l3]--, buildingsLayerStyle]
+testLayers = [waterLayerStyle, transportationLayerStyle, l1, l2, l3, buildingsLayerStyle]
 
 testEval :: String -> WrappedExpr -> Tile -> [SType]
 testEval layer expr t = map (eval expr) ctxs
@@ -87,7 +87,7 @@ renderStyles sts' t =
 
 test :: IO ()
 test = do
-  t <- getTile (Coord 46.611106 11.895304 7)
+  t <- getMTTile (Coord 46.611106 11.895304 14)
   let renderedLayers = catMaybes $ mapMaybe (\x -> renderStyles x <$> t) testLayers
   let diagram = D.bg (sRGB24 232 229 216) (foldl1 D.atop renderedLayers)
   writeSvg diagram

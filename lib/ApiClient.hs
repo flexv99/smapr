@@ -32,16 +32,17 @@ lat2tileY :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lat2tileY lat' z = floor((1.0 - log(tan(lat' * pi / 180.0) + 1.0 / cos(lat' * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
 
 tilerequestUrl :: LocalApi -> Coord -> String
-tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y
+tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y ++ suffix
   where
-    base = localBaseUrl l ++ linesPath l
+    suffix = "." ++ format' l
+    base = localBaseUrl l ++ path l
     x = show (lon2tileX (lon c) (rZoom c) :: Int)
     y = show (lat2tileY (lat c) (rZoom c) :: Int)
 
-nextzenTileUrl :: NextzenApi -> Coord -> String
-nextzenTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y ++ suffix
+mTTileUrl :: MTApi -> Coord -> String
+mTTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y ++ suffix
   where
-    suffix = "." ++ format n ++ "?api_key=" ++ apiKey n
+    suffix = "." ++ format n ++ "?key=" ++ apiKey n
     x = show (lon2tileX (lon c) (rZoom c) :: Int)
     y = show (lat2tileY (lat c) (rZoom c) :: Int)
 
@@ -59,17 +60,17 @@ getTileUnserialized c = do
   conf <- smaprConfig
   get (tilerequestUrl (localApi conf) c)
 
-getNextzenTileUnserialized :: Coord -> IO (Response ByteString)
-getNextzenTileUnserialized c = do
+getMTTileUnserialized :: Coord -> IO (Response ByteString)
+getMTTileUnserialized c = do
   conf <- smaprConfig
-  get (nextzenTileUrl (nextzenApi conf) c)
+  get (mTTileUrl (mtApi conf) c)
 
 getTile :: Coord -> IO (Maybe Tile)
 getTile c = getTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
 
-getNextzenTile :: Coord -> IO (Maybe Tile)
-getNextzenTile c = getNextzenTileUnserialized c >>=
+getMTTile :: Coord -> IO (Maybe Tile)
+getMTTile c = getMTTileUnserialized c >>=
   (\t -> return (transformRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]

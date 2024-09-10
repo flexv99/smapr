@@ -8,12 +8,13 @@ Config structure. For smapr.cfg:
 api {
 	base_url = "tile server host"
 	lines_path = "feature's path"
+        format = "pbf"
 }
 
-nextzen_api {
-        base_url = "https://tile.nextzen.org/tilezen/vector/v1/512/all/"
+maptiler_api {
+        base_url = "https://api.maptiler.com/tiles/v3-openmaptiles/"
         api_key = "your API key"
-        format = "supports only mvt"
+        format = "supports only pbf"
 }
 
 test_dest_path = "absolute path"
