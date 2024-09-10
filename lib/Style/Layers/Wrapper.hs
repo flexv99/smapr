@@ -49,7 +49,7 @@ instance A.FromJSON SLayer where
     where
       fexpr :: Maybe A.Value -> A.Parser (Maybe (ArgType (SBool b)))
       fexpr Nothing = pure Nothing
-      fexpr (Just v) = case parse allP "" (A.encodeToLazyText v) of
+      fexpr (Just v) = case parse (try allP <|> try eqP) "" (A.encodeToLazyText v) of
           Left err  -> fail $ errorBundlePretty err
           Right res -> pure $ Just res
       paintP t = A.withObject "Paint" $ \v -> do

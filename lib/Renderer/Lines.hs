@@ -36,8 +36,7 @@ drawLine style ctx tour = D.moveTo (head tour)
   (tourPath D.# D.strokeLine
    D.# D.lcA color
    D.# D.lwG stroke
-   D.# lineP
-   D.# D.showOrigin)
+   D.# lineP)
   where
     lineP :: forall {c}. D.HasStyle c => c -> c
     lineP    = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)

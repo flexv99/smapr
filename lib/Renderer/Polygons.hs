@@ -37,7 +37,9 @@ polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo 
     toDPoint = map geoMetryPointToDPoint
 
 drawPolygon :: FillS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
-drawPolygon style ctx tour = D.strokeP tourPath D.# D.fcA color 
+drawPolygon style ctx tour = D.strokeLocLoop tourPath
+  D.# D.fcA color
+  D.# D.lcA color
   where
     color = unwrapSColor (style ^. fillColor)
     tourPath = D.fromVertices tour
