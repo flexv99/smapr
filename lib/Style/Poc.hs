@@ -11,6 +11,9 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Internal as B
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.Backend.SVG as D
+import qualified Data.Sequence as S
+import Data.Foldable
+import Control.Monad
 import Util
 import Text.Megaparsec
 import Data.Colour.SRGB
@@ -19,8 +22,12 @@ import Data.Maybe
 import Style.Parser
 import Style.ExpressionsWrapper
 import Style.ExpressionsEval
-import Proto.Vector_tile.Tile
+import Style.IsoExpressions
+import Style.FeatureExpressions
+import Style.ExpressionsContext
 import ApiClient
+import Proto.Vector_tile.Tile
+import Proto.Vector_tile.Tile.Layer
 import Proto.Util
 import Renderer.Geometry
 import Style.Layers.Wrapper
@@ -64,11 +71,13 @@ l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\
 
 
 testLayers :: [B.ByteString]
-testLayers = [waterLayerStyle, transportationLayerStyle, buildingsLayerStyle, l1, l2, l3]
+testLayers = [waterLayerStyle, transportationLayerStyle, l1, l2, l3]--, buildingsLayerStyle]
 
-evalTester :: Maybe WrappedExpr -> IO (Maybe SType)
-evalTester expr =
-  testLayerAndFeature >>= (\ctx -> return (eval <$> expr <*> ctx))
+testEval :: String -> WrappedExpr -> Tile -> [SType]
+testEval layer expr t = map (eval expr) ctxs
+  where
+    layers = getLayers layer t
+    ctxs = toList $ constructCtx layers
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
@@ -78,7 +87,7 @@ renderStyles sts' t =
 
 test :: IO ()
 test = do
-  t <- getTile (Coord 46.4953588 11.3375709 14)
+  t <- getTile (Coord 46.611106 11.895304 7)
   let renderedLayers = catMaybes $ mapMaybe (\x -> renderStyles x <$> t) testLayers
   let diagram = D.bg (sRGB24 232 229 216) (foldl1 D.atop renderedLayers)
   writeSvg diagram

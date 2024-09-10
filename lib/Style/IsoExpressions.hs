@@ -204,7 +204,7 @@ stypeEq (SNum i)    (SNum j)    = SBool $ i == j
 stypeEq (SString i) (SString j) = SBool $ T.toCaseFold i == T.toCaseFold j
 stypeEq (SBool i)   (SBool j)   = SBool $ i == j
 stypeEq (SArray i)  (SArray j)  = SBool $ i == j
-stypeEq _ _                     = error "eq on not supported types"
+stypeEq _ _                     = SBool False
 
 -- | in & !in
 stypeIn :: SType -> SType -> SType
