@@ -1,4 +1,4 @@
-# SMAPR
+# SMAPR - recreational project
 ## Svg map renderer
 
 Goal is to render MapBox [Vector tiles](https://github.com/mapbox/vector-tile-spec/blob/master/2.1/README.md) as SVG.
