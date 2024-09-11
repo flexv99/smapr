@@ -1,24 +1,23 @@
 module Renderer.Geometry where
 
+import Control.Lens
+import Data.Foldable
 import qualified Data.Sequence as S
+import qualified Data.Text.Lazy as T
+import Decoder.Geometry
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
-import qualified Data.Text.Lazy as T
-import Control.Lens
 import GHC.Word
-import Data.Foldable
 import Proto.Util
 import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
+import Proto.Vector_tile.Tile.Layer
+import Renderer.Lines
+import Renderer.Polygons
 import Style.ExpressionsContext
 import Style.ExpressionsEval
 import Style.Layers.Wrapper
-import Renderer.Lines
-import Renderer.Polygons
-import Decoder.Geometry
-
 
 {-
 fromVertices returns an instance of TrailLike
@@ -39,19 +38,18 @@ decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decode' g = decode $ map fromIntegral $ toList g
 
 renderLayer :: Paint -> S.Seq ExpressionContext -> D.Diagram D.B
+renderLayer _ S.Empty = D.strutX 0
 renderLayer style f = D.reflectY (foldl1 D.atop $ fmap (featureToDiagram style) f)
-
 
 -- TODO fix zoom
 constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
 constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
   where
     create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 19 ) (features l')
-constructCtx S.Empty      = S.empty
+    create l' = fmap (\f -> ExpressionContext f l' 19) (features l')
+constructCtx S.Empty = S.empty
 
 toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
 toBeDrawn t s = fmap (S.filter (unwrapSBool . evalLayer s)) constructCtx layers'
   where
-   layers' = getLayers (T.unpack $ sourceLayer s) t
-
+    layers' = getLayers (T.unpack $ sourceLayer s) t
