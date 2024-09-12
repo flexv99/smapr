@@ -61,6 +61,8 @@ data IsoExpr :: SType -> Type where
   OrdE :: OrdType -> ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SBool b)
   -- | element at index
   AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
+  -- | checks if element is in an array or string
+  InE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | all expr
   AllE :: [ArgType (SBool b)] -> IsoExpr (SBool b)
   -- | match expr

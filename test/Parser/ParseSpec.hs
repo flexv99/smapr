@@ -77,6 +77,14 @@ spec = do
     it "can parse and return element at index of a list" $ do
       ctx <- testLayerAndFeature
       (eval . wrap <$> (parseMaybe atP "[\"at\", [\"a\", \"bc\", \"tre\"], 1]" :: Maybe (ArgType ('SString s))) <*> ctx) `shouldBe` Just (SString "bc")
+  describe "Style.Expressions.inP" $ do
+    it "can parse and evaluate in expressions" $ do
+      ctx <- testLayerAndFeature
+      (eval . wrap <$> parseMaybe inP "[\"in\", 1, [9, 8, 7]]" <*> ctx) `shouldBe` Just (SBool False)
+  describe "Style.Expressions.inP" $ do
+    it "can parse and evaluate in expressions" $ do
+      ctx <- testLayerAndFeature
+      (eval . wrap <$> parseMaybe inP "[\"in\", \"abc\", \"abcz\"]" <*> ctx) `shouldBe` Just (SBool True)
   describe "Style.FilterExpressions.fgeometryP" $ do
     it "parse geometry type function that retrieves a feature's geometry" $ do
       ctx <- testLayerAndFeature

@@ -116,6 +116,13 @@ atP = exprBaseP "at" $ do
   _ <- char ',' >> space
   IsoArg . AtE val1 . IsoArg <$> intExprP
 
+inP :: Parser (ArgType ('SBool b))
+inP = exprBaseP "in" $ do
+  val <- (wrap . IsoArg <$> numExprP) <|> (wrap . IsoArg <$> stringExprP)
+  _ <- char ',' >> space
+  traversable <- (wrap . IsoArg <$> arrayExprP) <|> (wrap . IsoArg <$> stringExprP)
+  return $ IsoArg $ InE val traversable
+
 allP :: Parser (ArgType ('SBool a))
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
@@ -242,10 +249,18 @@ stypeOrd o (SNum a) (SNum b) = SBool $ op o a b
     op GreaterEq = (>=)
 stypeOrd _ _ _ = error "ord operator works on numbers only"
 
--- | in & !in
+-- | at
+stypeAt :: SType -> SType -> SType
+stypeAt (SArray a) (SNum (SInt i)) = a !! i
+stypeAt _ _ = error "args not matching"
+
+-- | in
 stypeIn :: SType -> SType -> SType
-stypeIn (SArray a) (SNum (SInt i)) = a !! i
-stypeIn _ _ = error "args not matching"
+stypeIn (SString s) (SString t) = SBool $ s `T.isInfixOf` t
+stypeIn v t = SBool $ v `elem` toList t
+  where
+    toList (SArray a) = a
+    toList _ = error "can only unwrap an array"
 
 -- | match
 stypeMatch :: SType -> MatchArg -> SType
