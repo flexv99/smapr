@@ -31,17 +31,7 @@ filterByP =
       FProp <$> pString
     ]
 
-fInP :: Parser (ArgType ('SBool b))
-fInP = betweenSquareBrackets $ do
-  key <- betweenDoubleQuotes (string "!in" <|> string "in")
-  _ <- char ',' >> space
-  val <- filterByP
-  _ <- char ',' >> space
-  props <- SArray <$> (stringLitP `sepBy` (char ',' >> space))
-  let expr = FinE val props
-  if T.isPrefixOf "!" key then return $ FeatureArg $ NegationFe expr else return $ FeatureArg expr
-
-fgetP :: Parser (ArgType (SString s))
+fgetP :: Parser (ArgType a)
 fgetP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
@@ -54,9 +44,6 @@ fgeometryP = betweenSquareBrackets $ do
 fzoomP :: Parser (ArgType (SNum a))
 fzoomP = betweenSquareBrackets $ do
   FeatureArg FzoomE <$ betweenDoubleQuotes (string "zoom")
-
-filterParsers :: Parser (ArgType ('SBool b))
-filterParsers = choice [try fInP]
 
 evalFilterIn :: FilterBy -> SType -> ExpressionContext -> SType
 evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx

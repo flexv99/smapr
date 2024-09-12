@@ -13,11 +13,6 @@ import Style.Parser
 
 -- | AST representation of expressions requiring feature context
 data FeatureExpr :: SType -> Type where
-  StringFe :: T.Text -> FeatureExpr (SString s)
-  ArrayFe :: SType -> FeatureExpr (SArray a)
-  NegationFe :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
-  -- | in lookup
-  FinE :: FilterBy -> SType -> FeatureExpr (SBool b)
   -- | getter on feature properties
   FgetE :: SType -> FeatureExpr a
   -- | Geometry type expression for a given feature
@@ -33,40 +28,40 @@ deriving instance Show (FeatureExpr res)
 data IsoExpr :: SType -> Type where
   -- | string literal
   StringE :: T.Text -> IsoExpr (SString s)
-  -- | bool literal
-  BoolE :: Bool -> IsoExpr (SBool b)
   -- | int literal
-  IntE :: Int -> IsoExpr (SNum (SInt i))
+  IntE :: Int -> IsoExpr (SNum i)
   -- | double literal
-  DoubleE :: Double -> IsoExpr (SNum (SDouble d))
+  DoubleE :: Double -> IsoExpr (SNum i)
   -- | Num literal
   NumE :: INum -> IsoExpr (SNum n)
-  -- | list literal
-  ArrayE :: SType -> IsoExpr (SArray a)
-  -- | Color literal
-  ColorE :: SType -> IsoExpr (SColor c)
+  -- | addition
+  AddE :: [ArgType (SNum n)] -> IsoExpr (SNum n)
+  -- | product
+  ProdE :: [ArgType (SNum n)] -> IsoExpr (SNum n)
+  -- | subtraction
+  SubE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SNum n)
+  -- | division
+  DivE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SNum n)
+  -- | bool literal
+  BoolE :: Bool -> IsoExpr (SBool b)
   -- | negation of bool expressions
   Negation :: IsoExpr (SBool s) -> IsoExpr (SBool b)
-  -- | addition
-  AddE :: [ArgType (SNum n)] -> IsoExpr a
-  -- | product
-  ProdE :: [ArgType (SNum n)] -> IsoExpr a
-  -- | subtraction
-  SubE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
-  -- | division
-  DivE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | check for equaliy on polymorphic types
   EqE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | < <= > >=
   OrdE :: OrdType -> ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SBool b)
-  -- | element at index
-  AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
   -- | checks if element is in an array or string
   InE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
   -- | all expr
   AllE :: [ArgType (SBool b)] -> IsoExpr (SBool b)
+  -- | list literal
+  ArrayE :: SType -> IsoExpr (SArray a)
+  -- | Color literal
+  ColorE :: SType -> IsoExpr (SColor c)
   -- | match expr
   MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
+  -- | element at index
+  AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
   -- | interpolate expr
   InterpolateE ::
     InterpolationType ->

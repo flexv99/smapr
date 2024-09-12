@@ -24,6 +24,8 @@ eval (NumExpr (IsoArg i)) ctx = evalIsoExpr i ctx
 eval (NumExpr (FeatureArg i)) ctx = evalFeatureExpr i ctx
 eval (ArrayExpr (IsoArg a)) ctx = evalIsoExpr a ctx
 eval (ArrayExpr (FeatureArg a)) ctx = evalFeatureExpr a ctx
+eval (ColorExpr (IsoArg a)) ctx = evalIsoExpr a ctx
+eval (ColorExpr (FeatureArg a)) ctx = evalFeatureExpr a ctx
 
 evalNumExpr :: ArgType (SNum n) -> ExpressionContext -> SType
 evalNumExpr (IsoArg i) ctx = evalIsoExpr i ctx
@@ -62,12 +64,9 @@ evalIsoExpr (InterpolateE t e a) ctx = stypeInterpolate t (eval (wrap e) ctx) (m
 evalIsoExpr _ _ = undefined
 
 evalFeatureExpr :: FeatureExpr a -> ExpressionContext -> SType
-evalFeatureExpr (NegationFe e) ctx = SBool $ not $ unwrapSBool $ evalFeatureExpr e ctx
-evalFeatureExpr (FinE a b) ctx = evalFilterIn a b ctx
 evalFeatureExpr (FgetE k) ctx = evalFilterGet k ctx
 evalFeatureExpr FgeometryE ctx = evalGeometryType ctx
 evalFeatureExpr FzoomE ctx = evalZoom ctx
-evalFeatureExpr _ _ = undefined
 
 stypeAll :: [ArgType ('SBool b)] -> ExpressionContext -> SType
 stypeAll exprs ctx = SBool $ all ((\e -> unwrapSBool $ eval e ctx) . wrap) exprs
@@ -91,7 +90,3 @@ unwrapSDouble _ = error "cannot unwrap values other than Double"
 unwrapSString :: SType -> T.Text
 unwrapSString (SString s) = s
 unwrapSString _ = error "cannot unwrap values other than String"
-
---------------------------------------------------------------------------------
--- Combined Parsers
---------------------------------------------------------------------------------

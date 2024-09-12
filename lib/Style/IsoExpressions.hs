@@ -23,55 +23,20 @@ import Text.Megaparsec.Char
 
 --------------------------------------------------------------------------------
 
-stringExprP :: Parser (IsoExpr (SString s))
-stringExprP = StringE <$> pString <* hidden space
-
-intExprP :: Parser (IsoExpr (SNum (SInt i)))
-intExprP = IntE <$> pInteger <* hidden space
-
-doubleExprP :: Parser (IsoExpr (SNum (SDouble d)))
-doubleExprP = DoubleE <$> pDouble <* hidden space
-
-numExprP :: Parser (IsoExpr (SNum a))
-numExprP = NumE <$> (try doubleLitP <|> intLitP)
-
-boolExprP :: Parser (IsoExpr (SBool b))
-boolExprP = BoolE <$> pBool <* hidden space
-
-colorExprP :: Parser (IsoExpr (SColor c))
-colorExprP = ColorE <$> pColor <* hidden space
-
-arrayExprP :: Parser (IsoExpr (SArray a))
-arrayExprP = ArrayE <$> arrayLitP <* hidden space
-
-litExprChoicheP :: Parser WrappedExpr
-litExprChoicheP =
-  choice
-    [ wrap . IsoArg <$> intExprP,
-      wrap . IsoArg <$> doubleExprP,
-      wrap . IsoArg <$> boolExprP,
-      wrap . IsoArg <$> stringExprP,
-      wrap . IsoArg <$> arrayExprP
-    ]
-
--- >>> fmap evalExpr $ parseMaybe numRetExprP "[\"+\", 1, [\"/\", 1, 2]]"
--- 1.5
-numRetExprP :: Parser (ArgType (SNum a))
-numRetExprP =
+-- >>> parseMaybe arithmethicExprP "[\"+\", 1, [\"/\", 1, 2]]"
+arithmethicExprP :: Parser (ArgType (SNum a))
+arithmethicExprP =
   choice $
     map
       try
-      [ IsoArg <$> numExprP,
-        fzoomP, -- todo Move to a combined one isolate iso and feature ones
-        IsoArg . AddE <$> exprBaseP "+" (singleArgP `sepBy` (char ',' >> space)),
-        IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> singleArgP),
-        IsoArg . ProdE <$> exprBaseP "*" (singleArgP `sepBy` (char ',' >> space)),
-        IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> singleArgP)
+      [ IsoArg . AddE <$> exprBaseP "+" (numExprP `sepBy` (char ',' >> space)),
+        IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> numExprP),
+        IsoArg . ProdE <$> exprBaseP "*" (numExprP `sepBy` (char ',' >> space)),
+        IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> numExprP)
       ]
   where
-    singleArgP = (IsoArg <$> numExprP) <|> numRetExprP
     argWithComma = do
-      val <- singleArgP
+      val <- numExprP
       _ <- char ',' >> space
       return val
 
@@ -81,12 +46,11 @@ numRetExprP =
 -- true
 eqP :: Parser (ArgType ('SBool b))
 eqP = betweenSquareBrackets $ do
-  let argsP = try (wrap <$> numRetExprP) <|> try (wrap <$> fgeometryP) <|> try (wrap <$> fgetP) <|> try litExprChoicheP
   key <- betweenDoubleQuotes (string "!=" <|> string "==")
   _ <- char ',' >> space
-  arg1 <- argsP
+  arg1 <- polyExprP
   _ <- char ',' >> space
-  arg2 <- argsP
+  arg2 <- polyExprP
   let expr = EqE arg1 arg2
   if T.isPrefixOf "!" key then return $ IsoArg $ Negation expr else return $ IsoArg expr
 
@@ -103,7 +67,7 @@ ordTypeP = choice $ map try [less, lessEq, greater, greaterEq]
 
 ordP :: Parser (ArgType ('SBool b))
 ordP = betweenSquareBrackets $ do
-  let argsP = numRetExprP
+  let argsP = numExprP
   key <- ordTypeP
   _ <- char ',' >> space
   arg1 <- argsP
@@ -114,26 +78,26 @@ atP :: Parser (ArgType a)
 atP = exprBaseP "at" $ do
   val1 <- arrayLitP
   _ <- char ',' >> space
-  IsoArg . AtE val1 . IsoArg <$> intExprP
+  IsoArg . AtE val1 <$> numExprP
 
 inP :: Parser (ArgType ('SBool b))
 inP = exprBaseP "in" $ do
-  val <- (wrap . IsoArg <$> numExprP) <|> (wrap . IsoArg <$> stringExprP)
+  val <- (wrap <$> numExprP) <|> (wrap <$> stringExprP)
   _ <- char ',' >> space
-  traversable <- (wrap . IsoArg <$> arrayExprP) <|> (wrap . IsoArg <$> stringExprP)
+  traversable <- (wrap <$> arrayExprP) <|> (wrap <$> stringExprP)
   return $ IsoArg $ InE val traversable
 
 allP :: Parser (ArgType ('SBool a))
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
   _ <- char ',' >> space
-  IsoArg . AllE <$> (try (IsoArg <$> boolExprP) <|> try eqP <|> try matchP) `sepBy` (char ',' >> space)
+  IsoArg . AllE <$> boolExprP `sepBy` (char ',' >> space)
 
 matchP :: Parser (ArgType a)
 matchP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "match"
   _ <- char ',' >> space
-  expr <- wrap <$> fgetP
+  expr <- polyExprP
   _ <- char ',' >> space
   IsoArg . MatchE expr <$> matchArgsP
   where
@@ -170,13 +134,13 @@ interpolationTypeP = betweenSquareBrackets $ do
       _ <- char ',' >> space
       CubicBezier x1 x2 y1 <$> numberLitINumP
 
-interpolateP :: Parser (ArgType ('SNum n))
+interpolateP :: Parser (ArgType a)
 interpolateP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "interpolate"
   _ <- char ',' >> space
   interType <- interpolationTypeP
   _ <- char ',' >> space
-  input <- numRetExprP
+  input <- numExprP
   _ <- char ',' >> space
   IsoArg . InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
   where
@@ -184,7 +148,7 @@ interpolateP = betweenSquareBrackets $ do
     inOutPairs = do
       num1 <- numberLitP
       _ <- char ',' >> space
-      num2 <- (wrap . IsoArg <$> colorExprP) <|> (wrap <$> numRetExprP) <|> (wrap . IsoArg <$> numExprP)
+      num2 <- (wrap <$> colorExprP) <|> (wrap <$> numExprP)
       return (num1, num2)
 
 --------------------------------------------------------------------------------
@@ -312,3 +276,93 @@ numTupleToDouble [] = []
 
 interpolateNr :: (Floating a) => a -> a -> a -> a
 interpolateNr from to t = from + t * (to - from)
+
+--------------------------------------------------------------------------------
+-- Combined Parsers
+--------------------------------------------------------------------------------
+
+-- | 4all expressions that return string
+stringExprP :: Parser (ArgType (SString s))
+stringExprP =
+  choice $
+    map
+      try
+      [ IsoArg . StringE <$> pString <* hidden space,
+        -- polymorphic
+        atP,
+        matchP,
+        interpolateP,
+        fgetP,
+        fgeometryP
+      ]
+
+-- | 4all expressions that return num
+numExprP :: Parser (ArgType (SNum i))
+numExprP =
+  choice $
+    map
+      try
+      [ numP,
+        arithmethicExprP,
+        -- polymorphic
+        atP,
+        matchP,
+        interpolateP,
+        fgetP,
+        fzoomP
+      ]
+  where
+    numP = try (IsoArg . DoubleE <$> pDouble <* hidden space) <|> IsoArg . IntE <$> pInteger <* hidden space
+
+-- | 4all expressions that return bool
+boolExprP :: Parser (ArgType (SBool b))
+boolExprP =
+  choice $
+    map
+      try
+      [ IsoArg . BoolE <$> pBool <* hidden space,
+        ordP,
+        eqP,
+        inP,
+        allP,
+        -- polymorphic
+        atP,
+        matchP,
+        interpolateP,
+        fgetP
+      ]
+
+-- | 4all expressions that return array
+arrayExprP :: Parser (ArgType (SArray a))
+arrayExprP =
+  choice
+    [ IsoArg . ArrayE <$> arrayLitP <* hidden space,
+      -- polymorphic
+      atP,
+      matchP,
+      interpolateP,
+      fgetP
+    ]
+
+-- | 4all expressions that return color
+colorExprP :: Parser (ArgType (SColor a))
+colorExprP =
+  choice
+    [ IsoArg . ColorE <$> pColor <* hidden space,
+      -- polymorphic
+      atP,
+      matchP,
+      interpolateP,
+      fgetP
+    ]
+
+-- | 4all Polymorphic expressions
+polyExprP :: Parser WrappedExpr
+polyExprP =
+  choice
+    [ wrap <$> stringExprP,
+      wrap <$> numExprP,
+      wrap <$> boolExprP,
+      wrap <$> arrayExprP,
+      wrap <$> colorExprP
+    ]
