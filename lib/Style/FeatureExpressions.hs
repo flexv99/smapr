@@ -1,22 +1,21 @@
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Style.FeatureExpressions where
 
-import qualified Data.Text.Lazy as T
-import qualified Data.Map as MP
 import Control.Lens
+import qualified Data.Map as MP
 import Data.Maybe
+import qualified Data.Text.Lazy as T
+import Proto.Util
+import Style.ExpressionsContext
+import Style.ExpressionsWrapper
+import Style.Parser
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Style.Parser
-import Style.ExpressionsWrapper
-import Style.ExpressionsContext
-import Proto.Util
-
 
 typeParser :: Parser T.Text
 typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
@@ -25,10 +24,12 @@ typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
 -- | choice of possible filtering types:
 -- id, type, feature properties
 filterByP :: Parser FilterBy
-filterByP = choice [ FId <$> pInteger
-                   , try $ FTypeOf <$ typeParser
-                   , FProp <$> pString
-                   ]
+filterByP =
+  choice
+    [ FId <$> pInteger,
+      try $ FTypeOf <$ typeParser,
+      FProp <$> pString
+    ]
 
 fInP :: Parser (ArgType ('SBool b))
 fInP = betweenSquareBrackets $ do
@@ -58,17 +59,16 @@ filterParsers :: Parser (ArgType ('SBool b))
 filterParsers = choice [try fInP]
 
 evalFilterIn :: FilterBy -> SType -> ExpressionContext -> SType
-evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $  key `MP.lookup` featureProperties ctx
-evalFilterIn _           _          _   = error "second argument must be an array"
+evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx
+evalFilterIn _ _ _ = error "second argument must be an array"
 
 evalFilterGet :: SType -> ExpressionContext -> SType
 evalFilterGet (SString key) ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
-evalFilterGet _             _   = error "get property must be of type String"
+evalFilterGet _ _ = error "get property must be of type String"
 
 -- defaults to linestring if geometry cannot be retrieved from feature
 evalGeometryType :: ExpressionContext -> SType
 evalGeometryType ctx = maybe (SString "LINESTRING") SString (geometryTypeToString (ctx ^. feature))
 
--- TODO as soon as we have a context set up this needs to be properly impolemented
 evalZoom :: ExpressionContext -> SType
-evalZoom ctx = SNum (SInt (ctx ^. ctxZoom))
+evalZoom ctx = SNum (SDouble (ctx ^. ctxZoom))

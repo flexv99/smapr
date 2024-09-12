@@ -1,23 +1,24 @@
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Style.Parser where
 
-import GHC.Generics (Generic)
+import qualified Data.Aeson as A
+import Data.Colour
+import Data.Colour.RGBSpace.HSL
+import Data.Colour.SRGB
 import Data.List (singleton)
 import Data.Scientific (isFloating, toRealFloat)
 import qualified Data.Text.Internal.Lazy as T
 import qualified Data.Text.Lazy as T
-import qualified Text.Megaparsec.Char.Lexer as L
-import qualified Data.Aeson as A
 import qualified Data.Vector as V
 import Data.Void
+import GHC.Generics (Generic)
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Data.Colour
-import Data.Colour.RGBSpace.HSL
-import Data.Colour.SRGB
+import qualified Text.Megaparsec.Char.Lexer as L
 
 -- Void: The type for custom error messages. We have none, so use `Void`.
 -- T.Text: The input stream type.
@@ -45,16 +46,17 @@ instance A.FromJSON SType where
     if isFloating n
       then pure $ SNum $ SDouble (toRealFloat n)
       else pure $ SNum $ SInt (round n)
-  parseJSON (A.Bool b)   = pure $ SBool b
-  parseJSON (A.Array a)  = SArray <$> traverse A.parseJSON (V.toList a)
-  parseJSON a            = A.withText
+  parseJSON (A.Bool b) = pure $ SBool b
+  parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
+  parseJSON a =
+    A.withText
       "SType"
       ( \v ->
           case parse pAtom "" (T.fromStrict v) of
-            Left err  -> fail $ errorBundlePretty err
+            Left err -> fail $ errorBundlePretty err
             Right res -> return res
-      ) a
-  
+      )
+      a
 
 --- HELPERS
 
@@ -92,8 +94,7 @@ betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 
 numToDouble :: INum -> Double
 numToDouble (SDouble d) = d
-numToDouble (SInt i)    = fromIntegral i
-
+numToDouble (SInt i) = fromIntegral i
 
 --- PARSER
 
@@ -104,15 +105,19 @@ pKeyword keyword =
       lexeme (string keyword <* notFollowedBy alphaNumChar)
 
 pString :: Parser T.Text
-pString = fmap
-      T.pack
-      (betweenDoubleQuotes
-          (lexeme (many snakeCaseChar) <?> "string"))
+pString =
+  fmap
+    T.pack
+    ( betweenDoubleQuotes
+        (lexeme (many snakeCaseChar) <?> "string")
+    )
 
 pBool :: Parser Bool
-pBool = lexeme
-      (False <$ (string "false" *> notFollowedBy alphaNumChar))
-        <|> (True <$ (string "true" *> notFollowedBy alphaNumChar)) <?> "bool"
+pBool =
+  lexeme
+    (False <$ (string "false" *> notFollowedBy alphaNumChar))
+    <|> (True <$ (string "true" *> notFollowedBy alphaNumChar))
+    <?> "bool"
 
 pInteger :: Parser Int
 pInteger = lexeme (L.signed space L.decimal) <?> "integer"
@@ -127,35 +132,34 @@ pAtom :: Parser SType
 pAtom =
   try $
     choice
-      [ numberLitP
-      , boolLitP
-      , nullP
-      , try pColor
-      , stringLitP
-      , arrayLitP
+      [ numberLitP,
+        boolLitP,
+        nullP,
+        try pColor,
+        stringLitP,
+        arrayLitP
       ]
 
 parserForType :: SType -> Parser SType
 parserForType t = case t of
-                       SNum a    -> numP a
-                       SBool _   -> boolLitP
-                       SString _ -> stringLitP
-                       SArray _  -> arrayLitP
-                       SNull     -> nullP
-                       _         -> pAtom
+  SNum a -> numP a
+  SBool _ -> boolLitP
+  SString _ -> stringLitP
+  SArray _ -> arrayLitP
+  SNull -> nullP
+  _ -> pAtom
   where
-     numP :: INum -> Parser SType
-     numP (SInt _)    = SNum <$> intLitP
-     numP (SDouble _) = SNum <$> doubleLitP
-
+    numP :: INum -> Parser SType
+    numP (SInt _) = SNum <$> intLitP
+    numP (SDouble _) = SNum <$> doubleLitP
 
 pArray :: Parser [SType]
 pArray =
   label "array" $ betweenSquareBrackets $ do
-  firstElem <- pAtom
-  _ <- char ',' >> space
-  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
-  return (firstElem : restElems)
+    firstElem <- pAtom
+    _ <- char ',' >> space
+    restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+    return (firstElem : restElems)
 
 stringLitP :: Parser SType
 stringLitP = SString <$> pString
@@ -200,54 +204,54 @@ pHslColor = betweenDoubleQuotes $ do
     h <- pInt
     _ <- char ',' >> space
     s <- pColorPercentage
-    _          <- char ',' >> space
+    _ <- char ',' >> space
     SColor . hslToColor h s <$> pColorPercentage
-      where
-        pInt = lexeme (L.signed space L.decimal)
-        pColorPercentage = do
-          num <- pInt
-          _   <- char '%'
-          return num
+  where
+    pInt = lexeme (L.signed space L.decimal)
+    pColorPercentage = do
+      num <- pInt
+      _ <- char '%'
+      return num
 
 pRgbColor :: Parser SType
 pRgbColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgb" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
-    r       <- fromIntegral <$> pInteger
+    r <- fromIntegral <$> pInteger
     _ <- char ',' >> space
-    g       <- fromIntegral <$> pInteger
+    g <- fromIntegral <$> pInteger
     _ <- char ',' >> space
-    b       <- fromIntegral <$> pInteger
+    b <- fromIntegral <$> pInteger
     return $ SColor $ sRGB24 r g b `withOpacity` 1
 
 pRgbaColor :: Parser SType
 pRgbaColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgba" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
-    r       <- fromIntegral <$> pInteger
+    r <- fromIntegral <$> pInteger
     _ <- char ',' >> space
-    g       <- fromIntegral <$> pInteger
+    g <- fromIntegral <$> pInteger
     _ <- char ',' >> space
-    b       <- fromIntegral <$> pInteger
+    b <- fromIntegral <$> pInteger
     _ <- char ',' >> space
     opacity <- numberLitINumP
     return $ SColor $ sRGB24 r g b `withOpacity` numToDouble opacity
 
 expandShortHex :: String -> String
 expandShortHex hex
-    | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
-    | otherwise = hex
+  | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
+  | otherwise = hex
 
 pHexColor :: Parser SType
 pHexColor = betweenDoubleQuotes $ do
-    _ <- char '#'
-    hexDigits <- try (some hexDigitChar)
-    let validLength = length hexDigits == 6 || length hexDigits == 3
-    if validLength
-        then return $ SColor $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
-        else fail "Invalid hex color code length"
+  _ <- char '#'
+  hexDigits <- try (some hexDigitChar)
+  let validLength = length hexDigits == 6 || length hexDigits == 3
+  if validLength
+    then return $ SColor $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
+    else fail "Invalid hex color code length"
 
-hslToColor :: Double -> Double -> Double  -> Color
+hslToColor :: Double -> Double -> Double -> Color
 hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
   where
     rgb = hsl h (s / 100) (l / 100)
@@ -257,5 +261,5 @@ showSColor (SColor a) = sRGB24show $ pureColour a
   where
     pureColour ac
       | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
-      | otherwise           = error "transparent has no pure colour"
-showSColor _          = error "can only show colors"
+      | otherwise = error "transparent has no pure colour"
+showSColor _ = error "can only show colors"
