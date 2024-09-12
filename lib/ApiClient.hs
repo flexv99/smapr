@@ -2,34 +2,35 @@
 
 module ApiClient where
 
-import GHC.Float
-import GHC.Word
-import qualified Data.Sequence as S
-import Data.Foldable
-import Network.Wreq
+import Control.Lens ((^.))
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Lazy.Internal
-import qualified Data.ByteString as B
+import Data.Foldable
+import qualified Data.Sequence as S
+import GHC.Float
+import GHC.Word
+import Network.Wreq
+import Proto.Vector_tile.Tile (Tile (..))
+import Proto.Vector_tile.Tile.Feature (Feature (..))
+import Proto.Vector_tile.Tile.Layer (Layer (..))
 import Text.ProtocolBuffers (messageGet)
 import Text.ProtocolBuffers.Basic (uToString)
-import Proto.Vector_tile.Tile (Tile(..))
-import Proto.Vector_tile.Tile.Layer (Layer(..))
-import Proto.Vector_tile.Tile.Feature (Feature(..))
-import Control.Lens ((^.))
 import Util
 
 data Coord = Coord
-  { lat :: Double
-  , lon :: Double
-  , rZoom :: Double
-  } deriving Show
+  { lat :: Double,
+    lon :: Double,
+    rZoom :: Double
+  }
+  deriving (Show)
 
 -- helpers
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b
-lon2tileX lon' z = floor((lon' + 180.0) / 360.0 * (2.0 ** z))
+lon2tileX lon' z = floor ((lon' + 180.0) / 360.0 * (2.0 ** z))
 
 lat2tileY :: (RealFrac a, Integral b, Floating a) => a -> a -> b
-lat2tileY lat' z = floor((1.0 - log(tan(lat' * pi / 180.0) + 1.0 / cos(lat' * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
+lat2tileY lat' z = floor ((1.0 - log (tan (lat' * pi / 180.0) + 1.0 / cos (lat' * pi / 180.0)) / pi) / 2.0 * (2.0 ** z))
 
 tilerequestUrl :: LocalApi -> Coord -> String
 tilerequestUrl l c = base ++ "/" ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ y ++ suffix
@@ -51,8 +52,8 @@ testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
 
 transformRawTile :: ByteString -> Maybe Tile
 transformRawTile raw = case messageGet raw of
-    Left   _        -> Nothing
-    Right (tile, _) -> Just tile
+  Left _ -> Nothing
+  Right (tile, _) -> Just tile
 
 -- client
 getTileUnserialized :: Coord -> IO (Response ByteString)
@@ -66,16 +67,25 @@ getMTTileUnserialized c = do
   get (mTTileUrl (mtApi conf) c)
 
 getTile :: Coord -> IO (Maybe Tile)
-getTile c = getTileUnserialized c >>=
-  (\t -> return (transformRawTile (t ^. responseBody)))
+getTile c =
+  getTileUnserialized c
+    >>= (\t -> return (transformRawTile (t ^. responseBody)))
 
 getMTTile :: Coord -> IO (Maybe Tile)
-getMTTile c = getMTTileUnserialized c >>=
-  (\t -> return (transformRawTile (t ^. responseBody)))
+getMTTile c =
+  getMTTileUnserialized c
+    >>= (\t -> return (transformRawTile (t ^. responseBody)))
+
+getFromUrl :: String -> IO (Maybe Tile)
+getFromUrl url = get url >>= (\t -> return (transformRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]
-tileFeatures t = map (toList . geometry) $ head
-                 $ map (toList . features) $ toList $ layers t
+tileFeatures t =
+  map (toList . geometry) $
+    head $
+      map (toList . features) $
+        toList $
+          layers t
 
 fakerTile :: IO (Maybe Tile)
 fakerTile = do
