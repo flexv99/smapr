@@ -256,6 +256,10 @@ hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlu
   where
     rgb = hsl h (s / 100) (l / 100)
 
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
 showSColor :: SType -> String
 showSColor (SColor a) = sRGB24show $ pureColour a
   where
@@ -263,3 +267,10 @@ showSColor (SColor a) = sRGB24show $ pureColour a
       | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
       | otherwise = error "transparent has no pure colour"
 showSColor _ = error "can only show colors"
+
+tuplifyWithFallback :: [a] -> ([(a, a)], a)
+tuplifyWithFallback [] = error "no fallback value"
+tuplifyWithFallback [x] = ([], x)
+tuplifyWithFallback (x : y : xs) =
+  let (tuples, lastElem) = tuplifyWithFallback xs
+   in ((x, y) : tuples, lastElem)

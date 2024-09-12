@@ -101,16 +101,24 @@ matchP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   IsoArg . MatchE expr <$> matchArgsP
   where
-    tuplify :: [a] -> ([(a, a)], a)
-    tuplify [] = error "no fallback value"
-    tuplify [x] = ([], x)
-    tuplify (x : y : xs) =
-      let (tuples, lastElem) = tuplify xs
-       in ((x, y) : tuples, lastElem)
     matchArgsP :: Parser MatchArg
     matchArgsP = do
       args <- pAtom `sepBy` (char ',' >> space)
-      return $ MatchArg $ tuplify args
+      return $ MatchArg $ tuplifyWithFallback args
+
+caseP :: Parser (ArgType a)
+caseP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "case"
+  _ <- char ',' >> space
+  choices <- many choicesP
+  IsoArg . CaseE choices <$> pAtom
+  where
+    choicesP = do
+      arg1 <- boolExprP
+      _ <- char ',' >> space
+      arg2 <- pAtom
+      _ <- char ',' >> space
+      return (arg1, arg2)
 
 interpolationTypeP :: Parser InterpolationType
 interpolationTypeP = betweenSquareBrackets $ do
@@ -234,6 +242,12 @@ stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ 
     binary (SArray a, b) = if t `elem` a then Just b else Nothing
     binary (a, b) = if a == t then Just b else Nothing
     isIn = mapMaybe binary
+
+-- | case
+stypeCase :: [(SType, SType)] -> SType -> SType
+stypeCase ((SBool b, r) : xs) f = if b then r else stypeCase xs f
+stypeCase [] f = f
+stypeCase (_ : _) _ = error "condition must return bool"
 
 -- | interpolate
 -- maybe move from associated list to map?

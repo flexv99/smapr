@@ -60,6 +60,8 @@ data IsoExpr :: SType -> Type where
   ColorE :: SType -> IsoExpr (SColor c)
   -- | match expr
   MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
+  -- | case expr
+  CaseE :: [(ArgType (SBool b), SType)] -> SType -> IsoExpr a
   -- | element at index
   AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
   -- | interpolate expr

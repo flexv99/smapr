@@ -116,6 +116,11 @@ spec = do
       let expr = wrap <$> (parseMaybe matchP "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (ArgType ('SBool b)))
       (eval <$> expr <*> ctx) `shouldBe` Just (SBool True)
   describe "Style.ExpressionsEval.eval" $ do
+    it "case expression" $ do
+      ctx <- testLayerAndFeature
+      let expr = wrap <$> (parseMaybe caseP "[\"case\",[\"<=\", 2, 1],\"x\",false,\"y\",\"otherwise\"]" :: Maybe (ArgType ('SString s)))
+      (eval <$> expr <*> ctx) `shouldBe` Just (SString "otherwise")
+  describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression linear" $ do
       ctx <- testLayerAndFeature
       let expr = wrap <$> (parseMaybe interpolateP "[\"interpolate\",[\"linear\"],5,0, 100, 10, 200]" :: Maybe (ArgType (SNum i)))
