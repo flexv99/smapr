@@ -1,29 +1,29 @@
-{-# LANGUAGE GADTs                     #-}
-{-# LANGUAGE RankNTypes                #-}
-{-# LANGUAGE KindSignatures            #-}
-{-# LANGUAGE StandaloneDeriving        #-}
-{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Style.ExpressionsWrapper where
 
 import Data.Kind (Type)
 import qualified Data.Text.Lazy as T
 import Style.Parser
-            
+
 -- | AST representation of expressions requiring feature context
 data FeatureExpr :: SType -> Type where
-  StringFe   :: T.Text                -> FeatureExpr (SString s)
-  ArrayFe    :: SType                 -> FeatureExpr (SArray a)
+  StringFe :: T.Text -> FeatureExpr (SString s)
+  ArrayFe :: SType -> FeatureExpr (SArray a)
   NegationFe :: FeatureExpr (SBool s) -> FeatureExpr (SBool b)
   -- | in lookup
-  FinE       :: FilterBy -> SType     -> FeatureExpr (SBool b)
+  FinE :: FilterBy -> SType -> FeatureExpr (SBool b)
   -- | getter on feature properties
-  FgetE      :: SType                 -> FeatureExpr a
+  FgetE :: SType -> FeatureExpr a
   -- | Geometry type expression for a given feature
-  FgeometryE ::                          FeatureExpr (SString s)
+  FgeometryE :: FeatureExpr (SString s)
   -- | Zoom
-  FzoomE     ::                          FeatureExpr (SNum a)
+  FzoomE :: FeatureExpr (SNum a)
 
 deriving instance Show (FeatureExpr res)
 
@@ -32,49 +32,53 @@ deriving instance Show (FeatureExpr res)
 -- representing expressions that don't required layer or feature context
 data IsoExpr :: SType -> Type where
   -- | string literal
-  StringE  :: T.Text                               -> IsoExpr (SString s)
+  StringE :: T.Text -> IsoExpr (SString s)
   -- | bool literal
-  BoolE    :: Bool                                 -> IsoExpr (SBool b)
+  BoolE :: Bool -> IsoExpr (SBool b)
   -- | int literal
-  IntE     :: Int                                  -> IsoExpr (SNum (SInt i))
+  IntE :: Int -> IsoExpr (SNum (SInt i))
   -- | double literal
-  DoubleE  :: Double                               -> IsoExpr (SNum (SDouble d))
+  DoubleE :: Double -> IsoExpr (SNum (SDouble d))
   -- | Num literal
-  NumE     :: INum                                 -> IsoExpr (SNum n)
+  NumE :: INum -> IsoExpr (SNum n)
   -- | list literal
-  ArrayE   :: SType                                -> IsoExpr (SArray a)
+  ArrayE :: SType -> IsoExpr (SArray a)
   -- | Color literal
-  ColorE   :: SType                               -> IsoExpr (SColor c)
+  ColorE :: SType -> IsoExpr (SColor c)
   -- | negation of bool expressions
-  Negation :: IsoExpr (SBool s)                    -> IsoExpr (SBool b)
+  Negation :: IsoExpr (SBool s) -> IsoExpr (SBool b)
   -- | addition
-  AddE     :: [ArgType (SNum n)]                   -> IsoExpr a
+  AddE :: [ArgType (SNum n)] -> IsoExpr a
   -- | product
-  ProdE    :: [ArgType (SNum n)]                   -> IsoExpr a
+  ProdE :: [ArgType (SNum n)] -> IsoExpr a
   -- | subtraction
-  SubE     :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
+  SubE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | division
-  DivE     :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
+  DivE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr a
   -- | check for equaliy on polymorphic types
-  EqE      :: WrappedExpr -> WrappedExpr           -> IsoExpr (SBool b)
+  EqE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
+  -- | < <= > >=
+  OrdE :: OrdType -> ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SBool b)
   -- | element at index
-  AtE      :: SType -> ArgType (SNum (SInt i))     -> IsoExpr a
+  AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
   -- | all expr
-  AllE     :: [ArgType (SBool b)]                  -> IsoExpr (SBool b)
+  AllE :: [ArgType (SBool b)] -> IsoExpr (SBool b)
   -- | match expr
-  MatchE   :: WrappedExpr -> MatchArg              -> IsoExpr a
+  MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
   -- | interpolate expr
-  InterpolateE :: InterpolationType
-    -> ArgType (SNum i)
-    -> [(SType, WrappedExpr)]                      -> IsoExpr a
-  
+  InterpolateE ::
+    InterpolationType ->
+    ArgType (SNum i) ->
+    [(SType, WrappedExpr)] ->
+    IsoExpr a
+
 deriving instance Show (IsoExpr res)
 
 -- | representation of argument type
 -- | as the evaluator needs to know in which context
 -- | the expression stands
 data ArgType t where
-  IsoArg     :: IsoExpr t     -> ArgType t
+  IsoArg :: IsoExpr t -> ArgType t
   FeatureArg :: FeatureExpr t -> ArgType t
 
 deriving instance Show (ArgType t)
@@ -82,12 +86,11 @@ deriving instance Show (ArgType t)
 -- | runtime representation
 -- | mainly useful for parsing
 data WrappedExpr where
-  StringExpr   :: ArgType (SString n) -> WrappedExpr
-  NumExpr      :: ArgType (SNum a)    -> WrappedExpr
-  BoolExpr     :: ArgType (SBool b)   -> WrappedExpr
-  ArrayExpr    :: ArgType (SArray a)  -> WrappedExpr
-  ColorExpr    :: ArgType (SColor c)  -> WrappedExpr
-  
+  StringExpr :: ArgType (SString n) -> WrappedExpr
+  NumExpr :: ArgType (SNum a) -> WrappedExpr
+  BoolExpr :: ArgType (SBool b) -> WrappedExpr
+  ArrayExpr :: ArgType (SArray a) -> WrappedExpr
+  ColorExpr :: ArgType (SColor c) -> WrappedExpr
 
 deriving instance Show WrappedExpr
 
@@ -100,19 +103,19 @@ deriving instance Show WrappedExpr
 -- >>> wrap (IsNullE (IntE 42))
 -- BoolExpr (IsNullE (IntE 42))
 class KnownResType a where
-  wrap  :: ArgType a -> WrappedExpr
+  wrap :: ArgType a -> WrappedExpr
 
 instance KnownResType (SString b) where
-  wrap  = StringExpr
+  wrap = StringExpr
 
 instance KnownResType (SNum a) where
-  wrap  = NumExpr
+  wrap = NumExpr
 
 instance KnownResType (SBool b) where
-  wrap  = BoolExpr
+  wrap = BoolExpr
 
 instance KnownResType (SArray a) where
-  wrap  = ArrayExpr
+  wrap = ArrayExpr
 
 instance KnownResType (SColor c) where
   wrap = ColorExpr
@@ -132,4 +135,11 @@ data FilterBy
   = FTypeOf
   | FId Int
   | FProp T.Text
+  deriving (Eq, Show)
+
+data OrdType
+  = Less
+  | LessEq
+  | Greater
+  | GreaterEq
   deriving (Eq, Show)

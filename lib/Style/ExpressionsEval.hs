@@ -53,6 +53,7 @@ evalIsoExpr (ProdE a) ctx = stypeProd (map (`evalNumExpr` ctx) a)
 evalIsoExpr (SubE a b) ctx = stypeSub (evalNumExpr a ctx) (evalNumExpr b ctx)
 evalIsoExpr (DivE a b) ctx = stypeDiv (evalNumExpr a ctx) (evalNumExpr b ctx)
 evalIsoExpr (EqE o t) ctx = stypeEq (eval o ctx) (eval t ctx)
+evalIsoExpr (OrdE t a b) ctx = stypeOrd t (evalNumExpr a ctx) (evalNumExpr b ctx)
 evalIsoExpr (AtE a i) ctx = stypeIn a (evalNumExpr i ctx)
 evalIsoExpr (AllE v) ctx = stypeAll v ctx
 evalIsoExpr (MatchE m v) ctx = stypeMatch (eval m ctx) v

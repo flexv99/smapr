@@ -1,16 +1,16 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DataKinds         #-}
 
 module Parser.ParseSpec (spec) where
 
+import Proto.Util
+import Style.ExpressionsEval
+import Style.ExpressionsWrapper
+import Style.FeatureExpressions
+import Style.IsoExpressions
+import Style.Parser
 import Test.Hspec
 import Text.Megaparsec
-import Style.Parser
-import Style.IsoExpressions
-import Style.FeatureExpressions
-import Style.ExpressionsWrapper
-import Style.ExpressionsEval
-import Proto.Util
 
 spec :: Spec
 spec = do
@@ -96,7 +96,7 @@ spec = do
     it "combination of feature and iso expressions" $ do
       ctx <- testLayerAndFeature
       let expr = wrap <$> parseMaybe eqP "[\"==\", [\"geometry-type\"], \"LINESTRING\"]"
-      (eval <$> expr <*> ctx ) `shouldBe` Just (SBool True)
+      (eval <$> expr <*> ctx) `shouldBe` Just (SBool True)
   describe "Style.ExpressionsEval.eval" $ do
     it "combination of feature and iso expressions '" $ do
       ctx <- testLayerAndFeature
@@ -111,7 +111,7 @@ spec = do
     it "match expression" $ do
       ctx <- testLayerAndFeature
       let expr = wrap <$> (parseMaybe matchP "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (ArgType ('SBool b)))
-      (eval <$> expr <*> ctx ) `shouldBe` Just (SBool True)
+      (eval <$> expr <*> ctx) `shouldBe` Just (SBool True)
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression linear" $ do
       ctx <- testLayerAndFeature
@@ -127,3 +127,8 @@ spec = do
       ctx <- testLayerAndFeature
       let expr = wrap <$> parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],2,1,2,3,6]"
       (eval <$> expr <*> ctx) `shouldBe` Just (SNum (SDouble 3.333333333333333))
+  describe "Style.ExpressionsEval.eval" $ do
+    it "less or eq expression" $ do
+      ctx <- testLayerAndFeature
+      let expr = wrap <$> parseMaybe ordP "[\"<=\", 2, 1]"
+      (eval <$> expr <*> ctx) `shouldBe` Just (SBool False)
