@@ -4,8 +4,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use tuple-section" #-}
-
 module Style.IsoExpressions where
 
 import Data.List
@@ -119,6 +117,12 @@ caseP = betweenSquareBrackets $ do
       arg2 <- pAtom
       _ <- char ',' >> space
       return (arg1, arg2)
+
+coalesceP :: Parser (ArgType a)
+coalesceP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "coalesce"
+  _ <- char ',' >> space
+  IsoArg . CoalesceE <$> (polyExprP `sepBy` (char ',' >> space))
 
 interpolationTypeP :: Parser InterpolationType
 interpolationTypeP = betweenSquareBrackets $ do
@@ -249,6 +253,14 @@ stypeCase ((SBool b, r) : xs) f = if b then r else stypeCase xs f
 stypeCase [] f = f
 stypeCase (_ : _) _ = error "condition must return bool"
 
+stypeCoalesce :: [SType] -> SType
+stypeCoalesce exp = maybe SNull nonNullOrFallback (unsnoc exp)
+  where
+    unsnoc = foldr (\x -> Just . maybe ([], x) (\(~(a, b)) -> (x : a, b))) Nothing
+    nonNullOrFallback (SNull : xs, f) = nonNullOrFallback (xs, f)
+    nonNullOrFallback (x : xs, f) = x
+    nonNullOrFallback ([], f) = f
+
 -- | interpolate
 -- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
@@ -296,79 +308,98 @@ interpolateNr from to t = from + t * (to - from)
 --------------------------------------------------------------------------------
 
 -- | 4all expressions that return string
+stringP :: [Parser (ArgType (SString s))]
+stringP =
+  [ IsoArg . StringE <$> pString <* hidden space,
+    -- polymorphic
+    atP,
+    matchP,
+    interpolateP,
+    fgetP,
+    fgeometryP
+  ]
+
 stringExprP :: Parser (ArgType (SString s))
-stringExprP =
-  choice $
-    map
-      try
-      [ IsoArg . StringE <$> pString <* hidden space,
-        -- polymorphic
-        atP,
-        matchP,
-        interpolateP,
-        fgetP,
-        fgeometryP
-      ]
+stringExprP = choice $ map try stringP
+
+stringFuncP :: Parser (ArgType (SString s))
+stringFuncP = choice $ map try (tail stringP)
 
 -- | 4all expressions that return num
-numExprP :: Parser (ArgType (SNum i))
-numExprP =
-  choice $
-    map
-      try
-      [ numP,
-        arithmethicExprP,
-        -- polymorphic
-        atP,
-        matchP,
-        interpolateP,
-        fgetP,
-        fzoomP
-      ]
+numP :: [Parser (ArgType (SNum i))]
+numP =
+  [ numLitP,
+    arithmethicExprP,
+    -- polymorphic
+    atP,
+    matchP,
+    interpolateP,
+    fgetP,
+    fzoomP
+  ]
   where
-    numP = try (IsoArg . DoubleE <$> pDouble <* hidden space) <|> IsoArg . IntE <$> pInteger <* hidden space
+    numLitP = try (IsoArg . DoubleE <$> pDouble <* hidden space) <|> IsoArg . IntE <$> pInteger <* hidden space
+
+numExprP :: Parser (ArgType (SNum i))
+numExprP = choice $ map try numP
+
+numFuncP :: Parser (ArgType (SNum i))
+numFuncP = choice $ map try (tail numP)
 
 -- | 4all expressions that return bool
+boolP :: [Parser (ArgType (SBool b))]
+boolP =
+  [ IsoArg . BoolE <$> pBool <* hidden space,
+    ordP,
+    eqP,
+    inP,
+    allP,
+    -- polymorphic
+    atP,
+    matchP,
+    interpolateP,
+    fgetP
+  ]
+
 boolExprP :: Parser (ArgType (SBool b))
-boolExprP =
-  choice $
-    map
-      try
-      [ IsoArg . BoolE <$> pBool <* hidden space,
-        ordP,
-        eqP,
-        inP,
-        allP,
-        -- polymorphic
-        atP,
-        matchP,
-        interpolateP,
-        fgetP
-      ]
+boolExprP = choice $ map try boolP
+
+boolFuncP :: Parser (ArgType (SBool b))
+boolFuncP = choice $ map try (tail boolP)
 
 -- | 4all expressions that return array
+arrayP :: [Parser (ArgType (SArray a))]
+arrayP =
+  [ IsoArg . ArrayE <$> arrayLitP <* hidden space,
+    -- polymorphic
+    atP,
+    matchP,
+    interpolateP,
+    fgetP
+  ]
+
 arrayExprP :: Parser (ArgType (SArray a))
-arrayExprP =
-  choice
-    [ IsoArg . ArrayE <$> arrayLitP <* hidden space,
-      -- polymorphic
-      atP,
-      matchP,
-      interpolateP,
-      fgetP
-    ]
+arrayExprP = choice $ map try arrayP
+
+arrayFuncP :: Parser (ArgType (SArray a))
+arrayFuncP = choice $ map try (tail arrayP)
 
 -- | 4all expressions that return color
+colorP :: [Parser (ArgType (SColor c))]
+colorP =
+  [ IsoArg . ColorE <$> pColor <* hidden space,
+    -- polymorphic
+    atP,
+    matchP,
+    interpolateP,
+    fgetP
+  ]
+
 colorExprP :: Parser (ArgType (SColor a))
-colorExprP =
-  choice
-    [ IsoArg . ColorE <$> pColor <* hidden space,
-      -- polymorphic
-      atP,
-      matchP,
-      interpolateP,
-      fgetP
-    ]
+colorExprP = choice $ map try colorP
+
+colorFuncP :: Parser (ArgType (SColor a))
+colorFuncP = choice $ map try (tail colorP)
 
 -- | 4all Polymorphic expressions
 polyExprP :: Parser WrappedExpr
@@ -379,4 +410,14 @@ polyExprP =
       wrap <$> boolExprP,
       wrap <$> arrayExprP,
       wrap <$> colorExprP
+    ]
+
+polyFuncP :: Parser WrappedExpr
+polyFuncP =
+  choice
+    [ wrap <$> stringFuncP,
+      wrap <$> numFuncP,
+      wrap <$> boolFuncP,
+      wrap <$> arrayFuncP,
+      wrap <$> colorFuncP
     ]

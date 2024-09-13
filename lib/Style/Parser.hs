@@ -140,6 +140,18 @@ pAtom =
         arrayLitP
       ]
 
+pNotNullAtom :: Parser SType
+pNotNullAtom =
+  try $
+    choice
+      [ numberLitP,
+        boolLitP,
+        nullP,
+        try pColor,
+        stringLitP,
+        arrayLitP
+      ]
+
 parserForType :: SType -> Parser SType
 parserForType t = case t of
   SNum a -> numP a

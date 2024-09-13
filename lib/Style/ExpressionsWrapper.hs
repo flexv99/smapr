@@ -64,6 +64,8 @@ data IsoExpr :: SType -> Type where
   CaseE :: [(ArgType (SBool b), SType)] -> SType -> IsoExpr a
   -- | element at index
   AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
+  -- | coalesce
+  CoalesceE :: [WrappedExpr] -> IsoExpr a
   -- | interpolate expr
   InterpolateE ::
     InterpolationType ->
