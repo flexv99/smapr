@@ -23,9 +23,7 @@ import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Layer
 import Renderer.Geometry
 import Style.ExpressionsContext
-import Style.ExpressionsEval
 import Style.ExpressionsWrapper
-import Style.FeatureExpressions
 import Style.IsoExpressions
 import Style.Layers.Wrapper
 import Style.Parser
@@ -73,11 +71,11 @@ l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\
 testLayers :: [B.ByteString]
 testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l2, l3]
 
-testEval :: String -> WrappedExpr -> Tile -> [SType]
-testEval layer expr t = map (eval expr) ctxs
-  where
-    layers = getLayers layer t
-    ctxs = toList $ constructCtx layers
+-- testEval :: String -> WrappedExpr -> Tile -> [SType]
+-- testEval layer expr t = map (eval expr) ctxs
+--   where
+--     layers = getLayers layer t
+--     ctxs = toList $ constructCtx layers
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =

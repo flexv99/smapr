@@ -16,7 +16,6 @@ import Proto.Vector_tile.Tile.Layer
 import Renderer.Lines
 import Renderer.Polygons
 import Style.ExpressionsContext
-import Style.ExpressionsEval
 import Style.Layers.Wrapper
 
 {-
@@ -50,6 +49,6 @@ constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
 constructCtx S.Empty = S.empty
 
 toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
-toBeDrawn t s = fmap (S.filter (unwrapSBool . evalLayer s)) constructCtx layers'
+toBeDrawn t s = fmap (S.filter (evalLayer s)) constructCtx layers'
   where
     layers' = getLayers (T.unpack $ sourceLayer s) t

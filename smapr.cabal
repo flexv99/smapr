@@ -39,9 +39,7 @@ library
                     , Style.Poc
                     , Style.Parser
                     , Style.IsoExpressions
-                    , Style.FeatureExpressions
                     , Style.ExpressionsWrapper
-                    , Style.ExpressionsEval
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill

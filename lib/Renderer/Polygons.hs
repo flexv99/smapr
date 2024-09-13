@@ -16,7 +16,6 @@ import qualified Diagrams.Trail as D
 import qualified Diagrams.TwoD.Size as D
 import Proto.Vector_tile.Tile (Tile (..))
 import Style.ExpressionsContext
-import Style.ExpressionsEval
 import Style.Layers.Fill
 import Util
 
@@ -42,5 +41,5 @@ drawPolygon style ctx tour =
     D.# D.fcA color
     D.# D.lcA color
   where
-    color = unwrapSColor (style ^. fillColor)
+    color = style ^. fillColor
     tourPath = D.fromVertices tour

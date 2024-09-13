@@ -1,19 +1,21 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Renderer.Lines
-  ( lineToPoints
-  , drawLine
-  ) where
+  ( lineToPoints,
+    drawLine,
+  )
+where
 
-import qualified Diagrams.Prelude as D
-import qualified Diagrams.Backend.SVG as D
-import Style.Layers.Line
-import Style.ExpressionsContext
-import Style.ExpressionsEval
 import Control.Lens
-import Util
 import Decoder.Geometry
 import Decoder.Lines
+import qualified Diagrams.Backend.SVG as D
+import qualified Diagrams.Prelude as D
+import Style.ExpressionsContext
+import Style.IsoExpressions
+import Style.Layers.Line
+import Style.Parser
+import Util
 
 render2DVector :: D.Diagram D.B -> IO ()
 render2DVector v = do
@@ -32,17 +34,18 @@ lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parame
     toDPoint = map geometryPointToDPoint
 
 drawLine :: LineS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
-drawLine style ctx tour = D.moveTo (head tour)
-  (tourPath D.# D.strokeLine
-   D.# D.lcA color
-   D.# D.lwG stroke
-   D.# lineP)
+drawLine style ctx tour =
+  D.moveTo
+    (head tour)
+    ( tourPath
+        D.# D.strokeLine
+        D.# D.lcA color
+        D.# D.lwG stroke
+        D.# lineP
+    )
   where
-    lineP :: forall {c}. D.HasStyle c => c -> c
-    lineP    = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)
-    color    = unwrapSColor (style ^. lineColor)
-    stroke   = unwrapSDouble $ eval (style ^. lineWidth) ctx
+    lineP :: forall {c}. (D.HasStyle c) => c -> c
+    lineP = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)
+    color = style ^. lineColor
+    stroke = numToDouble $ evalNumExpr (style ^. lineWidth) ctx
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double
-
-
-

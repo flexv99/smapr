@@ -1,19 +1,42 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Style.IsoExpressions where
 
+import Control.Lens
 import Data.List
+import qualified Data.Map as MP
 import Data.Maybe
 import qualified Data.Text.Lazy as T
+import Proto.Util
+import Style.ExpressionsContext
 import Style.ExpressionsWrapper
-import Style.FeatureExpressions
 import Style.Parser
 import Text.Megaparsec
 import Text.Megaparsec.Char
+
+instance SParseable T.Text where
+  sParse = stringExprP
+  sEval = evalStringExpr
+
+instance SParseable INum where
+  sParse = numExprP
+  sEval = evalNumExpr
+
+instance SParseable Bool where
+  sParse = boolExprP
+  sEval = evalBoolExpr
+
+instance SParseable Color where
+  sParse = colorExprP
+  sEval = evalColorExpr
+
+instance SParseable [a] where
+  sParse = arrayExprP
+  sEval = evalArrayExpr
 
 --------------------------------------------------------------------------------
 
@@ -22,15 +45,15 @@ import Text.Megaparsec.Char
 --------------------------------------------------------------------------------
 
 -- >>> parseMaybe arithmethicExprP "[\"+\", 1, [\"/\", 1, 2]]"
-arithmethicExprP :: Parser (ArgType (SNum a))
+arithmethicExprP :: Parser (IsoExpr INum)
 arithmethicExprP =
   choice $
     map
       try
-      [ IsoArg . AddE <$> exprBaseP "+" (numExprP `sepBy` (char ',' >> space)),
-        IsoArg <$> exprBaseP "-" (SubE <$> argWithComma <*> numExprP),
-        IsoArg . ProdE <$> exprBaseP "*" (numExprP `sepBy` (char ',' >> space)),
-        IsoArg <$> exprBaseP "/" (DivE <$> argWithComma <*> numExprP)
+      [ AddE <$> exprBaseP "+" (numExprP `sepBy` (char ',' >> space)),
+        exprBaseP "-" (SubE <$> argWithComma <*> numExprP),
+        ProdE <$> exprBaseP "*" (numExprP `sepBy` (char ',' >> space)),
+        exprBaseP "/" (DivE <$> argWithComma <*> numExprP)
       ]
   where
     argWithComma = do
@@ -42,15 +65,17 @@ arithmethicExprP =
 -- false
 -- >> evalExpr <$> parseMaybe eqP "[\"==\", [\"+\", 123, 4], 127]"
 -- true
-eqP :: Parser (ArgType ('SBool b))
-eqP = betweenSquareBrackets $ do
-  key <- betweenDoubleQuotes (string "!=" <|> string "==")
-  _ <- char ',' >> space
-  arg1 <- polyExprP
-  _ <- char ',' >> space
-  arg2 <- polyExprP
-  let expr = EqE arg1 arg2
-  if T.isPrefixOf "!" key then return $ IsoArg $ Negation expr else return $ IsoArg expr
+eqP :: Parser (IsoExpr Bool)
+eqP = undefined
+
+-- eqP = betweenSquareBrackets $ do
+--   key <- betweenDoubleQuotes (string "!=" <|> string "==")
+--   _ <- char ',' >> space
+--   arg1 <- sParse
+--   _ <- char ',' >> space
+--   arg2 <- sParse
+--   let expr = EqE arg1 arg2
+--   if T.isPrefixOf "!" key then return $ Negation expr else return expr
 
 ordTypeP :: Parser OrdType
 ordTypeP = choice $ map try [less, lessEq, greater, greaterEq]
@@ -63,66 +88,70 @@ ordTypeP = choice $ map try [less, lessEq, greater, greaterEq]
     greater = construct ">" Greater
     greaterEq = construct ">=" GreaterEq
 
-ordP :: Parser (ArgType ('SBool b))
+ordP :: Parser (IsoExpr Bool)
 ordP = betweenSquareBrackets $ do
   let argsP = numExprP
   key <- ordTypeP
   _ <- char ',' >> space
   arg1 <- argsP
   _ <- char ',' >> space
-  IsoArg . OrdE key arg1 <$> argsP
+  OrdE key arg1 <$> argsP
 
-atP :: Parser (ArgType a)
-atP = exprBaseP "at" $ do
-  val1 <- arrayLitP
-  _ <- char ',' >> space
-  IsoArg . AtE val1 <$> numExprP
+atP :: (SParseable a, Show a) => Parser (IsoExpr a)
+atP = undefined
 
-inP :: Parser (ArgType ('SBool b))
-inP = exprBaseP "in" $ do
-  val <- (wrap <$> numExprP) <|> (wrap <$> stringExprP)
-  _ <- char ',' >> space
-  traversable <- (wrap <$> arrayExprP) <|> (wrap <$> stringExprP)
-  return $ IsoArg $ InE val traversable
+-- atP = exprBaseP "at" $ do
+--   val1 <- sParse
+--   _ <- char ',' >> space
+--   AtE val1 <$> numExprP
 
-allP :: Parser (ArgType ('SBool a))
+inP :: Parser (IsoExpr Bool)
+inP = undefined
+
+-- inP = exprBaseP "in" $ do
+--   val <- sParse
+--   _ <- char ',' >> space
+--   traversable <- sParse
+--   return $ InE val traversable
+
+allP :: Parser (IsoExpr Bool)
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
   _ <- char ',' >> space
-  IsoArg . AllE <$> boolExprP `sepBy` (char ',' >> space)
+  AllE <$> boolExprP `sepBy` (char ',' >> space)
 
-matchP :: Parser (ArgType a)
-matchP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "match"
-  _ <- char ',' >> space
-  expr <- polyExprP
-  _ <- char ',' >> space
-  IsoArg . MatchE expr <$> matchArgsP
-  where
-    matchArgsP :: Parser MatchArg
-    matchArgsP = do
-      args <- pAtom `sepBy` (char ',' >> space)
-      return $ MatchArg $ tuplifyWithFallback args
+-- matchP :: Parser (ArgType a)
+-- matchP = betweenSquareBrackets $ do
+--   _ <- betweenDoubleQuotes $ string "match"
+--   _ <- char ',' >> space
+--   expr <- polyExprP
+--   _ <- char ',' >> space
+--   IsoArg . MatchE expr <$> matchArgsP
+--   where
+--     matchArgsP :: Parser MatchArg
+--     matchArgsP = do
+--       args <- pAtom `sepBy` (char ',' >> space)
+--       return $ MatchArg $ tuplifyWithFallback args
 
-caseP :: Parser (ArgType a)
+caseP :: (Show a, SParseable a) => Parser (IsoExpr a)
 caseP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "case"
   _ <- char ',' >> space
   choices <- many choicesP
-  IsoArg . CaseE choices <$> pAtom
+  CaseE choices <$> sParse
   where
     choicesP = do
       arg1 <- boolExprP
       _ <- char ',' >> space
-      arg2 <- pAtom
+      arg2 <- sParse
       _ <- char ',' >> space
       return (arg1, arg2)
 
-coalesceP :: Parser (ArgType a)
+coalesceP :: (Show a, SParseable a) => Parser (IsoExpr a)
 coalesceP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "coalesce"
   _ <- char ',' >> space
-  IsoArg . CoalesceE <$> (polyExprP `sepBy` (char ',' >> space))
+  CoalesceE <$> (sParse `sepBy` (char ',' >> space))
 
 interpolationTypeP :: Parser InterpolationType
 interpolationTypeP = betweenSquareBrackets $ do
@@ -146,7 +175,7 @@ interpolationTypeP = betweenSquareBrackets $ do
       _ <- char ',' >> space
       CubicBezier x1 x2 y1 <$> numberLitINumP
 
-interpolateP :: Parser (ArgType a)
+interpolateP :: (Show a, SParseable a, Floating a) => Parser (IsoExpr a)
 interpolateP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "interpolate"
   _ <- char ',' >> space
@@ -154,14 +183,52 @@ interpolateP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   input <- numExprP
   _ <- char ',' >> space
-  IsoArg . InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+  InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
   where
-    inOutPairs :: Parser (SType, WrappedExpr)
     inOutPairs = do
-      num1 <- numberLitP
+      num1 <- numExprP
       _ <- char ',' >> space
-      num2 <- (wrap <$> colorExprP) <|> (wrap <$> numExprP)
+      num2 <- sParse
       return (num1, num2)
+
+--------------------------------------------------------------------------------
+-- Context dependant
+--------------------------------------------------------------------------------
+
+typeParser :: Parser T.Text
+typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
+  string "geometry-type"
+
+-- | choice of possible filtering types:
+-- id, type, feature properties
+filterByP :: Parser FilterBy
+filterByP =
+  choice
+    [ FId <$> pInteger,
+      try $ FTypeOf <$ typeParser,
+      FProp <$> pString
+    ]
+
+fgetP :: Parser (IsoExpr SType)
+fgetP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "get"
+  _ <- char ',' >> space
+  FgetE <$> pString
+
+fgeometryP :: Parser (IsoExpr T.Text)
+fgeometryP = betweenSquareBrackets $ do
+  FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
+
+fzoomP :: Parser (IsoExpr INum)
+fzoomP = betweenSquareBrackets $ do
+  FzoomE <$ betweenDoubleQuotes (string "zoom")
+
+evalFilterIn :: FilterBy -> SType -> ExpressionContext -> SType
+evalFilterIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx
+evalFilterIn _ _ _ = error "second argument must be an array"
+
+evalFilterGet :: T.Text -> ExpressionContext -> SType
+evalFilterGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
 
 --------------------------------------------------------------------------------
 
@@ -170,91 +237,82 @@ interpolateP = betweenSquareBrackets $ do
 --------------------------------------------------------------------------------
 
 -- | +
-stypeSum :: [SType] -> SType
-stypeSum = foldr stypeAdd (SNum $ SInt 0)
+sSum :: [INum] -> INum
+sSum = foldr sAdd (SInt 0)
   where
-    stypeAdd :: SType -> SType -> SType
-    stypeAdd (SNum (SInt i)) (SNum (SInt j)) = SNum $ SInt $ i + j
-    stypeAdd (SNum (SInt i)) (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i + j
-    stypeAdd (SNum (SDouble i)) (SNum (SInt j)) = SNum $ SDouble $ i + fromIntegral j
-    stypeAdd (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i + j
-    stypeAdd _ _ = error "must be numeric type"
+    sAdd :: INum -> INum -> INum
+    sAdd (SInt i) (SInt j) = SInt $ i + j
+    sAdd (SInt i) (SDouble j) = SDouble $ fromIntegral i + j
+    sAdd (SDouble i) (SInt j) = SDouble $ i + fromIntegral j
+    sAdd (SDouble i) (SDouble j) = SDouble $ i + j
 
 -- | *
-stypeProd :: [SType] -> SType
-stypeProd = foldr prod (SNum $ SInt 1)
+sProd :: [INum] -> INum
+sProd = foldr prod (SInt 1)
   where
-    prod :: SType -> SType -> SType
-    prod (SNum (SInt i)) (SNum (SInt j)) = SNum $ SInt $ i * j
-    prod (SNum (SInt i)) (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i * j
-    prod (SNum (SDouble i)) (SNum (SInt j)) = SNum $ SDouble $ i * fromIntegral j
-    prod (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i * j
-    prod _ _ = error "must be numeric type"
+    prod :: INum -> INum -> INum
+    prod (SInt i) (SInt j) = SInt $ i * j
+    prod (SInt i) (SDouble j) = SDouble $ fromIntegral i * j
+    prod (SDouble i) (SInt j) = SDouble $ i * fromIntegral j
+    prod (SDouble i) (SDouble j) = SDouble $ i * j
 
 -- | -
-stypeSub :: SType -> SType -> SType
-stypeSub (SNum (SInt i)) (SNum (SInt j)) = SNum $ SInt $ i - j
-stypeSub (SNum (SInt i)) (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i - j
-stypeSub (SNum (SDouble i)) (SNum (SInt j)) = SNum $ SDouble $ i - fromIntegral j
-stypeSub (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i - j
-stypeSub _ _ = error "must be numeric type"
+sSub :: INum -> INum -> INum
+sSub (SInt i) (SInt j) = SInt $ i - j
+sSub (SInt i) (SDouble j) = SDouble $ fromIntegral i - j
+sSub (SDouble i) (SInt j) = SDouble $ i - fromIntegral j
+sSub (SDouble i) (SDouble j) = SDouble $ i - j
 
 -- | :
-stypeDiv :: SType -> SType -> SType
-stypeDiv (SNum (SInt i)) (SNum (SInt j)) = SNum $ SDouble $ fromIntegral i / fromIntegral j
-stypeDiv (SNum (SInt i)) (SNum (SDouble j)) = SNum $ SDouble $ fromIntegral i / j
-stypeDiv (SNum (SDouble i)) (SNum (SInt j)) = SNum $ SDouble $ i / fromIntegral j
-stypeDiv (SNum (SDouble i)) (SNum (SDouble j)) = SNum $ SDouble $ i / j
-stypeDiv _ _ = error "must be numeric type"
+sDiv :: INum -> INum -> INum
+sDiv (SInt i) (SInt j) = SDouble $ fromIntegral i / fromIntegral j
+sDiv (SInt i) (SDouble j) = SDouble $ fromIntegral i / j
+sDiv (SDouble i) (SInt j) = SDouble $ i / fromIntegral j
+sDiv (SDouble i) (SDouble j) = SDouble $ i / j
 
 -- | == & /=
-stypeEq :: SType -> SType -> SType
-stypeEq (SNum i) (SNum j) = SBool $ i == j
-stypeEq (SString i) (SString j) = SBool $ T.toCaseFold i == T.toCaseFold j
-stypeEq (SBool i) (SBool j) = SBool $ i == j
-stypeEq (SArray i) (SArray j) = SBool $ i == j
-stypeEq _ _ = SBool False
+sEq :: (Eq a) => a -> a -> Bool
+sEq i j = i == j
 
 -- | < & <= & > & >=
-stypeOrd :: OrdType -> SType -> SType -> SType
-stypeOrd o (SNum a) (SNum b) = SBool $ op o a b
+sOrd :: OrdType -> INum -> INum -> Bool
+sOrd = op
   where
     op Less = (<)
     op LessEq = (<=)
     op Greater = (>)
     op GreaterEq = (>=)
-stypeOrd _ _ _ = error "ord operator works on numbers only"
+
+-- | all
+sAll :: [Bool] -> Bool
+sAll = and
 
 -- | at
-stypeAt :: SType -> SType -> SType
-stypeAt (SArray a) (SNum (SInt i)) = a !! i
-stypeAt _ _ = error "args not matching"
+sAt :: [a] -> INum -> a
+sAt a (SInt i) = a !! i
+sAt a (SDouble d) = a !! floor d
 
 -- | in
-stypeIn :: SType -> SType -> SType
-stypeIn (SString s) (SString t) = SBool $ s `T.isInfixOf` t
-stypeIn v t = SBool $ v `elem` toList t
-  where
-    toList (SArray a) = a
-    toList _ = error "can only unwrap an array"
+sIn :: a -> a -> Bool
+sIn v t = undefined -- v `elem` toList t
 
--- | match
-stypeMatch :: SType -> MatchArg -> SType
-stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn matches)
-  where
-    binary :: ToBeMatched -> Maybe SType
-    binary (SArray a, b) = if t `elem` a then Just b else Nothing
-    binary (a, b) = if a == t then Just b else Nothing
-    isIn = mapMaybe binary
+-- -- | match
+-- stypeMatch :: SType -> MatchArg -> SType
+-- stypeMatch t (MatchArg (matches, fallback)) = fromMaybe fallback (listToMaybe $ isIn matches)
+--   where
+--     binary :: ToBeMatched -> Maybe SType
+--     binary (SArray a, b) = if t `elem` a then Just b else Nothing
+--     binary (a, b) = if a == t then Just b else Nothing
+--     isIn = mapMaybe binary
 
 -- | case
-stypeCase :: [(SType, SType)] -> SType -> SType
-stypeCase ((SBool b, r) : xs) f = if b then r else stypeCase xs f
-stypeCase [] f = f
-stypeCase (_ : _) _ = error "condition must return bool"
+sCase :: [(Bool, a)] -> a -> a
+sCase ((b, r) : xs) f = if b then r else sCase xs f
+sCase [] f = f
 
-stypeCoalesce :: [SType] -> SType
-stypeCoalesce exp = maybe SNull nonNullOrFallback (unsnoc exp)
+-- | coalesce
+sCoalesce :: [SType] -> SType
+sCoalesce exp = maybe SNull nonNullOrFallback (unsnoc exp)
   where
     unsnoc = foldr (\x -> Just . maybe ([], x) (\(~(a, b)) -> (x : a, b))) Nothing
     nonNullOrFallback (SNull : xs, f) = nonNullOrFallback (xs, f)
@@ -265,18 +323,16 @@ stypeCoalesce exp = maybe SNull nonNullOrFallback (unsnoc exp)
 -- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
 -- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
-stypeInterpolate :: InterpolationType -> SType -> [(SType, SType)] -> SType
-stypeInterpolate t (SNum i) pts =
+sInterpolate :: (Floating a) => InterpolationType -> INum -> [(INum, a)] -> a
+sInterpolate t i pts =
   let (t', index) = interpolationFactor t i pts
       output = map snd (numTupleToDouble pts)
-   in SNum $ SDouble $ interpolateNr (output !! index) (output !! (index + 1)) t'
-stypeInterpolate _ (SColor _) _ = undefined
-stypeInterpolate _ _ _ = error "can only interpolate colors or numbers"
+   in interpolateNr (output !! index) (output !! (index + 1)) (realToFrac t')
 
 findStopsLessThenOrEqualTo :: [Double] -> Double -> Int
 findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
 
-interpolationFactor :: InterpolationType -> INum -> [(SType, SType)] -> (Double, Int)
+interpolationFactor :: InterpolationType -> INum -> [(INum, a)] -> (Double, Int)
 interpolationFactor t v pts = (pMatch t (numToDouble v), index)
   where
     pMatch Linear v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
@@ -295,110 +351,170 @@ exponentialInterpolation input base lower upper
     difference = upper - lower
     progress = input - lower
 
-numTupleToDouble :: [(SType, SType)] -> [(Double, Double)]
-numTupleToDouble ((SNum a, SNum b) : xs) = (numToDouble a, numToDouble b) : numTupleToDouble xs
-numTupleToDouble ((_, _) : _) = error "tuples must be of numerical type"
+numTupleToDouble :: [(INum, a)] -> [(Double, a)]
+numTupleToDouble ((a, b) : xs) = (numToDouble a, b) : numTupleToDouble xs
 numTupleToDouble [] = []
 
 interpolateNr :: (Floating a) => a -> a -> a -> a
 interpolateNr from to t = from + t * (to - from)
+
+-- sIn :: FilterBy -> SType -> ExpressionContext -> SType
+-- sIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx
+-- sIn _ _ _ = error "second argument must be an array"
+
+sGet :: T.Text -> ExpressionContext -> SType
+sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
+
+-- defaults to linestring if geometry cannot be retrieved from feature
+evalGeometryType :: ExpressionContext -> T.Text
+evalGeometryType ctx = fromMaybe "LINESTRING" (geometryTypeToString (ctx ^. feature))
+
+evalZoom :: ExpressionContext -> INum
+evalZoom ctx = SDouble (ctx ^. ctxZoom)
+
+--------------------------------------------------------------------------------
+-- evaluators
+--------------------------------------------------------------------------------
+
+evalNumExpr :: IsoExpr INum -> ExpressionContext -> INum
+evalNumExpr (NumE e) _ = e
+evalNumExpr (AddE a) ctx = sSum (map (`evalNumExpr` ctx) a)
+evalNumExpr (ProdE a) ctx = sProd (map (`evalNumExpr` ctx) a)
+evalNumExpr (SubE a b) ctx = sSub (evalNumExpr a ctx) (evalNumExpr b ctx)
+evalNumExpr (DivE a b) ctx = sDiv (evalNumExpr a ctx) (evalNumExpr b ctx)
+
+evalBoolExpr :: IsoExpr Bool -> ExpressionContext -> Bool
+evalBoolExpr (BoolE b) _ = b
+evalBoolExpr (Negation e) ctx = not $ evalBoolExpr e ctx
+evalBoolExpr (EqE o t) ctx = sEq (sEval o ctx) (sEval t ctx)
+evalBoolExpr (OrdE t a b) ctx = sOrd t (evalNumExpr a ctx) (evalNumExpr b ctx)
+evalBoolExpr (InE v t) ctx = sIn (sEval v ctx) (sEval t ctx)
+evalBoolExpr (AllE v) ctx = sAll (map (`sEval` ctx) v)
+
+evalStringExpr :: IsoExpr T.Text -> ExpressionContext -> T.Text
+evalStringExpr (StringE s) _ = s
+
+evalArrayExpr :: IsoExpr [a] -> ExpressionContext -> [a]
+evalArrayExpr (ArrayE a) _ = a
+
+evalColorExpr :: IsoExpr Color -> ExpressionContext -> Color
+evalColorExpr (ColorE c) _ = c
+
+evalWrapped :: WrappedExpr -> ExpressionContext -> SType
+evalWrapped (StringExpr t) ctx = undefined
+evalWrapped (NumExpr n) ctx = undefined
+evalWrapped (BoolExpr b) ctx = undefined
+evalWrapped (ArrayExpr a) ctx = undefined
+evalWrapped (ColorExpr c) ctx = undefined
+
+evalExpr :: (SParseable a) => IsoExpr a -> ExpressionContext -> a
+-- evalIsoExpr (AtE a i) ctx = sAt (map (`sEval` ctx) a) (evalNumExpr i ctx) ctx
+-- evalIsoExpr (MatchE m v) ctx = stypeMatch (eval m ctx) v
+evalExpr (CaseE c f) ctx = sCase (map (\(a, b) -> (evalBoolExpr a ctx, sEval b ctx)) c) (sEval f ctx)
+-- evalIsoExpr (CoalesceE n) ctx = sCoalesce (map (`sEval` ctx) n)
+evalExpr (InterpolateE t e a) ctx = sInterpolate t (evalNumExpr e ctx) (map (\(a', b) -> (evalNumExpr a' ctx, sEval b ctx)) a)
+evalExpr (FgetE k) ctx = evalFilterGet k ctx
+evalExpr FgeometryE ctx = evalGeometryType ctx
+evalExpr FzoomE ctx = evalZoom ctx
+evalExpr _ _ = undefined
 
 --------------------------------------------------------------------------------
 -- Combined Parsers
 --------------------------------------------------------------------------------
 
 -- | 4all expressions that return string
-stringP :: [Parser (ArgType (SString s))]
+stringP :: [Parser (IsoExpr T.Text)]
 stringP =
-  [ IsoArg . StringE <$> pString <* hidden space,
+  [ StringE <$> pString <* hidden space,
     -- polymorphic
-    atP,
-    matchP,
-    interpolateP,
-    fgetP,
-    fgeometryP
+    atP
+    -- matchP,
+    -- interpolateP,
+    -- fgetP,
+    -- fgeometryP
   ]
 
-stringExprP :: Parser (ArgType (SString s))
+stringExprP :: Parser (IsoExpr T.Text)
 stringExprP = choice $ map try stringP
 
-stringFuncP :: Parser (ArgType (SString s))
+stringFuncP :: Parser (IsoExpr T.Text)
 stringFuncP = choice $ map try (tail stringP)
 
 -- | 4all expressions that return num
-numP :: [Parser (ArgType (SNum i))]
+numP :: [Parser (IsoExpr INum)]
 numP =
   [ numLitP,
     arithmethicExprP,
     -- polymorphic
-    atP,
-    matchP,
-    interpolateP,
-    fgetP,
-    fzoomP
+    -- atP,
+    -- matchP,
+    interpolateP
+    -- fgetP,
+    -- fzoomP
   ]
   where
-    numLitP = try (IsoArg . DoubleE <$> pDouble <* hidden space) <|> IsoArg . IntE <$> pInteger <* hidden space
+    numLitP = try (NumE . SDouble <$> pDouble <* hidden space) <|> NumE . SInt <$> pInteger <* hidden space
 
-numExprP :: Parser (ArgType (SNum i))
+numExprP :: Parser (IsoExpr INum)
 numExprP = choice $ map try numP
 
-numFuncP :: Parser (ArgType (SNum i))
+numFuncP :: Parser (IsoExpr INum)
 numFuncP = choice $ map try (tail numP)
 
 -- | 4all expressions that return bool
-boolP :: [Parser (ArgType (SBool b))]
+boolP :: [Parser (IsoExpr Bool)]
 boolP =
-  [ IsoArg . BoolE <$> pBool <* hidden space,
+  [ BoolE <$> pBool <* hidden space,
     ordP,
     eqP,
     inP,
-    allP,
+    allP
     -- polymorphic
-    atP,
-    matchP,
-    interpolateP,
-    fgetP
+    -- atP,
+    -- matchP,
+    -- interpolateP,
+    -- fgetP
   ]
 
-boolExprP :: Parser (ArgType (SBool b))
+boolExprP :: Parser (IsoExpr Bool)
 boolExprP = choice $ map try boolP
 
-boolFuncP :: Parser (ArgType (SBool b))
+boolFuncP :: Parser (IsoExpr Bool)
 boolFuncP = choice $ map try (tail boolP)
 
 -- | 4all expressions that return array
-arrayP :: [Parser (ArgType (SArray a))]
+arrayP :: [Parser (IsoExpr [a])]
 arrayP =
-  [ IsoArg . ArrayE <$> arrayLitP <* hidden space,
-    -- polymorphic
-    atP,
-    matchP,
-    interpolateP,
-    fgetP
-  ]
+  []
 
-arrayExprP :: Parser (ArgType (SArray a))
+-- IsoArg . ArrayE <$> pArray <* hidden space,
+-- polymorphic
+-- atP,
+-- matchP,
+-- interpolateP,
+-- fgetP
+
+arrayExprP :: Parser (IsoExpr [a])
 arrayExprP = choice $ map try arrayP
 
-arrayFuncP :: Parser (ArgType (SArray a))
+arrayFuncP :: Parser (IsoExpr [a])
 arrayFuncP = choice $ map try (tail arrayP)
 
 -- | 4all expressions that return color
-colorP :: [Parser (ArgType (SColor c))]
+colorP :: [Parser (IsoExpr Color)]
 colorP =
-  [ IsoArg . ColorE <$> pColor <* hidden space,
-    -- polymorphic
-    atP,
-    matchP,
-    interpolateP,
-    fgetP
+  [ ColorE <$> pColor <* hidden space
+  -- polymorphic
+  -- atP,
+  -- matchP,
+  -- interpolateP,
+  -- fgetP
   ]
 
-colorExprP :: Parser (ArgType (SColor a))
+colorExprP :: Parser (IsoExpr Color)
 colorExprP = choice $ map try colorP
 
-colorFuncP :: Parser (ArgType (SColor a))
+colorFuncP :: Parser (IsoExpr Color)
 colorFuncP = choice $ map try (tail colorP)
 
 -- | 4all Polymorphic expressions

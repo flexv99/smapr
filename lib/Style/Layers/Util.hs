@@ -31,13 +31,13 @@ instance A.FromJSON TranslateAnchor where
     "viewport" -> return Viewport
     _ -> return Map
 
-expr :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
+expr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr INum))
 expr Nothing = pure Nothing
 expr (Just v) = case parse (try interpolateP <|> numExprP) "" (A.encodeToLazyText v) of
   Left err -> fail $ errorBundlePretty err
-  Right res -> pure $ Just $ wrap res
+  Right res -> pure $ Just res
 
-color :: Maybe A.Value -> A.Parser (Maybe SType)
+color :: Maybe A.Value -> A.Parser (Maybe Color)
 color Nothing = pure Nothing
 color (Just v) = case parse pColor "" (A.encodeToLazyText v) of
   Left err -> fail $ errorBundlePretty err

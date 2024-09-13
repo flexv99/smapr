@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
@@ -7,124 +8,107 @@
 
 module Style.ExpressionsWrapper where
 
-import Data.Kind (Type)
 import qualified Data.Text.Lazy as T
+import Style.ExpressionsContext
 import Style.Parser
-
--- | AST representation of expressions requiring feature context
-data FeatureExpr :: SType -> Type where
-  -- | getter on feature properties
-  FgetE :: SType -> FeatureExpr a
-  -- | Geometry type expression for a given feature
-  FgeometryE :: FeatureExpr (SString s)
-  -- | Zoom
-  FzoomE :: FeatureExpr (SNum a)
-
-deriving instance Show (FeatureExpr res)
 
 -- | AST representation of map libre's style spec expressions
 --   value-type the expression is representing (see 'evalExpr')
 -- representing expressions that don't required layer or feature context
-data IsoExpr :: SType -> Type where
+data IsoExpr a where
   -- | string literal
-  StringE :: T.Text -> IsoExpr (SString s)
+  StringE :: T.Text -> IsoExpr T.Text
   -- | int literal
-  IntE :: Int -> IsoExpr (SNum i)
+  IntE :: Int -> IsoExpr Int
   -- | double literal
-  DoubleE :: Double -> IsoExpr (SNum i)
-  -- | Num literal
-  NumE :: INum -> IsoExpr (SNum n)
+  DoubleE :: Double -> IsoExpr Double
+  -- | num literal
+  NumE :: INum -> IsoExpr INum
   -- | addition
-  AddE :: [ArgType (SNum n)] -> IsoExpr (SNum n)
+  AddE :: [IsoExpr INum] -> IsoExpr INum
   -- | product
-  ProdE :: [ArgType (SNum n)] -> IsoExpr (SNum n)
+  ProdE :: [IsoExpr INum] -> IsoExpr INum
   -- | subtraction
-  SubE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SNum n)
+  SubE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
   -- | division
-  DivE :: ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SNum n)
+  DivE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
   -- | bool literal
-  BoolE :: Bool -> IsoExpr (SBool b)
+  BoolE :: Bool -> IsoExpr Bool
   -- | negation of bool expressions
-  Negation :: IsoExpr (SBool s) -> IsoExpr (SBool b)
+  Negation :: IsoExpr Bool -> IsoExpr Bool
   -- | check for equaliy on polymorphic types
-  EqE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
+  EqE :: (Show a, SParseable a, Eq a) => IsoExpr a -> IsoExpr a -> IsoExpr Bool
   -- | < <= > >=
-  OrdE :: OrdType -> ArgType (SNum n) -> ArgType (SNum n) -> IsoExpr (SBool b)
+  OrdE :: OrdType -> IsoExpr INum -> IsoExpr INum -> IsoExpr Bool
   -- | checks if element is in an array or string
-  InE :: WrappedExpr -> WrappedExpr -> IsoExpr (SBool b)
+  InE :: (Show a, SParseable a) => IsoExpr a -> IsoExpr a -> IsoExpr Bool
   -- | all expr
-  AllE :: [ArgType (SBool b)] -> IsoExpr (SBool b)
+  AllE :: [IsoExpr Bool] -> IsoExpr Bool
   -- | list literal
-  ArrayE :: SType -> IsoExpr (SArray a)
+  ArrayE :: (Show a, SParseable a) => [a] -> IsoExpr [a]
   -- | Color literal
-  ColorE :: SType -> IsoExpr (SColor c)
+  ColorE :: Color -> IsoExpr Color
   -- | match expr
-  MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
+  -- MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
   -- | case expr
-  CaseE :: [(ArgType (SBool b), SType)] -> SType -> IsoExpr a
+  CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
-  AtE :: SType -> ArgType (SNum (SInt i)) -> IsoExpr a
+  AtE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr INum -> IsoExpr a
   -- | coalesce
-  CoalesceE :: [WrappedExpr] -> IsoExpr a
+  CoalesceE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr a
   -- | interpolate expr
   InterpolateE ::
+    (Show a, SParseable a, Floating a) =>
     InterpolationType ->
-    ArgType (SNum i) ->
-    [(SType, WrappedExpr)] ->
+    IsoExpr INum ->
+    [(IsoExpr INum, IsoExpr a)] ->
     IsoExpr a
+  -- | getter on feature properties
+  FgetE :: T.Text -> IsoExpr SType
+  -- | Geometry type expression for a given feature
+  FgeometryE :: IsoExpr T.Text
+  -- | Zoom
+  FzoomE :: IsoExpr INum
 
 deriving instance Show (IsoExpr res)
 
--- | representation of argument type
--- | as the evaluator needs to know in which context
--- | the expression stands
-data ArgType t where
-  IsoArg :: IsoExpr t -> ArgType t
-  FeatureArg :: FeatureExpr t -> ArgType t
-
-deriving instance Show (ArgType t)
+class SParseable a where
+  sParse :: Parser (IsoExpr a)
+  sEval :: IsoExpr a -> ExpressionContext -> a
 
 -- | runtime representation
 -- | mainly useful for parsing
 data WrappedExpr where
-  StringExpr :: ArgType (SString n) -> WrappedExpr
-  NumExpr :: ArgType (SNum a) -> WrappedExpr
-  BoolExpr :: ArgType (SBool b) -> WrappedExpr
-  ArrayExpr :: ArgType (SArray a) -> WrappedExpr
-  ColorExpr :: ArgType (SColor c) -> WrappedExpr
+  StringExpr :: IsoExpr T.Text -> WrappedExpr
+  NumExpr :: IsoExpr INum -> WrappedExpr
+  BoolExpr :: IsoExpr Bool -> WrappedExpr
+  ArrayExpr :: IsoExpr [a] -> WrappedExpr
+  ColorExpr :: IsoExpr Color -> WrappedExpr
 
 deriving instance Show WrappedExpr
 
--- | helps wrapping 'Expr' to the right
---   'WrappedExpr' constructor
---
--- >>> wrap (IntE 42)
--- IntExpr (IntE 42)
---
--- >>> wrap (IsNullE (IntE 42))
--- BoolExpr (IsNullE (IntE 42))
 class KnownResType a where
-  wrap :: ArgType a -> WrappedExpr
+  wrap :: IsoExpr a -> WrappedExpr
 
-instance KnownResType (SString b) where
+instance KnownResType T.Text where
   wrap = StringExpr
 
-instance KnownResType (SNum a) where
+instance KnownResType INum where
   wrap = NumExpr
 
-instance KnownResType (SBool b) where
+instance KnownResType Bool where
   wrap = BoolExpr
 
-instance KnownResType (SArray a) where
+instance KnownResType [a] where
   wrap = ArrayExpr
 
-instance KnownResType (SColor c) where
+instance KnownResType Color where
   wrap = ColorExpr
 
 -- Helper types
-type ToBeMatched = (SType, SType)
+-- type ToBeMatched = (a, a)
 
-newtype MatchArg = MatchArg ([ToBeMatched], SType) deriving (Show, Eq)
+-- newtype MatchArg = MatchArg ([ToBeMatched], a) deriving (Show, Eq)
 
 data InterpolationType
   = Linear

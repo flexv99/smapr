@@ -32,6 +32,75 @@ type Color = AlphaColour Double
 
 data INum = SInt Int | SDouble Double deriving (Show, Generic, Eq, Ord)
 
+instance Num INum where
+  (SInt a) + (SInt b) = SInt (a + b)
+  (SDouble a) + (SDouble b) = SDouble (a + b)
+  (SInt a) + (SDouble b) = SDouble (fromIntegral a + b)
+  (SDouble a) + (SInt b) = SDouble (a + fromIntegral b)
+
+  (SInt a) * (SInt b) = SInt (a * b)
+  (SDouble a) * (SDouble b) = SDouble (a * b)
+  (SInt a) * (SDouble b) = SDouble (fromIntegral a * b)
+  (SDouble a) * (SInt b) = SDouble (a * fromIntegral b)
+
+  abs (SInt a) = SInt (abs a)
+  abs (SDouble a) = SDouble (abs a)
+
+  signum (SInt a) = SInt (signum a)
+  signum (SDouble a) = SDouble (signum a)
+
+  fromInteger a = SInt (fromInteger a)
+
+  negate (SInt a) = SInt (negate a)
+  negate (SDouble a) = SDouble (negate a)
+
+instance Fractional INum where
+  (SInt a) / (SInt b) = SDouble (fromIntegral a / fromIntegral b)
+  (SDouble a) / (SDouble b) = SDouble (a / b)
+  (SInt a) / (SDouble b) = SDouble (fromIntegral a / b)
+  (SDouble a) / (SInt b) = SDouble (a / fromIntegral b)
+
+  fromRational a = SDouble (fromRational a)
+
+instance Floating INum where
+  pi = SDouble pi
+
+  exp (SInt a) = SDouble (exp (fromIntegral a))
+  exp (SDouble a) = SDouble (exp a)
+
+  log (SInt a) = SDouble (log (fromIntegral a))
+  log (SDouble a) = SDouble (log a)
+
+  sin (SInt a) = SDouble (sin (fromIntegral a))
+  sin (SDouble a) = SDouble (sin a)
+
+  cos (SInt a) = SDouble (cos (fromIntegral a))
+  cos (SDouble a) = SDouble (cos a)
+
+  asin (SInt a) = SDouble (asin (fromIntegral a))
+  asin (SDouble a) = SDouble (asin a)
+
+  acos (SInt a) = SDouble (acos (fromIntegral a))
+  acos (SDouble a) = SDouble (acos a)
+
+  atan (SInt a) = SDouble (atan (fromIntegral a))
+  atan (SDouble a) = SDouble (atan a)
+
+  sinh (SInt a) = SDouble (sinh (fromIntegral a))
+  sinh (SDouble a) = SDouble (sinh a)
+
+  cosh (SInt a) = SDouble (cosh (fromIntegral a))
+  cosh (SDouble a) = SDouble (cosh a)
+
+  asinh (SInt a) = SDouble (asinh (fromIntegral a))
+  asinh (SDouble a) = SDouble (asinh a)
+
+  acosh (SInt a) = SDouble (acosh (fromIntegral a))
+  acosh (SDouble a) = SDouble (acosh a)
+
+  atanh (SInt a) = SDouble (atanh (fromIntegral a))
+  atanh (SDouble a) = SDouble (atanh a)
+
 data SType
   = SNum INum
   | SString T.Text
@@ -125,7 +194,7 @@ pInteger = lexeme (L.signed space L.decimal) <?> "integer"
 pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
 
-pColor :: Parser SType
+pColor :: Parser Color
 pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor, pHexColor]
 
 pAtom :: Parser SType
@@ -135,7 +204,7 @@ pAtom =
       [ numberLitP,
         boolLitP,
         nullP,
-        try pColor,
+        try $ SColor <$> pColor,
         stringLitP,
         arrayLitP
       ]
@@ -147,7 +216,7 @@ pNotNullAtom =
       [ numberLitP,
         boolLitP,
         nullP,
-        try pColor,
+        try $ SColor <$> pColor,
         stringLitP,
         arrayLitP
       ]
@@ -209,7 +278,7 @@ nullP = lexeme (SNull <$ (string "null" *> notFollowedBy alphaNumChar)) <?> "nul
 --     "line-color": "yellow"
 -- }
 
-pHslColor :: Parser SType
+pHslColor :: Parser Color
 pHslColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "hsl" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
@@ -217,7 +286,7 @@ pHslColor = betweenDoubleQuotes $ do
     _ <- char ',' >> space
     s <- pColorPercentage
     _ <- char ',' >> space
-    SColor . hslToColor h s <$> pColorPercentage
+    hslToColor h s <$> pColorPercentage
   where
     pInt = lexeme (L.signed space L.decimal)
     pColorPercentage = do
@@ -225,7 +294,7 @@ pHslColor = betweenDoubleQuotes $ do
       _ <- char '%'
       return num
 
-pRgbColor :: Parser SType
+pRgbColor :: Parser Color
 pRgbColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgb" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
@@ -234,9 +303,9 @@ pRgbColor = betweenDoubleQuotes $ do
     g <- fromIntegral <$> pInteger
     _ <- char ',' >> space
     b <- fromIntegral <$> pInteger
-    return $ SColor $ sRGB24 r g b `withOpacity` 1
+    return $ sRGB24 r g b `withOpacity` 1
 
-pRgbaColor :: Parser SType
+pRgbaColor :: Parser Color
 pRgbaColor = betweenDoubleQuotes $ do
   _ <- lexeme (string "rgba" <* notFollowedBy alphaNumChar)
   betweenBrackets $ do
@@ -247,20 +316,20 @@ pRgbaColor = betweenDoubleQuotes $ do
     b <- fromIntegral <$> pInteger
     _ <- char ',' >> space
     opacity <- numberLitINumP
-    return $ SColor $ sRGB24 r g b `withOpacity` numToDouble opacity
+    return $ sRGB24 r g b `withOpacity` numToDouble opacity
 
 expandShortHex :: String -> String
 expandShortHex hex
   | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
   | otherwise = hex
 
-pHexColor :: Parser SType
+pHexColor :: Parser Color
 pHexColor = betweenDoubleQuotes $ do
   _ <- char '#'
   hexDigits <- try (some hexDigitChar)
   let validLength = length hexDigits == 6 || length hexDigits == 3
   if validLength
-    then return $ SColor $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
+    then return $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
     else fail "Invalid hex color code length"
 
 hslToColor :: Double -> Double -> Double -> Color
@@ -272,13 +341,12 @@ hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlu
 -- Helpers
 --------------------------------------------------------------------------------
 
-showSColor :: SType -> String
-showSColor (SColor a) = sRGB24show $ pureColour a
+showSColor :: Color -> String
+showSColor a = sRGB24show $ pureColour a
   where
     pureColour ac
       | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
       | otherwise = error "transparent has no pure colour"
-showSColor _ = error "can only show colors"
 
 tuplifyWithFallback :: [a] -> ([(a, a)], a)
 tuplifyWithFallback [] = error "no fallback value"
