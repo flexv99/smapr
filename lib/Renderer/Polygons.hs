@@ -1,24 +1,24 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE TypeFamilies              #-}
 
 module Renderer.Polygons
-  ( polygonToPoints
-  , drawPolygon
-  ) where
+  ( polygonToPoints,
+    drawPolygon,
+  )
+where
 
-import qualified Diagrams.Prelude as D
-import qualified Diagrams.TwoD.Size as D
-import qualified Diagrams.Backend.SVG as D
-import qualified Diagrams.Trail as D
-import Proto.Vector_tile.Tile (Tile(..))
 import Control.Lens
-import Util
-import ApiClient
 import Decoder.Polygons
-import Style.Layers.Fill
+import qualified Diagrams.Backend.SVG as D
+import qualified Diagrams.Prelude as D
+import qualified Diagrams.Trail as D
+import qualified Diagrams.TwoD.Size as D
+import Proto.Vector_tile.Tile (Tile (..))
 import Style.ExpressionsContext
 import Style.ExpressionsEval
+import Style.Layers.Fill
+import Util
 
 render2DVector :: D.Diagram D.B -> IO ()
 render2DVector v = do
@@ -37,10 +37,10 @@ polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo 
     toDPoint = map geoMetryPointToDPoint
 
 drawPolygon :: FillS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
-drawPolygon style ctx tour = D.strokeLocLoop tourPath
-  D.# D.fcA color
-  D.# D.lcA color
+drawPolygon style ctx tour =
+  D.strokeLocLoop tourPath
+    D.# D.fcA color
+    D.# D.lcA color
   where
     color = unwrapSColor (style ^. fillColor)
     tourPath = D.fromVertices tour
-
