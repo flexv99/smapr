@@ -100,4 +100,5 @@ Test-Suite smapr-testsuite
                       , containers
   other-modules:        Decoder.DecoderSpec
                       , Parser.ParseSpec
+                      , Parser.ExpressionsSpec
   build-tool-depends: hspec-discover:hspec-discover

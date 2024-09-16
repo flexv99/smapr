@@ -15,6 +15,7 @@ import Data.Colour.SRGB
 import Data.Foldable
 import Data.Maybe
 import qualified Data.Sequence as S
+import qualified Data.Text.Lazy as T
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
@@ -88,7 +89,7 @@ buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapM
 
 test :: IO ()
 test = do
-  t <- getMTTile (Coord 46.785019 11.931154 14)
+  t <- fakerTile
   maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
 
 testWithUrl :: String -> IO ()

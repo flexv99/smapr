@@ -47,5 +47,5 @@ drawLine style ctx tour =
     lineP :: forall {c}. (D.HasStyle c) => c -> c
     lineP = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)
     color = style ^. lineColor
-    stroke = numToDouble $ evalNumExpr (style ^. lineWidth) ctx
+    stroke = numToDouble $ eval (style ^. lineWidth) ctx
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double

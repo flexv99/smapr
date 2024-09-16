@@ -58,5 +58,5 @@ instance A.FromJSON SLayer where
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
 evalLayer :: SLayer -> ExpressionContext -> Bool
-evalLayer (SLayer {lfilter = Just fltr}) ctx = evalBoolExpr fltr ctx
+evalLayer (SLayer {lfilter = Just fltr}) ctx = eval fltr ctx
 evalLayer _ _ = True

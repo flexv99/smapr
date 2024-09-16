@@ -32,30 +32,30 @@ data IsoExpr a where
   SubE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
   -- | division
   DivE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
+  -- | Zoom
+  FzoomE :: IsoExpr INum
   -- | bool literal
   BoolE :: Bool -> IsoExpr Bool
   -- | negation of bool expressions
   Negation :: IsoExpr Bool -> IsoExpr Bool
   -- | check for equaliy on polymorphic types
-  EqE :: (Show a, SParseable a, Eq a) => IsoExpr a -> IsoExpr a -> IsoExpr Bool
+  EqE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
   -- | < <= > >=
   OrdE :: OrdType -> IsoExpr INum -> IsoExpr INum -> IsoExpr Bool
   -- | checks if element is in an array or string
-  InE :: (Show a, SParseable a) => IsoExpr a -> IsoExpr a -> IsoExpr Bool
+  InE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
   -- | all expr
   AllE :: [IsoExpr Bool] -> IsoExpr Bool
   -- | list literal
-  ArrayE :: (Show a, SParseable a) => [a] -> IsoExpr [a]
+  -- ArrayE :: (Show a, SParseable a) => [a] -> IsoExpr [a]
   -- | Color literal
   ColorE :: Color -> IsoExpr Color
   -- | match expr
-  -- MatchE :: WrappedExpr -> MatchArg -> IsoExpr a
+  MatchE :: (Show a, SParseable a) => WrappedExpr -> ([(WrappedExpr, a)], a) -> IsoExpr a
   -- | case expr
   CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
   AtE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr INum -> IsoExpr a
-  -- | coalesce
-  CoalesceE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr a
   -- | interpolate expr
   InterpolateE ::
     (Show a, SParseable a, Floating a) =>
@@ -63,12 +63,14 @@ data IsoExpr a where
     IsoExpr INum ->
     [(IsoExpr INum, IsoExpr a)] ->
     IsoExpr a
-  -- | getter on feature properties
-  FgetE :: T.Text -> IsoExpr SType
   -- | Geometry type expression for a given feature
   FgeometryE :: IsoExpr T.Text
-  -- | Zoom
-  FzoomE :: IsoExpr INum
+  -- SType Literal
+  STypeE :: SType -> IsoExpr SType
+  -- | getter on feature properties
+  FgetE :: T.Text -> IsoExpr SType
+  -- | coalesce
+  CoalesceE :: [WrappedExpr] -> IsoExpr SType
 
 deriving instance Show (IsoExpr res)
 
@@ -84,6 +86,7 @@ data WrappedExpr where
   BoolExpr :: IsoExpr Bool -> WrappedExpr
   ArrayExpr :: IsoExpr [a] -> WrappedExpr
   ColorExpr :: IsoExpr Color -> WrappedExpr
+  STypeExpr :: IsoExpr SType -> WrappedExpr
 
 deriving instance Show WrappedExpr
 
@@ -105,10 +108,8 @@ instance KnownResType [a] where
 instance KnownResType Color where
   wrap = ColorExpr
 
--- Helper types
--- type ToBeMatched = (a, a)
-
--- newtype MatchArg = MatchArg ([ToBeMatched], a) deriving (Show, Eq)
+instance KnownResType SType where
+  wrap = STypeExpr
 
 data InterpolationType
   = Linear
