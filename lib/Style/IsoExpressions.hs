@@ -7,6 +7,7 @@
 module Style.IsoExpressions where
 
 import Control.Lens
+import Data.Bifunctor
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
@@ -118,24 +119,15 @@ allP = betweenSquareBrackets $ do
   _ <- char ',' >> space
   AllE <$> boolExprP `sepBy` (char ',' >> space)
 
-matchArgsP :: (Show a, SParseable a) => Parser a -> Parser (WrappedExpr, a)
-matchArgsP pRet = do
-  mcase <- polyExprP
+matchP :: (Show a, SParseable a) => (SType -> a) -> Parser (IsoExpr a)
+matchP unwrap = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "match"
   _ <- char ',' >> space
-  r <- pRet
-  return (mcase, r)
-
--- matchP :: (Show a, SParseable a) => Parser a -> Parser (IsoExpr a)
--- matchP pType = betweenSquareBrackets $ do
---   _ <- betweenDoubleQuotes $ string "match"
---   _ <- char ',' >> space
---   expr <- polyExprP
---   _ <- char ',' >> space
---   MatchE expr <$> p
---   where
---     p = do
---       args <- (matchArgsP pType) `sepBy` (char '.' >> space)
---       return $ tuplifyWithFallback args
+  expr <- polyExprP
+  _ <- char ',' >> space
+  args <- pAtom `sepBy` (char ',' >> space)
+  let cases = bimap (map (second unwrap)) unwrap $ tuplifyWithFallback args
+  return $ MatchE expr cases
 
 caseP :: (Show a, SParseable a) => Parser (IsoExpr a)
 caseP = betweenSquareBrackets $ do
@@ -179,8 +171,8 @@ interpolationTypeP = betweenSquareBrackets $ do
       _ <- char ',' >> space
       CubicBezier x1 x2 y1 <$> numberLitINumP
 
-interpolateP :: (Show a, SParseable a, Floating a) => Parser (IsoExpr a)
-interpolateP = betweenSquareBrackets $ do
+interpolateP :: (Show a, SParseable a, Floating a) => Parser a -> Parser (IsoExpr a)
+interpolateP tP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "interpolate"
   _ <- char ',' >> space
   interType <- interpolationTypeP
@@ -192,7 +184,7 @@ interpolateP = betweenSquareBrackets $ do
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      num2 <- sParse
+      num2 <- tP
       return (num1, num2)
 
 --------------------------------------------------------------------------------
@@ -255,12 +247,12 @@ numP :: [Parser (IsoExpr INum)]
 numP =
   [ numLitP,
     arithmethicExprP,
+    fzoomP,
     -- polymorphic
     atP numExprP,
-    -- matchP,
-    interpolateP
+    matchP unwrapNum,
+    interpolateP pNum
     -- fgetP,
-    -- fzoomP
   ]
   where
     numLitP = try (NumE . SDouble <$> pDouble <* hidden space) <|> NumE . SInt <$> pInteger <* hidden space
@@ -280,9 +272,11 @@ boolP =
     inP,
     allP,
     -- polymorphic
-    atP boolExprP
-    -- matchP,
-    -- fgetP
+    atP
+      boolExprP,
+    matchP
+      unwrapBool
+      -- fgetP
   ]
 
 boolExprP :: Parser (IsoExpr Bool)
@@ -314,8 +308,8 @@ colorP :: [Parser (IsoExpr Color)]
 colorP =
   [ ColorE <$> pColor <* hidden space,
     -- polymorphic
-    atP colorExprP
-    -- matchP,
+    atP colorExprP,
+    matchP unwrapColor
     -- interpolateP,
     -- fgetP
   ]
@@ -543,12 +537,32 @@ eval (DivE a b) ctx = sDiv (eval a ctx) (eval b ctx)
 eval (StringE s) _ = s
 eval (ColorE c) _ = c
 eval (AtE l i) ctx = sAt (map (`eval` ctx) l) (eval i ctx)
-eval (MatchE m v) ctx = sMatch (evalWrapped m ctx) ((\(a, b) -> (map (\(a', b') -> (evalWrapped a' ctx, b')) a, b)) v)
+eval (MatchE m v) ctx = sMatch (evalWrapped m ctx) v
 eval (CaseE c f) ctx = sCase (map (\(a, b) -> (eval a ctx, sEval b ctx)) c) (sEval f ctx)
 eval (CoalesceE n) ctx = sCoalesce (map (`evalWrapped` ctx) n)
-eval (InterpolateE t e a) ctx = sInterpolate t (eval e ctx) (map (\(a', b) -> (eval a' ctx, sEval b ctx)) a)
+eval (InterpolateE t e a) ctx = sInterpolate t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (FgetE k) ctx = sGet k ctx
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx
 eval (STypeE s) ctx = s
 eval x ctx = eval x ctx
+
+--------------------------------------------------------------------------------
+-- Poison
+--------------------------------------------------------------------------------
+
+unwrapString :: SType -> T.Text
+unwrapString (SString n) = n
+unwrapString _ = error "Can only unwrap string"
+
+unwrapNum :: SType -> INum
+unwrapNum (SNum n) = n
+unwrapNum _ = error "Can only unwrap num"
+
+unwrapBool :: SType -> Bool
+unwrapBool (SBool b) = b
+unwrapBool _ = error "Can only unwrap bool"
+
+unwrapColor :: SType -> Color
+unwrapColor (SColor c) = c
+unwrapColor _ = error "Can only unwrap colors"

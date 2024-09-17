@@ -194,6 +194,9 @@ pInteger = lexeme (L.signed space L.decimal) <?> "integer"
 pDouble :: Parser Double
 pDouble = lexeme (L.signed space L.float) <?> "float"
 
+pNum :: Parser INum
+pNum = try (SDouble <$> pDouble) <|> SInt <$> pInteger
+
 pColor :: Parser Color
 pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor, pHexColor]
 

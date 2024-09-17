@@ -51,7 +51,7 @@ data IsoExpr a where
   -- | Color literal
   ColorE :: Color -> IsoExpr Color
   -- | match expr
-  MatchE :: (Show a, SParseable a) => WrappedExpr -> ([(WrappedExpr, a)], a) -> IsoExpr a
+  MatchE :: (Show a, SParseable a) => WrappedExpr -> ([(SType, a)], a) -> IsoExpr a
   -- | case expr
   CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
@@ -61,7 +61,7 @@ data IsoExpr a where
     (Show a, SParseable a, Floating a) =>
     InterpolationType ->
     IsoExpr INum ->
-    [(IsoExpr INum, IsoExpr a)] ->
+    [(IsoExpr INum, a)] ->
     IsoExpr a
   -- | Geometry type expression for a given feature
   FgeometryE :: IsoExpr T.Text

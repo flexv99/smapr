@@ -116,7 +116,7 @@ spec = do
   describe "Style.ExpressionsEval.eval" $ do
     it "match expression" $ do
       ctx <- testLayerAndFeature
-      let expr = wrap <$> (parseMaybe matchP "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (IsoExpr Bool))
+      let expr = (parseMaybe (matchP (\(SBool b) -> b)) "[\"match\", [\"get\", \"brunnel\"], [\"bridge\", \"tunnel\"], false, true]" :: Maybe (IsoExpr Bool))
       (eval <$> expr <*> ctx) `shouldBe` Just True
   describe "Style.ExpressionsEval.eval" $ do
     it "case expression" $ do
