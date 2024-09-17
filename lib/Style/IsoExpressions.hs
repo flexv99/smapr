@@ -507,7 +507,7 @@ interpolationFactor t v pts = (pMatch t v, index)
 exponentialInterpolation :: INum -> INum -> INum -> INum -> INum
 exponentialInterpolation input base lower upper
   | difference == 0 = 0
-  | base == 1 = progress `divINum` difference
+  | base == 1 = progress / difference
   | otherwise = (base ** progress - 1) / (base ** difference - 1)
   where
     difference = upper - lower
