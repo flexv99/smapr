@@ -8,6 +8,9 @@ module Style.IsoExpressions where
 
 import Control.Lens
 import Data.Bifunctor
+import Data.Colour
+import Data.Colour.RGBSpace
+import Data.Colour.SRGB
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
@@ -171,20 +174,36 @@ interpolationTypeP = betweenSquareBrackets $ do
       _ <- char ',' >> space
       CubicBezier x1 x2 y1 <$> numberLitINumP
 
-interpolateP :: (Show a, SParseable a, Floating a) => Parser a -> Parser (IsoExpr a)
-interpolateP tP = betweenSquareBrackets $ do
+interpolateNumP :: Parser (IsoExpr INum)
+interpolateNumP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "interpolate"
   _ <- char ',' >> space
   interType <- interpolationTypeP
   _ <- char ',' >> space
   input <- numExprP
   _ <- char ',' >> space
-  InterpolateE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+  InterpolateNumE interType input <$> inOutPairs `sepBy` (char ',' >> space)
   where
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      num2 <- tP
+      num2 <- pNum
+      return (num1, num2)
+
+interpolateColorP :: Parser (IsoExpr Color)
+interpolateColorP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "interpolate"
+  _ <- char ',' >> space
+  interType <- interpolationTypeP
+  _ <- char ',' >> space
+  input <- numExprP
+  _ <- char ',' >> space
+  InterpolateColorE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+  where
+    inOutPairs = do
+      num1 <- numExprP
+      _ <- char ',' >> space
+      num2 <- pColor
       return (num1, num2)
 
 --------------------------------------------------------------------------------
@@ -251,7 +270,7 @@ numP =
     -- polymorphic
     atP numExprP,
     matchP unwrapNum,
-    interpolateP pNum
+    interpolateNumP
     -- fgetP,
   ]
   where
@@ -309,8 +328,8 @@ colorP =
   [ ColorE <$> pColor <* hidden space,
     -- polymorphic
     atP colorExprP,
-    matchP unwrapColor
-    -- interpolateP,
+    matchP unwrapColor,
+    interpolateColorP
     -- fgetP
   ]
 
@@ -461,29 +480,34 @@ sCoalesce exp = maybe SNull nonNullOrFallback (unsnoc exp)
 -- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
 -- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
-sInterpolate :: (Floating a) => InterpolationType -> INum -> [(INum, a)] -> a
-sInterpolate t i pts =
+sInterpolateNr :: InterpolationType -> INum -> [(INum, INum)] -> INum
+sInterpolateNr t i pts =
   let (t', index) = interpolationFactor t i pts
-      output = map snd (numTupleToDouble pts)
-   in interpolateNr (output !! index) (output !! (index + 1)) (realToFrac t')
+      output = map snd pts
+   in interpolateNr (output !! index) (output !! (index + 1)) t'
 
-findStopsLessThenOrEqualTo :: [Double] -> Double -> Int
+sInterpolateColor :: InterpolationType -> INum -> [(INum, Color)] -> Color
+sInterpolateColor t i pts =
+  let (t', index) = interpolationFactor t i pts
+      output = map snd pts
+   in interpolateColor (output !! index) (output !! (index + 1)) (numToDouble t')
+
+findStopsLessThenOrEqualTo :: [INum] -> INum -> Int
 findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
 
-interpolationFactor :: InterpolationType -> INum -> [(INum, a)] -> (Double, Int)
-interpolationFactor t v pts = (pMatch t (numToDouble v), index)
+interpolationFactor :: InterpolationType -> INum -> [(INum, a)] -> (INum, Int)
+interpolationFactor t v pts = (pMatch t v, index)
   where
     pMatch Linear v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
-    pMatch (Exponential e) v' = exponentialInterpolation v' (numToDouble e) (labels !! index) (labels !! (index + 1))
+    pMatch (Exponential e) v' = exponentialInterpolation v' e (labels !! index) (labels !! (index + 1))
     pMatch _ _ = error "cubic bezier not yet supported"
-    toNums = numTupleToDouble pts
-    labels = map fst toNums
-    index = findStopsLessThenOrEqualTo labels (numToDouble v)
+    labels = map fst pts
+    index = findStopsLessThenOrEqualTo labels v
 
-exponentialInterpolation :: (Eq a, Floating a) => a -> a -> a -> a -> a
+exponentialInterpolation :: INum -> INum -> INum -> INum -> INum
 exponentialInterpolation input base lower upper
   | difference == 0 = 0
-  | base == 1 = progress / difference
+  | base == 1 = progress `divINum` difference
   | otherwise = (base ** progress - 1) / (base ** difference - 1)
   where
     difference = upper - lower
@@ -493,8 +517,15 @@ numTupleToDouble :: [(INum, a)] -> [(Double, a)]
 numTupleToDouble ((a, b) : xs) = (numToDouble a, b) : numTupleToDouble xs
 numTupleToDouble [] = []
 
-interpolateNr :: (Floating a) => a -> a -> a -> a
+interpolateNr :: INum -> INum -> INum -> INum
 interpolateNr from to t = from + t * (to - from)
+
+interpolateColor :: Color -> Color -> Double -> Color
+interpolateColor from to t =
+  let blendedColour = blend t from to -- Interpolates between two colours
+      RGB r g b = toSRGB (blend t (pureColor from) (pureColor to)) -- Extracts RGB values without alpha
+      alpha = alphaChannel blendedColour -- Extracts the alpha channel from blendedColour
+   in sRGB r g b `withOpacity` alpha
 
 -- sIn :: FilterBy -> SType -> ExpressionContext -> SType
 -- sIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx
@@ -515,7 +546,7 @@ evalZoom ctx = SDouble (ctx ^. ctxZoom)
 --------------------------------------------------------------------------------
 
 evalWrapped :: WrappedExpr -> ExpressionContext -> SType
-evalWrapped (StringExpr s) ctx = SString $ eval s ctx
+evalWrapped (StringExpr s) ctx = SString $ T.toCaseFold $ eval s ctx
 evalWrapped (NumExpr n) ctx = SNum $ eval n ctx
 evalWrapped (BoolExpr b) ctx = SBool $ eval b ctx
 evalWrapped (ArrayExpr a) ctx = undefined
@@ -540,7 +571,8 @@ eval (AtE l i) ctx = sAt (map (`eval` ctx) l) (eval i ctx)
 eval (MatchE m v) ctx = sMatch (evalWrapped m ctx) v
 eval (CaseE c f) ctx = sCase (map (\(a, b) -> (eval a ctx, sEval b ctx)) c) (sEval f ctx)
 eval (CoalesceE n) ctx = sCoalesce (map (`evalWrapped` ctx) n)
-eval (InterpolateE t e a) ctx = sInterpolate t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
+eval (InterpolateNumE t e a) ctx = sInterpolateNr t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
+eval (InterpolateColorE t e a) ctx = sInterpolateColor t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (FgetE k) ctx = sGet k ctx
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx

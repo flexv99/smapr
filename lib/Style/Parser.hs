@@ -101,6 +101,20 @@ instance Floating INum where
   atanh (SInt a) = SDouble (atanh (fromIntegral a))
   atanh (SDouble a) = SDouble (atanh a)
 
+divINum :: INum -> INum -> INum
+divINum (SInt x) (SInt y)
+  | y == 0 = error "Division by zero"
+  | otherwise = SInt (x `div` y)
+divINum (SDouble x) (SDouble y)
+  | y == 0 = error "Division by zero"
+  | otherwise = SDouble (x / y)
+divINum (SInt x) (SDouble y)
+  | y == 0 = error "Division by zero"
+  | otherwise = SDouble (fromIntegral x / y)
+divINum (SDouble x) (SInt y)
+  | y == 0 = error "Division by zero"
+  | otherwise = SDouble (x / fromIntegral y)
+
 data SType
   = SNum INum
   | SString T.Text
@@ -345,11 +359,13 @@ hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlu
 --------------------------------------------------------------------------------
 
 showSColor :: Color -> String
-showSColor a = sRGB24show $ pureColour a
+showSColor a = sRGB24show $ pureColor a
   where
-    pureColour ac
-      | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
-      | otherwise = error "transparent has no pure colour"
+
+pureColor :: (Ord a, Fractional a) => AlphaColour a -> Colour a
+pureColor ac
+  | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
+  | otherwise = error "transparent has no pure colour"
 
 tuplifyWithFallback :: [a] -> ([(a, a)], a)
 tuplifyWithFallback [] = error "no fallback value"

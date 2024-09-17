@@ -131,17 +131,17 @@ spec = do
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression linear" $ do
       ctx <- testLayerAndFeature
-      let expr = (parseMaybe interpolateP "[\"interpolate\",[\"linear\"],5,0, 100, 10, 200]" :: Maybe (IsoExpr INum))
+      let expr = (parseMaybe interpolateNumP "[\"interpolate\",[\"linear\"],5,0, 100, 10, 200]" :: Maybe (IsoExpr INum))
       (eval <$> expr <*> ctx) `shouldBe` Just (SDouble 150)
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression exponential" $ do
       ctx <- testLayerAndFeature
-      let expr = (parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],1,1,2,3,6]" :: Maybe (IsoExpr INum))
+      let expr = (parseMaybe interpolateNumP "[\"interpolate\",[\"exponential\", 2],1,1,2,3,6]" :: Maybe (IsoExpr INum))
       (eval <$> expr <*> ctx) `shouldBe` Just (SDouble 2)
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression exponential '" $ do
       ctx <- testLayerAndFeature
-      let expr = (parseMaybe interpolateP "[\"interpolate\",[\"exponential\", 2],2,1,2,3,6]" :: Maybe (IsoExpr INum))
+      let expr = (parseMaybe interpolateNumP "[\"interpolate\",[\"exponential\", 2],2,1,2,3,6]" :: Maybe (IsoExpr INum))
       (eval <$> expr <*> ctx) `shouldBe` Just (SDouble 3.333333333333333)
   describe "Style.ExpressionsEval.eval" $ do
     it "less or eq expression" $ do

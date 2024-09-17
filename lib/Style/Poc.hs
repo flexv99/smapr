@@ -72,11 +72,11 @@ l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\
 testLayers :: [B.ByteString]
 testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l2, l3]
 
--- testEval :: String -> WrappedExpr -> Tile -> [SType]
--- testEval layer expr t = map (eval expr) ctxs
---   where
---     layers = getLayers layer t
---     ctxs = toList $ constructCtx layers
+testEval :: (SParseable a) => String -> IsoExpr a -> Tile -> [a]
+testEval layer expr t = map (eval expr) ctxs
+  where
+    layers = getLayers layer t
+    ctxs = toList $ constructCtx layers
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =

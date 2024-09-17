@@ -52,7 +52,7 @@ data LineS = LineS
     _lineSortKey :: Maybe (IsoExpr INum),
     _visibility :: Visibility, -- defaults to Visible
     _lineOpacity :: IsoExpr INum, -- defaults to 1, interpolate support
-    _lineColor :: Color, -- defaults to #000000, TODO interpolate support
+    _lineColor :: IsoExpr Color, -- defaults to #000000, TODO interpolate support
     -- _lineTranslate :: WrappedExpr, -- defaults to [0, 0]
     _lineTranslateAnchor :: TranslateAnchor, -- defaults to Map
     _lineWidth :: IsoExpr INum, -- defaults to 1
@@ -77,7 +77,7 @@ instance A.FromJSON LineS where
       <*> (t A..:? "line-sort-key" >>= expr)
       <*> t A..:? "visibility" A..!= Visible
       <*> (t A..:? "line-opacity" >>= expr) A..!= NumE 1
-      <*> (t A..:? "line-color" >>= color) A..!= (black `withOpacity` 1)
+      <*> (t A..:? "line-color" >>= color) A..!= ColorE (black `withOpacity` 1)
       -- <*> (t A..:? "line-translate" >>= expr) A..!= wrap (IsoArg $ ArrayE $ SArray [SNum $ SInt 0, SNum $ SInt 0])
       <*> t A..:? "line-translate-anchor" A..!= Map
       <*> (t A..:? "line-width" >>= expr) A..!= NumE 1.0

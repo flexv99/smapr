@@ -33,12 +33,12 @@ instance A.FromJSON TranslateAnchor where
 
 expr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr INum))
 expr Nothing = pure Nothing
-expr (Just v) = case parse (try (interpolateP pNum) <|> numExprP) "" (A.encodeToLazyText v) of
+expr (Just v) = case parse (try interpolateNumP <|> numExprP) "" (A.encodeToLazyText v) of
   Left err -> fail $ errorBundlePretty err
   Right res -> pure $ Just res
 
-color :: Maybe A.Value -> A.Parser (Maybe Color)
+color :: Maybe A.Value -> A.Parser (Maybe (IsoExpr Color))
 color Nothing = pure Nothing
-color (Just v) = case parse pColor "" (A.encodeToLazyText v) of
+color (Just v) = case parse colorExprP "" (A.encodeToLazyText v) of
   Left err -> fail $ errorBundlePretty err
   Right res -> pure $ Just res

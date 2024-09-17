@@ -18,6 +18,8 @@ import Style.Parser
 data IsoExpr a where
   -- | string literal
   StringE :: T.Text -> IsoExpr T.Text
+  -- | Geometry type expression for a given feature
+  FgeometryE :: IsoExpr T.Text
   -- | int literal
   IntE :: Int -> IsoExpr Int
   -- | double literal
@@ -32,6 +34,12 @@ data IsoExpr a where
   SubE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
   -- | division
   DivE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
+  -- | numeric interpolate expr
+  InterpolateNumE ::
+    InterpolationType ->
+    IsoExpr INum ->
+    [(IsoExpr INum, INum)] ->
+    IsoExpr INum
   -- | Zoom
   FzoomE :: IsoExpr INum
   -- | bool literal
@@ -50,21 +58,19 @@ data IsoExpr a where
   -- ArrayE :: (Show a, SParseable a) => [a] -> IsoExpr [a]
   -- | Color literal
   ColorE :: Color -> IsoExpr Color
+  -- | Color interpolate expr
+  -- | numeric interpolate expr
+  InterpolateColorE ::
+    InterpolationType ->
+    IsoExpr INum ->
+    [(IsoExpr INum, Color)] ->
+    IsoExpr Color
   -- | match expr
   MatchE :: (Show a, SParseable a) => WrappedExpr -> ([(SType, a)], a) -> IsoExpr a
   -- | case expr
   CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
   AtE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr INum -> IsoExpr a
-  -- | interpolate expr
-  InterpolateE ::
-    (Show a, SParseable a, Floating a) =>
-    InterpolationType ->
-    IsoExpr INum ->
-    [(IsoExpr INum, a)] ->
-    IsoExpr a
-  -- | Geometry type expression for a given feature
-  FgeometryE :: IsoExpr T.Text
   -- SType Literal
   STypeE :: SType -> IsoExpr SType
   -- | getter on feature properties
@@ -115,6 +121,11 @@ data InterpolationType
   = Linear
   | Exponential INum
   | CubicBezier INum INum INum INum
+  deriving (Show, Eq)
+
+data InterpolationRetType
+  = INumeric INum
+  | IColor Color
   deriving (Show, Eq)
 
 data FilterBy
