@@ -116,6 +116,14 @@ inP = exprBaseP "in" $ do
   _ <- char ',' >> space
   InE val1 <$> polyExprP
 
+indexOfP :: Parser (IsoExpr INum)
+indexOfP = exprBaseP "index-of" $ do
+  val <- pAtom
+  _ <- char ',' >> space
+  arr <- betweenSquareBrackets $ do
+    parserForType val `sepBy` (char ',' >> space)
+  return $ IndexOfE val arr
+
 allP :: Parser (IsoExpr Bool)
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
@@ -267,6 +275,7 @@ numP =
   [ numLitP,
     arithmethicExprP,
     fzoomP,
+    indexOfP,
     -- polymorphic
     atP numExprP,
     matchP unwrapNum,
@@ -454,6 +463,9 @@ sIn v t = v `elem` toList t
     toList (SArray a) = a
     toList _ = error "can only convert arrays to list"
 
+sIndexOf :: SType -> [SType] -> INum
+sIndexOf e a = maybe (SInt (-1)) SInt (e `elemIndex` a)
+
 -- | match
 sMatch :: SType -> ([(SType, a)], a) -> a
 sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
@@ -573,6 +585,7 @@ eval (CaseE c f) ctx = sCase (map (\(a, b) -> (eval a ctx, sEval b ctx)) c) (sEv
 eval (CoalesceE n) ctx = sCoalesce (map (`evalWrapped` ctx) n)
 eval (InterpolateNumE t e a) ctx = sInterpolateNr t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (InterpolateColorE t e a) ctx = sInterpolateColor t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
+eval (IndexOfE e a) ctx = sIndexOf e a
 eval (FgetE k) ctx = sGet k ctx
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx

@@ -145,3 +145,8 @@ spec = do
       ctx <- testLayerAndFeature
       let expr = parseMaybe ordP "[\"<=\", 2, 1]"
       (eval <$> expr <*> ctx) `shouldBe` Just False
+  describe "Style.ExpressionEval.eval" $ do
+    it "index-of expression" $ do
+      ctx <- testLayerAndFeature
+      let expr = parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\",\"bar\",\"hello\",\"foo\",\"world\"]]"
+      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 3)
