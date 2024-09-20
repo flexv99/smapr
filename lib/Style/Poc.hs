@@ -64,13 +64,16 @@ l1 :: B.ByteString
 l1 = "{\"id\":\"landuse-residential\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landuse\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"match\",[\"get\",\"class\"],[\"neighbourhood\",\"residential\",\"suburb\"],true,false]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(47,13%,86%)\",\"fill-opacity\":0.7}}"
 
 l2 :: B.ByteString
-l2 = "{\"id\":\"landcover_grass\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"==\",[\"get\",\"class\"],\"grass\"],\"paint\":{\"fill-color\":\"hsl(82,46%,72%)\",\"fill-opacity\":0.45}}"
+l2 = "{\"id\":\"landcover_grass\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"==\",[\"get\",\"class\"],\"grass\"],\"paint\":{\"fill-color\":\"hsl(47, 26%, 88%)\",\"fill-opacity\":0.45}}"
 
 l3 :: B.ByteString
 l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"==\",[\"get\",\"class\"],\"wood\"],\"paint\":{\"fill-color\":\"hsl(82,46%,72%)\",\"fill-opacity\":[\"interpolate\",[\"linear\"],[\"zoom\"],8,0.6,22,1]}}"
 
+l4 :: B.ByteString
+l4 = "{\"id\":\"landcover_sand\",\"type\":\"fill\",\"metadata\":{},\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"match\",[\"get\",\"class\"],[\"sand\"],true,false],\"paint\":{\"fill-antialias\":false,\"fill-color\":\"rgba(232,214,38,1)\",\"fill-opacity\":0.3}}"
+
 testLayers :: [B.ByteString]
-testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l2, l3]
+testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l3, l2, l4]
 
 testEval :: (SParseable a) => String -> IsoExpr a -> Tile -> [a]
 testEval layer expr t = map (eval expr) ctxs

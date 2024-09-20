@@ -7,6 +7,13 @@ import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 
+-- perhabs make it a:
+-- properties
+-- zoom
+-- geometry-type
+-- path
+-- kind of object
+
 data ExpressionContext = ExpressionContext
   { _feature :: Feature,
     _layer :: Layer,

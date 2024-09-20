@@ -9,24 +9,14 @@ module Renderer.Polygons
 where
 
 import Control.Lens
+import Data.Colour
 import Decoder.Polygons
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
-import qualified Diagrams.Trail as D
-import qualified Diagrams.TwoD.Size as D
-import Proto.Vector_tile.Tile (Tile (..))
 import Style.ExpressionsContext
 import Style.IsoExpressions
 import Style.Layers.Fill
-import Util
-
-render2DVector :: D.Diagram D.B -> IO ()
-render2DVector v = do
-  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
-  dateStr <- dateTimeStr
-  path <- testPath dateStr
-  putStrLn path
-  D.renderSVG path sz $ v D.# D.showOrigin
+import Style.Parser
 
 geoMetryPointToDPoint :: Point -> D.P2 Double
 geoMetryPointToDPoint (x, y) = x D.^& y
@@ -42,5 +32,5 @@ drawPolygon style ctx tour =
     D.# D.fcA color
     D.# D.lcA color
   where
-    color = eval (style ^. fillColor) ctx
+    color = pureColor (eval (style ^. fillColor) ctx) `withOpacity` (numToDouble (eval (style ^. fillOpacity) ctx))
     tourPath = D.fromVertices tour

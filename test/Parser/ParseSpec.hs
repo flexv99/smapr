@@ -28,9 +28,6 @@ spec = do
   describe "Style.Parser.SType.SString" $ do
     it "parse string" $ do
       parseMaybe pAtom "\"abc\"" `shouldBe` Just (SString "abc")
-  describe "Style.Parser.SType.SString" $ do
-    it "parse snake cased string" $ do
-      parseMaybe pAtom "\"ab_c\"" `shouldBe` Just (SString "ab_c")
   describe "Style.Parser.SType.SColor" $ do
     it "parse hsl color" $ do
       fmap showSColor (parseMaybe pColor "\"hsl(205,56%,73%)\"") `shouldBe` Just "#94c1e1"

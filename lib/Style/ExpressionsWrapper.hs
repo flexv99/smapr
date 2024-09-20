@@ -42,6 +42,8 @@ data IsoExpr a where
     IsoExpr INum
   -- | Zoom
   FzoomE :: IsoExpr INum
+  -- | Index of
+  IndexOfE :: [IsoExpr a] -> IsoExpr a -> IsoExpr INum
   -- | bool literal
   BoolE :: Bool -> IsoExpr Bool
   -- | negation of bool expressions
