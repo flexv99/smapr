@@ -43,7 +43,7 @@ data IsoExpr a where
   -- | Zoom
   FzoomE :: IsoExpr INum
   -- | Index of
-  IndexOfE :: SType -> [SType] -> IsoExpr INum
+  IndexOfE :: SType -> LookupT -> IsoExpr INum
   -- | bool literal
   BoolE :: Bool -> IsoExpr Bool
   -- | negation of bool expressions
@@ -53,7 +53,7 @@ data IsoExpr a where
   -- | < <= > >=
   OrdE :: OrdType -> IsoExpr INum -> IsoExpr INum -> IsoExpr Bool
   -- | checks if element is in an array or string
-  InE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
+  InE :: SType -> LookupT -> IsoExpr Bool
   -- | all expr
   AllE :: [IsoExpr Bool] -> IsoExpr Bool
   -- | list literal
@@ -141,4 +141,9 @@ data OrdType
   | LessEq
   | Greater
   | GreaterEq
+  deriving (Eq, Show)
+
+data LookupT
+  = LString T.Text
+  | LArray [SType]
   deriving (Eq, Show)

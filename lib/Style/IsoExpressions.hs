@@ -15,6 +15,7 @@ import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
 import qualified Data.Text.Lazy as T
+import qualified Data.Text as T (findIndex)
 import Proto.Util
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
@@ -112,16 +113,15 @@ atP elem = exprBaseP "at" $ do
 
 inP :: Parser (IsoExpr Bool)
 inP = exprBaseP "in" $ do
-  val1 <- polyExprP
+  val1 <- pAtom
   _ <- char ',' >> space
-  InE val1 <$> polyExprP
+  InE val1 <$> (try (LString <$> pString) <|> (LArray <$> pArray))
 
 indexOfP :: Parser (IsoExpr INum)
 indexOfP = exprBaseP "index-of" $ do
   val <- pAtom
   _ <- char ',' >> space
-  arr <- betweenSquareBrackets $ do
-    parserForType val `sepBy` (char ',' >> space)
+  arr <- (LString <$> pString) <|> LArray <$> pArray
   return $ IndexOfE val arr
 
 allP :: Parser (IsoExpr Bool)
@@ -455,22 +455,32 @@ sAt a (SInt i) = a !! i
 sAt a (SDouble d) = a !! floor d
 
 -- | in
-sIn :: SType -> SType -> Bool
-sIn (SString s) (SString b) = s `T.isInfixOf` b
-sIn v t = v `elem` toList t
-  where
-    toList :: SType -> [SType]
-    toList (SArray a) = a
-    toList _ = error "can only convert arrays to list"
+sIn :: SType -> LookupT -> Bool
+sIn (SString s) (LString b) = s `T.isInfixOf` b
+sIn _ (LString _) = error "string lookup can be made with string only"
+sIn v (LArray t) = v `elem` t
 
-sIndexOf :: SType -> [SType] -> INum
-sIndexOf e a = maybe (SInt (-1)) SInt (e `elemIndex` a)
+-- | index-of
+sIndexOf :: SType -> LookupT -> INum
+sIndexOf (SString s) (LString b) = maybe (SInt (-1)) SInt (substringIndex s b)
+  where
+    substringIndex :: T.Text -> T.Text -> Maybe Int
+    substringIndex needle haystack
+      | T.null needle = Just 0 -- Treat empty needle as found at the beginning
+      | otherwise = findIndex 0
+      where
+        findIndex i
+          | i + T.length needle > T.length haystack = Nothing
+          | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
+          | otherwise = findIndex (i + 1)
+sIndexOf _ (LString b) = error "string lookup can be made with string only"
+sIndexOf e (LArray a) = maybe (SInt (-1)) SInt (e `elemIndex` a)
 
 -- | match
 sMatch :: SType -> ([(SType, a)], a) -> a
 sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
   where
-    binary (SArray a, b) = if t `elem` a then Just b else Nothing
+    -- binary (SArray a, b) = if t `elem` a then Just b else Nothing
     binary (a, b) = if a == t then Just b else Nothing
     isIn = mapMaybe binary
 
@@ -570,7 +580,7 @@ eval (BoolE b) _ = b
 eval (Negation e) ctx = not $ eval e ctx
 eval (EqE o t) ctx = sEq (evalWrapped o ctx) (evalWrapped t ctx)
 eval (OrdE t a b) ctx = sOrd t (eval a ctx) (eval b ctx)
-eval (InE v t) ctx = sIn (evalWrapped v ctx) (evalWrapped t ctx)
+eval (InE v t) ctx = sIn v t
 eval (AllE v) ctx = sAll (map (`sEval` ctx) v)
 eval (NumE e) _ = e
 eval (AddE a) ctx = sSum (map (`eval` ctx) a)

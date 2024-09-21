@@ -45,7 +45,7 @@ spec = do
       fmap showSColor (parseMaybe pColor "\"#0af\"") `shouldBe` Just "#00aaff"
   describe "Style.Parser.SType.SArray" $ do
     it "parse array" $ do
-      parseMaybe pAtom "[-1, 0, 4]" `shouldBe` Just (SArray $ map SNum [SInt (-1), SInt 0, SInt 4])
+      parseMaybe pArray "[-1, 0, 4]" `shouldBe` Just (map SNum [SInt (-1), SInt 0, SInt 4])
   describe "Style.Parser.SType.SNull" $ do
     it "parse null" $ do
       parseMaybe pAtom "null" `shouldBe` Just SNull
