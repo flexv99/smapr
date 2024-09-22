@@ -480,7 +480,7 @@ sIndexOf e (LArray a) = maybe (SInt (-1)) SInt (e `elemIndex` a)
 sMatch :: SType -> ([(SType, a)], a) -> a
 sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
   where
-    -- binary (SArray a, b) = if t `elem` a then Just b else Nothing
+    binary (SArray a, b) = if t `elem` a then Just b else Nothing
     binary (a, b) = if a == t then Just b else Nothing
     isIn = mapMaybe binary
 
