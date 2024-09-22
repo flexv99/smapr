@@ -544,14 +544,10 @@ interpolateNr from to t = from + t * (to - from)
 
 interpolateColor :: Color -> Color -> Double -> Color
 interpolateColor from to t =
-  let blendedColour = blend t from to -- Interpolates between two colours
-      RGB r g b = toSRGB (blend t (pureColor from) (pureColor to)) -- Extracts RGB values without alpha
-      alpha = alphaChannel blendedColour -- Extracts the alpha channel from blendedColour
+  let blendedColour = blend t from to
+      RGB r g b = toSRGB (blend t (pureColor from) (pureColor to))
+      alpha = alphaChannel blendedColour
    in sRGB r g b `withOpacity` alpha
-
--- sIn :: FilterBy -> SType -> ExpressionContext -> SType
--- sIn (FProp key) (SArray a) ctx = SBool $ maybe False (`elem` a) $ key `MP.lookup` featureProperties ctx
--- sIn _ _ _ = error "second argument must be an array"
 
 sGet :: T.Text -> ExpressionContext -> SType
 sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
