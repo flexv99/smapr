@@ -150,3 +150,13 @@ spec = do
       ctx <- testLayerAndFeature
       let expr = parseMaybe indexOfP "[\"index-of\", \"foo\", [\"baz\",\"bar\",\"hello\",\"foo\",\"world\"]]"
       (eval <$> expr <*> ctx) `shouldBe` Just (SInt 3)
+  describe "Style.ExpressionEval.eval" $ do
+    it "lenght expression list" $ do
+      ctx <- testLayerAndFeature
+      let expr = parseMaybe lengthP "[\"length\", [1,2,3,4,5]]"
+      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 5)
+  describe "Style.ExpressionEval.eval" $ do
+    it "lenght expression string" $ do
+      ctx <- testLayerAndFeature
+      let expr = parseMaybe lengthP "[\"length\", \"HoiHannaamoremio\"]"
+      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 16)

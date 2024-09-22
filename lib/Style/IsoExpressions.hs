@@ -124,6 +124,10 @@ indexOfP = exprBaseP "index-of" $ do
   arr <- (LString <$> pString) <|> LArray <$> pArray
   return $ IndexOfE val arr
 
+lengthP :: Parser (IsoExpr INum)
+lengthP = exprBaseP "length" $ do
+  LengthE <$> ((LString <$> pString) <|> LArray <$> pArray)
+
 allP :: Parser (IsoExpr Bool)
 allP = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "all"
@@ -476,6 +480,11 @@ sIndexOf (SString s) (LString b) = maybe (SInt (-1)) SInt (substringIndex s b)
 sIndexOf _ (LString b) = error "string lookup can be made with string only"
 sIndexOf e (LArray a) = maybe (SInt (-1)) SInt (e `elemIndex` a)
 
+-- | length
+slength :: LookupT -> INum
+slength (LString s) = SInt $ fromIntegral $ T.length s
+slength (LArray a) = SInt $ length a
+
 -- | match
 sMatch :: SType -> ([(SType, a)], a) -> a
 sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
@@ -592,6 +601,7 @@ eval (CoalesceE n) ctx = sCoalesce (map (`evalWrapped` ctx) n)
 eval (InterpolateNumE t e a) ctx = sInterpolateNr t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (InterpolateColorE t e a) ctx = sInterpolateColor t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (IndexOfE e a) ctx = sIndexOf e a
+eval (LengthE a) ctx = slength a
 eval (FgetE k) ctx = sGet k ctx
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx

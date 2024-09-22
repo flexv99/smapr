@@ -44,6 +44,8 @@ data IsoExpr a where
   FzoomE :: IsoExpr INum
   -- | Index of
   IndexOfE :: SType -> LookupT -> IsoExpr INum
+  -- | length
+  LengthE :: LookupT -> IsoExpr INum
   -- | bool literal
   BoolE :: Bool -> IsoExpr Bool
   -- | negation of bool expressions
