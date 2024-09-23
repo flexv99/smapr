@@ -93,8 +93,8 @@ spec = do
   describe "Style.FilterExpressions.evalFilterGetter" $ do
     it "can evaluate a in getter Expression on feature properties" $ do
       ctx <- testLayerAndFeature
-      let expr = parseMaybe fgetP "[\"get\",\"intermittent\"]" :: Maybe (IsoExpr SType)
-      (eval <$> expr <*> ctx) `shouldBe` Just (SNum $ SInt 0)
+      let expr = parseMaybe nGetP "[\"get\",\"intermittent\"]" :: Maybe (IsoExpr INum)
+      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 0)
   describe "Style.ExpressionsEval.eval" $ do
     it "combination of feature and iso expressions" $ do
       ctx <- testLayerAndFeature

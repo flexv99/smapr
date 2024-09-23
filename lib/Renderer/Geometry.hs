@@ -51,4 +51,4 @@ constructCtx S.Empty = S.empty
 toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
 toBeDrawn t s = fmap (S.filter (evalLayer s)) constructCtx layers'
   where
-    layers' = getLayers (T.unpack $ sourceLayer s) t
+    layers' = maybe S.empty (`getLayers` t) (s ^. sourceLayer)

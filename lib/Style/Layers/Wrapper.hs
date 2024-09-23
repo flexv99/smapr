@@ -23,12 +23,12 @@ import Text.Megaparsec
 data Paint = LinePaint LineS | FillPaint FillS deriving (Show)
 
 data SLayer = forall (b :: Bool). SLayer
-  { id :: T.Text,
-    pType :: T.Text,
-    source :: T.Text,
-    sourceLayer :: T.Text,
-    lfilter :: Maybe (IsoExpr Bool),
-    paint :: Paint
+  { _id :: T.Text,
+    _pType :: T.Text,
+    _source :: Maybe T.Text,
+    _sourceLayer :: Maybe T.Text,
+    _lfilter :: Maybe (IsoExpr Bool),
+    _paint :: Paint
   }
 
 makeLenses ''SLayer
@@ -39,8 +39,8 @@ instance A.FromJSON SLayer where
   parseJSON = A.withObject "POCLayer" $ \obj -> do
     id' <- obj A..: "id"
     type' <- obj A..: "type"
-    source' <- obj A..: "source"
-    sourceLayer' <- obj A..: "source-layer"
+    source' <- obj A..:? "source"
+    sourceLayer' <- obj A..:? "source-layer"
     filter' <- obj A..:? "filter" >>= fexpr
     p <- obj A..: "paint"
     paint' <- paintP type' p
@@ -48,7 +48,7 @@ instance A.FromJSON SLayer where
     where
       fexpr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr Bool))
       fexpr Nothing = pure Nothing
-      fexpr (Just v) = case parse (try allP <|> try eqP) "" (A.encodeToLazyText v) of
+      fexpr (Just v) = case parse boolExprP "" (A.encodeToLazyText v) of
         Left err -> fail $ errorBundlePretty err
         Right res -> pure $ Just res
       paintP t = A.withObject "Paint" $ \v -> do
@@ -58,5 +58,5 @@ instance A.FromJSON SLayer where
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
 evalLayer :: SLayer -> ExpressionContext -> Bool
-evalLayer (SLayer {lfilter = Just fltr}) ctx = eval fltr ctx
+evalLayer (SLayer {_lfilter = Just fltr}) ctx = eval fltr ctx
 evalLayer _ _ = True

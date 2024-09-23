@@ -43,6 +43,7 @@ library
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill
+                    , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util
                     , Util

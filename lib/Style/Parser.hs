@@ -212,7 +212,7 @@ pNum :: Parser INum
 pNum = try (SDouble <$> pDouble) <|> SInt <$> pInteger
 
 pColor :: Parser Color
-pColor = choice $ map try [pHslColor, pRgbaColor, pRgbColor, pHexColor]
+pColor = choice $ map try [pHslColor, pHslaColor, pRgbaColor, pRgbColor, pHexColor]
 
 pAtom :: Parser SType
 pAtom =
@@ -253,11 +253,19 @@ parserForType t = case t of
 
 pArray :: Parser [SType]
 pArray =
-  label "array" $ betweenSquareBrackets $ do
-    firstElem <- pAtom
-    _ <- char ',' >> space
-    restElems <- parserForType firstElem `sepBy` (char ',' >> space)
-    return (firstElem : restElems)
+  label "array" $
+    try oneElemArr
+      <|> betweenSquareBrackets
+        ( do
+            firstElem <- pAtom
+            _ <- char ',' >> space
+            restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+            return (firstElem : restElems)
+        )
+  where
+    oneElemArr = betweenSquareBrackets $ do
+      val <- pAtom
+      return [val]
 
 stringLitP :: Parser SType
 stringLitP = SString <$> pString
@@ -303,7 +311,26 @@ pHslColor = betweenDoubleQuotes $ do
     _ <- char ',' >> space
     s <- pColorPercentage
     _ <- char ',' >> space
-    hslToColor h s <$> pColorPercentage
+    l <- pColorPercentage
+    return $ hslToColor h s l 1
+  where
+    pInt = lexeme (L.signed space L.decimal)
+    pColorPercentage = do
+      num <- pInt
+      _ <- char '%'
+      return num
+
+pHslaColor :: Parser Color
+pHslaColor = betweenDoubleQuotes $ do
+  _ <- lexeme (string "hsla" <* notFollowedBy alphaNumChar)
+  betweenBrackets $ do
+    h <- pInt
+    _ <- char ',' >> space
+    s <- pColorPercentage
+    _ <- char ',' >> space
+    l <- pColorPercentage
+    _ <- char ',' >> space
+    hslToColor h s l . numToDouble <$> numberLitINumP
   where
     pInt = lexeme (L.signed space L.decimal)
     pColorPercentage = do
@@ -349,8 +376,8 @@ pHexColor = betweenDoubleQuotes $ do
     then return $ sRGB24read ("#" <> expandShortHex hexDigits) `withOpacity` 1
     else fail "Invalid hex color code length"
 
-hslToColor :: Double -> Double -> Double -> Color
-hslToColor h s l = opaque $ sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb)
+hslToColor :: Double -> Double -> Double -> Double -> Color
+hslToColor h s l o = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb) `withOpacity` o
   where
     rgb = hsl h (s / 100) (l / 100)
 

@@ -14,9 +14,10 @@ import Data.Colour.SRGB
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
-import qualified Data.Text.Lazy as T
 import qualified Data.Text as T (findIndex)
+import qualified Data.Text.Lazy as T
 import Proto.Util
+import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.Parser
@@ -83,6 +84,12 @@ eqP = betweenSquareBrackets $ do
   arg2 <- cParserForType arg1
   let expr = EqE arg1 arg2
   if T.isPrefixOf "!" key then return $ Negation expr else return expr
+
+negationP :: Parser (IsoExpr Bool)
+negationP = betweenSquareBrackets $ do
+  key <- betweenDoubleQuotes (char '!')
+  _ <- char ',' >> space
+  Negation <$> boolExprP
 
 ordTypeP :: Parser OrdType
 ordTypeP = choice $ map try [less, lessEq, greater, greaterEq]
@@ -236,11 +243,32 @@ filterByP =
       FProp <$> pString
     ]
 
-fgetP :: Parser (IsoExpr SType)
-fgetP = betweenSquareBrackets $ do
+getP :: (T.Text -> a) -> Parser a
+getP c = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
-  FgetE <$> pString
+  c <$> pString
+
+sTGetP :: Parser (IsoExpr SType)
+sTGetP = getP GetE
+
+sGetP :: Parser (IsoExpr T.Text)
+sGetP = getP SgetE
+
+nGetP :: Parser (IsoExpr INum)
+nGetP = getP NgetE
+
+bGetP :: Parser (IsoExpr Bool)
+bGetP = getP BgetE
+
+cGetP :: Parser (IsoExpr Color)
+cGetP = getP CgetE
+
+hasP :: Parser (IsoExpr Bool)
+hasP = betweenSquareBrackets $ do
+  _ <- betweenDoubleQuotes $ string "has"
+  _ <- char ',' >> space
+  HasE <$> pString
 
 fgeometryP :: Parser (IsoExpr T.Text)
 fgeometryP = betweenSquareBrackets $ do
@@ -260,10 +288,10 @@ stringP =
   [ StringE <$> pString <* hidden space,
     fgeometryP,
     -- polymorphic
-    atP stringExprP
+    atP stringExprP,
     -- matchP,
     -- interpolateP,
-    -- fgetP,
+    sGetP
     -- fgeometryP
   ]
 
@@ -283,8 +311,8 @@ numP =
     -- polymorphic
     atP numExprP,
     matchP unwrapNum,
-    interpolateNumP
-    -- fgetP,
+    interpolateNumP,
+    nGetP
   ]
   where
     numLitP = try (NumE . SDouble <$> pDouble <* hidden space) <|> NumE . SInt <$> pInteger <* hidden space
@@ -299,16 +327,18 @@ numFuncP = choice $ map try (tail numP)
 boolP :: [Parser (IsoExpr Bool)]
 boolP =
   [ BoolE <$> pBool <* hidden space,
+    negationP,
     ordP,
     eqP,
     inP,
     allP,
+    hasP,
     -- polymorphic
     atP
       boolExprP,
     matchP
-      unwrapBool
-      -- fgetP
+      unwrapBool,
+    bGetP
   ]
 
 boolExprP :: Parser (IsoExpr Bool)
@@ -342,8 +372,8 @@ colorP =
     -- polymorphic
     atP colorExprP,
     matchP unwrapColor,
-    interpolateColorP
-    -- fgetP
+    interpolateColorP,
+    cGetP
   ]
 
 colorExprP :: Parser (IsoExpr Color)
@@ -355,9 +385,9 @@ colorFuncP = choice $ map try (tail colorP)
 -- | 4all expressions that return stype
 stypeP :: [Parser (IsoExpr SType)]
 stypeP =
-  [ fgetP,
-    atP
+  [ atP
       stypeExprP,
+    sTGetP,
     STypeE
       <$> pAtom
       <* hidden space
@@ -370,12 +400,12 @@ stypeExprP = choice $ map try stypeP
 polyExprP :: Parser WrappedExpr
 polyExprP =
   choice
-    [ wrap <$> stringExprP,
+    [ wrap <$> stypeExprP, -- in first for a reason has precedence
+      wrap <$> stringExprP,
       wrap <$> numExprP,
       wrap <$> boolExprP,
       wrap <$> arrayExprP,
-      wrap <$> colorExprP,
-      wrap <$> stypeExprP
+      wrap <$> colorExprP
     ]
 
 polyFuncP :: Parser WrappedExpr
@@ -561,6 +591,9 @@ interpolateColor from to t =
 sGet :: T.Text -> ExpressionContext -> SType
 sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
 
+sHas :: T.Text -> ExpressionContext -> Bool
+sHas key ctx = key `MP.member` featureProperties ctx
+
 -- defaults to linestring if geometry cannot be retrieved from feature
 sGeometryType :: ExpressionContext -> T.Text
 sGeometryType ctx = fromMaybe "LINESTRING" (geometryTypeToString (ctx ^. feature))
@@ -602,7 +635,12 @@ eval (InterpolateNumE t e a) ctx = sInterpolateNr t (eval e ctx) (map (\(a', b) 
 eval (InterpolateColorE t e a) ctx = sInterpolateColor t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
 eval (IndexOfE e a) ctx = sIndexOf e a
 eval (LengthE a) ctx = slength a
-eval (FgetE k) ctx = sGet k ctx
+eval (GetE k) ctx = sGet k ctx
+eval (SgetE k) ctx = unwrapString $ sGet k ctx
+eval (NgetE k) ctx = unwrapNum $ sGet k ctx
+eval (BgetE k) ctx = unwrapBool $ sGet k ctx
+eval (CgetE k) ctx = unwrapColor $ sGet k ctx
+eval (HasE k) ctx = sHas k ctx
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx
 eval (STypeE s) ctx = s

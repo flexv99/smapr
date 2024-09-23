@@ -8,8 +8,10 @@
 module Style.Poc where
 
 import ApiClient
+import Control.Lens
 import Control.Monad
 import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
 import Data.Colour.SRGB
 import Data.Foldable
@@ -48,6 +50,20 @@ instance A.FromJSON Width where
       <$> obj A..:? "base"
       <*> obj A..:? "stops"
 
+data SWrap = SWrap
+  { version :: Int,
+    name :: T.Text,
+    tlayers :: [SLayer]
+  }
+  deriving (Show, Generic)
+
+instance A.FromJSON SWrap where
+  parseJSON = A.withObject "Base" $ \o ->
+    SWrap
+      <$> o A..: "version"
+      <*> o A..: "name"
+      <*> o A..: "layers"
+
 waterLayerStyle :: B.ByteString
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
 
@@ -75,7 +91,7 @@ l4 = "{\"id\":\"landcover_sand\",\"type\":\"fill\",\"metadata\":{},\"source\":\"
 testLayers :: [B.ByteString]
 testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l3, l2, l4]
 
-testEval :: (SParseable a) => String -> IsoExpr a -> Tile -> [a]
+testEval :: (SParseable a) => T.Text -> IsoExpr a -> Tile -> [a]
 testEval layer expr t = map (eval expr) ctxs
   where
     layers = getLayers layer t
@@ -85,10 +101,20 @@ renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
       tbD = toBeDrawn t <$> stile
-   in (renderLayer . paint <$> stile) <*> tbD
+      pt = _paint <$> stile
+   in (renderLayer <$> pt) <*> tbD
+
+renderStyles' :: SLayer -> Tile -> D.Diagram D.B
+renderStyles' sts' t =
+  let tbD = toBeDrawn t sts'
+      pt = sts' ^. paint
+   in renderLayer pt tbD
 
 buildFinalDiagram :: Tile -> D.Diagram D.B
 buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
+
+buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
+buildFinalDiagram' l t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (map (`renderStyles'` t) l))
 
 test :: IO ()
 test = do
@@ -99,3 +125,17 @@ testWithUrl :: String -> IO ()
 testWithUrl url = do
   t <- getFromUrl url
   maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
+
+pLayer :: IO (Either String SWrap)
+pLayer = B.readFile "/home/flex99/dev/smapr/lib/Style/stringified_poc_style.json" >>= return . A.eitherDecode
+
+renderStyleSpec :: IO ()
+renderStyleSpec = do
+  t <- fakerTile
+  stile <- B.readFile "/home/flex99/tmp/terrain_1.json"
+  let layy = filter only . tlayers <$> (A.decode stile :: Maybe SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> t
+  maybe (putStrLn "Noting") writeSvg dg
+  where
+    only :: SLayer -> Bool
+    only x = (x ^. pType) == "line" || (x ^. pType) == "fill"

@@ -5,10 +5,14 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Style.ExpressionsWrapper where
 
 import qualified Data.Text.Lazy as T
+import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.Parser
 
@@ -58,6 +62,8 @@ data IsoExpr a where
   InE :: SType -> LookupT -> IsoExpr Bool
   -- | all expr
   AllE :: [IsoExpr Bool] -> IsoExpr Bool
+  -- | has expr
+  HasE :: T.Text -> IsoExpr Bool
   -- | list literal
   -- ArrayE :: (Show a, SParseable a) => [a] -> IsoExpr [a]
   -- | Color literal
@@ -75,14 +81,26 @@ data IsoExpr a where
   CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
   AtE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr INum -> IsoExpr a
+  -- | getter on feature properties
+  GetE :: T.Text -> IsoExpr SType
+  SgetE :: T.Text -> IsoExpr T.Text
+  NgetE :: T.Text -> IsoExpr INum
+  BgetE :: T.Text -> IsoExpr Bool
+  CgetE :: T.Text -> IsoExpr Color
   -- SType Literal
   STypeE :: SType -> IsoExpr SType
-  -- | getter on feature properties
-  FgetE :: T.Text -> IsoExpr SType
   -- | coalesce
   CoalesceE :: [WrappedExpr] -> IsoExpr SType
 
 deriving instance Show (IsoExpr res)
+
+data STypeReveal = STypeReveal {reveal :: forall a. (Show a) => SType -> a}
+
+instance Show STypeReveal where
+  showsPrec _ _ = s'
+    where
+      s' :: String -> String
+      s' a = a ++ "STypeReveal <function>"
 
 class SParseable a where
   sParse :: Parser (IsoExpr a)
