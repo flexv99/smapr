@@ -1,1 +1,1 @@
---command="cabal repl -b pretty-simple --ghc-options='-Wall'" --allow-eval
+--command="cabal repl --build-depends pretty-simple --ghc-options='-Wall'" --allow-eval
