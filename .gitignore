@@ -2,3 +2,4 @@ dist-newstyle
 .DS_Store
 test/generated
 smapr.cfg
+cabal.project.local
