@@ -15,12 +15,13 @@ import qualified Data.Text.Lazy as T
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
+import Style.Layers.Background
 import Style.Layers.Fill
 import Style.Layers.Line
 import Style.Parser
 import Text.Megaparsec
 
-data Paint = LinePaint LineS | FillPaint FillS deriving (Show)
+data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)
 
 data SLayer = forall (b :: Bool). SLayer
   { _id :: T.Text,
@@ -55,6 +56,7 @@ instance A.FromJSON SLayer where
         case t of
           "line" -> LinePaint <$> A.parseJSON (A.Object v)
           "fill" -> FillPaint <$> A.parseJSON (A.Object v)
+          "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
 evalLayer :: SLayer -> ExpressionContext -> Bool

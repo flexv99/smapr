@@ -52,3 +52,5 @@ toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
 toBeDrawn t s = fmap (S.filter (evalLayer s)) constructCtx layers'
   where
     layers' = maybe S.empty (`getLayers` t) (s ^. sourceLayer)
+
+-- TODO delegate atop between different source layers here.

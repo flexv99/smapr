@@ -28,6 +28,7 @@ import Renderer.Geometry
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
+import Style.Layers.Background
 import Style.Layers.Wrapper
 import Style.Parser
 import Text.Megaparsec
@@ -110,11 +111,27 @@ renderStyles' sts' t =
       pt = sts' ^. paint
    in fmap (`renderLayer` tbD) pt
 
+split' :: [SLayer] -> ([SLayer], [SLayer])
+split' layers = (l', f')
+  where
+    l' = filter (\x -> x ^. pType == "line") layers
+    f' = filter (\x -> x ^. pType == "fill") layers
+
 buildFinalDiagram :: Tile -> D.Diagram D.B
 buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
 
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
-buildFinalDiagram' l t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles'` t) l))
+buildFinalDiagram' l t =
+  D.bg
+    (sRGB24 232 229 216)
+    ( renderLayers'
+        (fst splitted)
+        `D.atop` renderLayers' (snd splitted)
+    )
+  where
+    renderLayers' ls = foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles'` t) ls)
+    bg = head $ filter (\x -> x ^. pType == "background") l
+    splitted = split' l
 
 test :: IO ()
 test = do
@@ -127,15 +144,20 @@ testWithUrl url = do
   maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
 
 pLayer :: IO (Either String SWrap)
-pLayer = B.readFile "/home/flex99/dev/smapr/lib/Style/stringified_poc_style.json" >>= return . A.eitherDecode
+pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/home/flex99/tmp/osm.json"
-  let layy = filter only . tlayers <$> (A.decode stile :: Maybe SWrap)
+  stile <- B.readFile "/home/flex99/tmp/outdoors_m.json"
+  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
-  where
-    only :: SLayer -> Bool
-    only x = (x ^. pType) == "line" || (x ^. pType) == "fill"
+
+renderStyleSpecWithUrl :: String -> IO ()
+renderStyleSpecWithUrl url = do
+  t <- getFromUrl url
+  stile <- B.readFile "/home/flex99/tmp/outdoors_m.json"
+  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> t
+  maybe (putStrLn "Noting") writeSvg dg

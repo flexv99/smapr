@@ -13,7 +13,7 @@ import Style.Parser
 data FillS = FillS
   { _fillSortKey :: Maybe Int,
     _visibility :: Visibility, -- defaults to visible
-    _fillAntialias :: Bool, -- defauts to true
+    _fillAntialias :: IsoExpr Bool, -- defauts to true
     _fillOpacity :: IsoExpr INum, -- defaults to 1, need to support inrepolate expressions
     _fillColor :: IsoExpr Color, -- defaults to #000000, disabled by fill-pattern
     _fillOutlineColor :: Maybe (IsoExpr Color), -- disabled by fill-pattern
@@ -30,7 +30,7 @@ instance A.FromJSON FillS where
     FillS
       <$> t A..:? "fill-sort-key"
       <*> t A..:? "visibility" A..!= Visible
-      <*> t A..:? "fill-antialias" A..!= True
+      <*> (t A..:? "fill-antialias" >>= bexpr) A..!= BoolE True
       <*> (t A..:? "fill-opacity" >>= expr) A..!= NumE 1
       <*> (t A..:? "fill-color" >>= color) A..!= ColorE (black `withOpacity` 1)
       <*> (t A..:? "fill-outline-color" >>= color)
