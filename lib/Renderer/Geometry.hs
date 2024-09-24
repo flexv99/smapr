@@ -3,7 +3,6 @@ module Renderer.Geometry where
 import Control.Lens
 import Data.Foldable
 import qualified Data.Sequence as S
-import qualified Data.Text.Lazy as T
 import Decoder.Geometry
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
@@ -11,7 +10,6 @@ import GHC.Word
 import Proto.Util
 import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Renderer.Lines
 import Renderer.Polygons

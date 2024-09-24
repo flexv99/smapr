@@ -14,10 +14,8 @@ import Data.Colour.SRGB
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
-import qualified Data.Text as T (findIndex)
 import qualified Data.Text.Lazy as T
 import Proto.Util
-import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.Parser

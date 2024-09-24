@@ -1,5 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Renderer.Lines
   ( lineToPoints,
@@ -10,7 +10,6 @@ where
 import Control.Lens
 import Decoder.Geometry
 import Decoder.Lines
-import Data.Typeable
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
@@ -35,13 +34,13 @@ lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parame
   where
     toDPoint = map geometryPointToDPoint
 
-drawLine
-  :: forall {b}.
-     D.Renderable (D.Path D.V2 Double) b =>
-     LineS
-     -> ExpressionContext
-     -> [D.Point D.V2 Double]
-     -> D.QDiagram b D.V2 Double D.Any
+drawLine ::
+  forall {b}.
+  (D.Renderable (D.Path D.V2 Double) b) =>
+  LineS ->
+  ExpressionContext ->
+  [D.Point D.V2 Double] ->
+  D.QDiagram b D.V2 Double D.Any
 drawLine style ctx tour =
   D.moveTo
     (head tour)

@@ -7,7 +7,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Lazy.Internal
 import Data.Foldable
-import qualified Data.Sequence as S
 import GHC.Float
 import GHC.Word
 import Network.Wreq
@@ -15,7 +14,6 @@ import Proto.Vector_tile.Tile (Tile (..))
 import Proto.Vector_tile.Tile.Feature (Feature (..))
 import Proto.Vector_tile.Tile.Layer (Layer (..))
 import Text.ProtocolBuffers (messageGet)
-import Text.ProtocolBuffers.Basic (uToString)
 import Util
 
 data Coord = Coord

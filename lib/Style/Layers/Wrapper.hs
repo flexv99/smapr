@@ -18,7 +18,6 @@ import Style.IsoExpressions
 import Style.Layers.Background
 import Style.Layers.Fill
 import Style.Layers.Line
-import Style.Parser
 import Text.Megaparsec
 
 data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)

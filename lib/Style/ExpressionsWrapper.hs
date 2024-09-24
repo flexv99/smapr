@@ -12,7 +12,6 @@
 module Style.ExpressionsWrapper where
 
 import qualified Data.Text.Lazy as T
-import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.Parser
 

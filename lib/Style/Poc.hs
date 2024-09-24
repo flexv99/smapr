@@ -12,26 +12,20 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Internal as B
 import Data.Colour.SRGB
 import Data.Foldable
 import Data.Maybe
-import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
 import Proto.Util
 import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Layer
 import Renderer.Geometry
-import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
-import Style.Layers.Background
 import Style.Layers.Wrapper
 import Style.Parser
-import Text.Megaparsec
 import Util
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
@@ -159,7 +153,7 @@ renderStyleSpec = do
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
   t <- getFromUrl url
-  stile <- B.readFile "/home/flex99/tmp/outdoors_m.json"
+  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg

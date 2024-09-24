@@ -13,7 +13,6 @@ import Control.Lens
 import Data.Colour
 import Data.Typeable
 import Decoder.Polygons
-import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
 import Style.IsoExpressions
