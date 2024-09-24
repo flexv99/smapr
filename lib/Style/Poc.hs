@@ -101,20 +101,20 @@ renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
       tbD = toBeDrawn t <$> stile
-      pt = _paint <$> stile
+      pt = join $ _paint <$> stile
    in (renderLayer <$> pt) <*> tbD
 
-renderStyles' :: SLayer -> Tile -> D.Diagram D.B
+renderStyles' :: SLayer -> Tile -> Maybe (D.Diagram D.B)
 renderStyles' sts' t =
   let tbD = toBeDrawn t sts'
       pt = sts' ^. paint
-   in renderLayer pt tbD
+   in fmap (`renderLayer` tbD) pt
 
 buildFinalDiagram :: Tile -> D.Diagram D.B
 buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
 
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
-buildFinalDiagram' l t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (map (`renderStyles'` t) l))
+buildFinalDiagram' l t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles'` t) l))
 
 test :: IO ()
 test = do
@@ -132,7 +132,7 @@ pLayer = B.readFile "/home/flex99/dev/smapr/lib/Style/stringified_poc_style.json
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/home/flex99/tmp/terrain_1.json"
+  stile <- B.readFile "/home/flex99/tmp/osm.json"
   let layy = filter only . tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg

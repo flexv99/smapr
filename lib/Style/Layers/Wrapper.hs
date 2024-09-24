@@ -28,7 +28,7 @@ data SLayer = forall (b :: Bool). SLayer
     _source :: Maybe T.Text,
     _sourceLayer :: Maybe T.Text,
     _lfilter :: Maybe (IsoExpr Bool),
-    _paint :: Paint
+    _paint :: Maybe Paint
   }
 
 makeLenses ''SLayer
@@ -42,9 +42,9 @@ instance A.FromJSON SLayer where
     source' <- obj A..:? "source"
     sourceLayer' <- obj A..:? "source-layer"
     filter' <- obj A..:? "filter" >>= fexpr
-    p <- obj A..: "paint"
-    paint' <- paintP type' p
-    return $ SLayer id' type' source' sourceLayer' filter' paint'
+    p <- obj A..:? "paint"
+    let p' = sequenceA $ paintP type' <$> p
+    SLayer id' type' source' sourceLayer' filter' <$> p'
     where
       fexpr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr Bool))
       fexpr Nothing = pure Nothing
