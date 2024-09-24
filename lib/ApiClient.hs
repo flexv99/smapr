@@ -89,5 +89,5 @@ fakerTile :: IO (Maybe Tile)
 fakerTile = do
   conf <- smaprConfig
   let fp = testTilePath conf :: FilePath
-  rawTile <- B.readFile fp
-  return $ transformRawTile $ BL.fromStrict rawTile
+  rawTile <- BL.readFile fp
+  return $ transformRawTile rawTile
