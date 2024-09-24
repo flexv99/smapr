@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -11,6 +12,7 @@ where
 import Control.Lens
 import Data.Colour
 import Decoder.Polygons
+import Data.Typeable
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
@@ -26,7 +28,14 @@ polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo 
   where
     toDPoint = map geoMetryPointToDPoint
 
-drawPolygon :: FillS -> ExpressionContext -> [D.P2 Double] -> D.Diagram D.B
+drawPolygon
+  :: forall {n} {b}.
+     (Typeable n, RealFloat n,
+      D.Renderable (D.Path D.V2 n) b) =>
+     FillS
+     -> ExpressionContext
+     -> [D.Point D.V2 n]
+     -> D.QDiagram b D.V2 n D.Any
 drawPolygon style ctx tour =
   D.strokeLocLoop tourPath
     D.# D.fcA color
