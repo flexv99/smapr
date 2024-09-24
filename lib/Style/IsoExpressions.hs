@@ -136,15 +136,11 @@ lengthP = exprBaseP "length" $ do
   LengthE <$> ((LString <$> pString) <|> LArray <$> pArray)
 
 allP :: Parser (IsoExpr Bool)
-allP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "all"
-  _ <- char ',' >> space
+allP = exprBaseP "all" $ do
   AllE <$> boolExprP `sepBy` (char ',' >> space)
 
 matchP :: (Show a, SParseable a) => (SType -> a) -> Parser (IsoExpr a)
-matchP unwrap = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "match"
-  _ <- char ',' >> space
+matchP unwrap = exprBaseP "match" $ do
   expr <- polyExprP
   _ <- char ',' >> space
   args <- pAtom `sepBy` (char ',' >> space)
@@ -152,9 +148,7 @@ matchP unwrap = betweenSquareBrackets $ do
   return $ MatchE expr cases
 
 caseP :: (Show a, SParseable a) => Parser (IsoExpr a)
-caseP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "case"
-  _ <- char ',' >> space
+caseP = exprBaseP "case" $ do
   choices <- many choicesP
   CaseE choices <$> sParse
   where
@@ -166,10 +160,19 @@ caseP = betweenSquareBrackets $ do
       return (arg1, arg2)
 
 coalesceP :: Parser (IsoExpr SType)
-coalesceP = betweenSquareBrackets $ do
-  _ <- betweenDoubleQuotes $ string "coalesce"
-  _ <- char ',' >> space
+coalesceP = exprBaseP "coalesce" $ do
   CoalesceE <$> (polyExprP `sepBy` (char ',' >> space))
+
+stepP :: (Show a, SParseable a) => Parser a -> Parser (IsoExpr a)
+stepP argP = exprBaseP "step" $ do
+  step <- numExprP
+  _ <- char ',' >> space
+  StepE step <$> pairsP `sepBy` (char ',' >> space)
+  where
+    pairsP = do
+      v <- argP
+      stop <- optional (char ',' >> space >> pNum)
+      return (v, stop)
 
 interpolationTypeP :: Parser InterpolationType
 interpolationTypeP = betweenSquareBrackets $ do
@@ -312,7 +315,8 @@ numP =
     atP numExprP,
     matchP unwrapNum,
     interpolateNumP,
-    nGetP
+    nGetP,
+    stepP pNum
   ]
   where
     numLitP = try (NumE . SDouble <$> pDouble <* hidden space) <|> NumE . SInt <$> pInteger <* hidden space
@@ -338,7 +342,8 @@ boolP =
       boolExprP,
     matchP
       unwrapBool,
-    bGetP
+    bGetP,
+    stepP pBool
   ]
 
 boolExprP :: Parser (IsoExpr Bool)
@@ -373,7 +378,8 @@ colorP =
     atP colorExprP,
     matchP unwrapColor,
     interpolateColorP,
-    cGetP
+    cGetP,
+    stepP pColor
   ]
 
 colorExprP :: Parser (IsoExpr Color)
@@ -594,6 +600,13 @@ sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
 sHas :: T.Text -> ExpressionContext -> Bool
 sHas key ctx = key `MP.member` featureProperties ctx
 
+sStep :: INum -> [(a, Maybe INum)] -> a
+sStep n xs = maybe (fst $ last xs) fst (find (\(_, b) -> isSmaller n b) xs)
+  where
+    isSmaller :: INum -> Maybe INum -> Bool
+    isSmaller n (Just x) = n <= x
+    isSmaller n Nothing = True
+
 -- defaults to linestring if geometry cannot be retrieved from feature
 sGeometryType :: ExpressionContext -> T.Text
 sGeometryType ctx = fromMaybe "LINESTRING" (geometryTypeToString (ctx ^. feature))
@@ -641,6 +654,7 @@ eval (NgetE k) ctx = unwrapNum $ sGet k ctx
 eval (BgetE k) ctx = unwrapBool $ sGet k ctx
 eval (CgetE k) ctx = unwrapColor $ sGet k ctx
 eval (HasE k) ctx = sHas k ctx
+eval (StepE f s) ctx = sStep (eval f ctx) s
 eval FgeometryE ctx = sGeometryType ctx
 eval FzoomE ctx = evalZoom ctx
 eval (STypeE s) ctx = s

@@ -123,7 +123,7 @@ spec = do
   describe "Style.ExpressionsEval.eval" $ do
     it "coalesce expression" $ do
       ctx <- testLayerAndFeature
-      let expr = (parseMaybe coalesceP "[\"coalesce\",[\"get\", \"brunnel\"],[\"get\", \"tunnel\"],0]" :: Maybe (IsoExpr SType))
+      let expr = parseMaybe coalesceP "[\"coalesce\",[\"get\", \"brunnel\"],[\"get\", \"tunnel\"],0]"
       (eval <$> expr <*> ctx) `shouldBe` Just (SNum $ SInt 0)
   describe "Style.ExpressionsEval.eval" $ do
     it "interpolate expression linear" $ do
@@ -158,5 +158,15 @@ spec = do
   describe "Style.ExpressionEval.eval" $ do
     it "lenght expression string" $ do
       ctx <- testLayerAndFeature
-      let expr = parseMaybe lengthP "[\"length\", \"HoiHannaamoremio\"]"
-      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 16)
+      let expr = parseMaybe lengthP "[\"length\", \"HoiHannahamoremio\"]"
+      (eval <$> expr <*> ctx) `shouldBe` Just (SInt 17)
+  describe "Style.ExpressionsEval.eval" $ do
+    it "step expr eval" $ do
+      ctx <- testLayerAndFeature
+      let expr = parseMaybe boolExprP "[\"step\",[\"zoom\"],false,9,true]"
+      (eval <$> expr <*> ctx) `shouldBe` Just True
+  describe "Style.ExpressionsEval.eval" $ do
+    it "step expr eval" $ do
+      ctx <- testLayerAndFeature
+      let expr = parseMaybe numExprP "[\"step\",1.5,11,0, 111, 1, 1111]"
+      (eval <$> expr <*> ctx) `shouldBe` Just 1111

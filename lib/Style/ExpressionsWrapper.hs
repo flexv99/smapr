@@ -81,6 +81,8 @@ data IsoExpr a where
   CaseE :: (Show a, SParseable a) => [(IsoExpr Bool, IsoExpr a)] -> IsoExpr a -> IsoExpr a
   -- | element at index
   AtE :: (Show a, SParseable a) => [IsoExpr a] -> IsoExpr INum -> IsoExpr a
+  -- | step expr
+  StepE :: (Show a, SParseable a) => IsoExpr INum -> [(a, Maybe INum)] -> IsoExpr a
   -- | getter on feature properties
   GetE :: T.Text -> IsoExpr SType
   SgetE :: T.Text -> IsoExpr T.Text
