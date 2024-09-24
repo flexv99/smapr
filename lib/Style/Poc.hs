@@ -114,8 +114,10 @@ renderStyles' sts' t =
 split' :: [SLayer] -> ([SLayer], [SLayer])
 split' layers = (l', f')
   where
-    l' = filter (\x -> x ^. pType == "line") layers
-    f' = filter (\x -> x ^. pType == "fill") layers
+    reverseList :: [a] -> [a]
+    reverseList = foldl (flip (:)) []
+    l' = reverseList $ filter (\x -> x ^. pType == "line") layers
+    f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
 buildFinalDiagram :: Tile -> D.Diagram D.B
 buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
@@ -129,7 +131,7 @@ buildFinalDiagram' l t =
         `D.atop` renderLayers' (snd splitted)
     )
   where
-    renderLayers' ls = foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles'` t) ls)
+    renderLayers' ls = mconcat (mapMaybe (`renderStyles'` t) ls)
     bg = head $ filter (\x -> x ^. pType == "background") l
     splitted = split' l
 
@@ -149,7 +151,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/home/flex99/tmp/outdoors_m.json"
+  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg

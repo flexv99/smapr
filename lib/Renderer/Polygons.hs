@@ -11,8 +11,8 @@ where
 
 import Control.Lens
 import Data.Colour
-import Decoder.Polygons
 import Data.Typeable
+import Decoder.Polygons
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
@@ -28,18 +28,21 @@ polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo 
   where
     toDPoint = map geoMetryPointToDPoint
 
-drawPolygon
-  :: forall {n} {b}.
-     (Typeable n, RealFloat n,
-      D.Renderable (D.Path D.V2 n) b) =>
-     FillS
-     -> ExpressionContext
-     -> [D.Point D.V2 n]
-     -> D.QDiagram b D.V2 n D.Any
+drawPolygon ::
+  forall {n} {b}.
+  ( Typeable n,
+    RealFloat n,
+    D.Renderable (D.Path D.V2 n) b
+  ) =>
+  FillS ->
+  ExpressionContext ->
+  [D.Point D.V2 n] ->
+  D.QDiagram b D.V2 n D.Any
 drawPolygon style ctx tour =
   D.strokeLocLoop tourPath
     D.# D.fcA color
     D.# D.lcA color
+    D.# D.lwG 0
   where
     color = pureColor (eval (style ^. fillColor) ctx) `withOpacity` (numToDouble (eval (style ^. fillOpacity) ctx))
     tourPath = D.fromVertices tour
