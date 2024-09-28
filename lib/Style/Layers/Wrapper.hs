@@ -22,7 +22,7 @@ import Text.Megaparsec
 
 data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)
 
-data SLayer = forall (b :: Bool). SLayer
+data SLayer = SLayer
   { _id :: T.Text,
     _pType :: T.Text,
     _source :: Maybe T.Text,
@@ -36,7 +36,7 @@ makeLenses ''SLayer
 deriving instance Show SLayer
 
 instance A.FromJSON SLayer where
-  parseJSON = A.withObject "POCLayer" $ \obj -> do
+  parseJSON = A.withObject "SLayer" $ \obj -> do
     id' <- obj A..: "id"
     type' <- obj A..: "type"
     source' <- obj A..:? "source"

@@ -21,6 +21,8 @@ import Style.Parser
 data IsoExpr a where
   -- | string literal
   StringE :: T.Text -> IsoExpr T.Text
+  -- | string assert expression
+  StringAssertE :: [WrappedExpr] -> IsoExpr T.Text
   -- | Geometry type expression for a given feature
   FgeometryE :: IsoExpr T.Text
   -- | int literal
@@ -29,6 +31,8 @@ data IsoExpr a where
   DoubleE :: Double -> IsoExpr Double
   -- | num literal
   NumE :: INum -> IsoExpr INum
+  -- | number assert expression
+  NumberAssertE :: [WrappedExpr] -> IsoExpr INum
   -- | addition
   AddE :: [IsoExpr INum] -> IsoExpr INum
   -- | product
@@ -51,6 +55,8 @@ data IsoExpr a where
   LengthE :: LookupT -> IsoExpr INum
   -- | bool literal
   BoolE :: Bool -> IsoExpr Bool
+  -- | bool assert expression
+  BoolAssertE :: [WrappedExpr] -> IsoExpr Bool
   -- | negation of bool expressions
   Negation :: IsoExpr Bool -> IsoExpr Bool
   -- | check for equaliy on polymorphic types
@@ -94,14 +100,6 @@ data IsoExpr a where
   CoalesceE :: [WrappedExpr] -> IsoExpr SType
 
 deriving instance Show (IsoExpr res)
-
-data STypeReveal = STypeReveal {reveal :: forall a. (Show a) => SType -> a}
-
-instance Show STypeReveal where
-  showsPrec _ _ = s'
-    where
-      s' :: String -> String
-      s' a = a ++ "STypeReveal <function>"
 
 class SParseable a where
   sParse :: Parser (IsoExpr a)

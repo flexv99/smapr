@@ -15,12 +15,19 @@ import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
 import Data.Maybe
+import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
+import Decoder.Geometry
+import Decoder.Lines
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
+import GHC.Word
 import Proto.Util
 import Proto.Vector_tile.Tile
+import Proto.Vector_tile.Tile.Feature
+import Proto.Vector_tile.Tile.GeomType
+import Proto.Vector_tile.Tile.Layer
 import Renderer.Geometry
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
@@ -146,9 +153,12 @@ renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
   stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
+  tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
+  let tile = transformRawTile tc
+  let d = renderContourLayer "contour" <$> tile
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg dg
+  maybe (putStrLn "Noting") writeSvg (d <> dg)
 
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
@@ -157,3 +167,34 @@ renderStyleSpecWithUrl url = do
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
+
+drawTour :: [D.P2 Double] -> D.Diagram D.B
+drawTour tour = tourPoints <> D.strokeP tourPath
+  where
+    tourPath = D.fromVertices tour
+    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+    dot = D.circle 0.05 D.# D.fc D.black
+
+featureToDiagramC :: Feature -> D.Diagram D.B
+featureToDiagramC (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTour . lineToPoints) (decodeC' g :: [LineG])
+featureToDiagramC _ = D.strutX 0
+
+lineToPoints :: LineG -> [D.P2 Double]
+lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parameters lLineTo
+  where
+    toDPoint = map geometryPointToDPoint
+    geometryPointToDPoint :: Point -> D.P2 Double
+    geometryPointToDPoint (x, y) = x D.^& y
+
+decodeC' :: (MapGeometry a) => S.Seq Word32 -> [a]
+decodeC' g = decode $ map fromIntegral $ toList g
+
+renderContourLayer :: T.Text -> Tile -> D.Diagram D.B
+renderContourLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagramC . head . map toList . (map features <$> toList) $ getLayers l t
+
+testContour :: IO ()
+testContour = do
+  t <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
+  let tile = transformRawTile t
+  let d = renderContourLayer "contour" <$> tile
+  maybe (putStrLn "Nothing") writeSvg d
