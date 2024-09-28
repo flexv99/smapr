@@ -8,6 +8,7 @@
 module Style.Layers.Wrapper where
 
 import Control.Lens
+import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
@@ -58,6 +59,6 @@ instance A.FromJSON SLayer where
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
-evalLayer :: SLayer -> ExpressionContext -> Bool
-evalLayer (SLayer {_lfilter = Just fltr}) ctx = eval fltr ctx
-evalLayer _ _ = True
+evalLayer :: SLayer -> ExpressionContext -> Reader ExpressionContext Bool
+evalLayer (SLayer {_lfilter = Just fltr}) ctx = eval fltr
+evalLayer _ _ = return True

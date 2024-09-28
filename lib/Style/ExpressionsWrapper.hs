@@ -11,6 +11,7 @@
 
 module Style.ExpressionsWrapper where
 
+import Control.Monad.Reader
 import qualified Data.Text.Lazy as T
 import Style.ExpressionsContext
 import Style.Parser
@@ -103,7 +104,7 @@ deriving instance Show (IsoExpr res)
 
 class SParseable a where
   sParse :: Parser (IsoExpr a)
-  sEval :: IsoExpr a -> ExpressionContext -> a
+  sEval :: IsoExpr a -> Reader ExpressionContext a
 
 -- | runtime representation
 -- | mainly useful for parsing

@@ -8,6 +8,7 @@ module Renderer.Lines
 where
 
 import Control.Lens
+import Control.Monad.Reader
 import Decoder.Geometry
 import Decoder.Lines
 import qualified Diagrams.Backend.SVG as D
@@ -38,21 +39,21 @@ drawLine ::
   forall {b}.
   (D.Renderable (D.Path D.V2 Double) b) =>
   LineS ->
-  ExpressionContext ->
   [D.Point D.V2 Double] ->
-  D.QDiagram b D.V2 Double D.Any
-drawLine style ctx tour =
-  D.moveTo
-    (head tour)
-    ( tourPath
-        D.# D.strokeLine
-        D.# D.lcA color
-        D.# D.lwG stroke
-        D.# lineP
-    )
+  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+drawLine style tour = do
+  color <- eval (style ^. lineColor)
+  stroke <- liftM numToDouble (eval (style ^. lineWidth))
+  return $
+    D.moveTo
+      (head tour)
+      ( tourPath
+          D.# D.strokeLine
+          D.# D.lcA color
+          D.# D.lwG stroke
+          D.# lineP
+      )
   where
     lineP :: forall {c}. (D.HasStyle c) => c -> c
     lineP = D.lineCap (style ^. lineCap) . D.lineJoin (style ^. lineJoin)
-    color = eval (style ^. lineColor) ctx
-    stroke = numToDouble $ eval (style ^. lineWidth) ctx
     tourPath = D.fromVertices tour :: D.Trail' D.Line D.V2 Double

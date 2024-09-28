@@ -7,6 +7,7 @@
 module Style.IsoExpressions where
 
 import Control.Lens
+import Control.Monad.Reader
 import Data.Bifunctor
 import Data.Colour
 import Data.Colour.RGBSpace
@@ -609,8 +610,11 @@ interpolateColor from to t =
 sGet :: T.Text -> ExpressionContext -> SType
 sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
 
-sHas :: T.Text -> ExpressionContext -> Bool
-sHas key ctx = key `MP.member` featureProperties ctx
+sGet' :: T.Text -> Reader ExpressionContext SType
+sGet' key = ask >>= \ctx -> return $ fromMaybe SNull (key `MP.lookup` featureProperties ctx)
+
+sHas :: T.Text -> Reader ExpressionContext Bool
+sHas key = ask >>= \ctx -> return $ key `MP.member` featureProperties ctx
 
 sStep :: INum -> [(a, Maybe INum)] -> a
 sStep n xs = maybe (fst $ last xs) fst (find (\(_, b) -> isSmaller n b) xs)
@@ -620,57 +624,77 @@ sStep n xs = maybe (fst $ last xs) fst (find (\(_, b) -> isSmaller n b) xs)
     isSmaller n Nothing = True
 
 -- defaults to linestring if geometry cannot be retrieved from feature
-sGeometryType :: ExpressionContext -> T.Text
-sGeometryType ctx = fromMaybe "LINESTRING" (geometryTypeToString (ctx ^. feature))
+sGeometryType :: Reader ExpressionContext T.Text
+sGeometryType = ask >>= \ctx -> return $ fromMaybe "LINESTRING" (geometryTypeToString (ctx ^. feature))
 
-evalZoom :: ExpressionContext -> INum
-evalZoom ctx = SDouble (ctx ^. ctxZoom)
+evalZoom :: Reader ExpressionContext INum
+evalZoom = ask >>= \ctx -> return $ SDouble (ctx ^. ctxZoom)
 
 --------------------------------------------------------------------------------
 -- evaluators
 --------------------------------------------------------------------------------
 
-evalWrapped :: WrappedExpr -> ExpressionContext -> SType
-evalWrapped (StringExpr s) ctx = SString $ T.toCaseFold $ eval s ctx
-evalWrapped (NumExpr n) ctx = SNum $ eval n ctx
-evalWrapped (BoolExpr b) ctx = SBool $ eval b ctx
-evalWrapped (ArrayExpr a) ctx = undefined
-evalWrapped (ColorExpr c) ctx = SColor $ eval c ctx
-evalWrapped (STypeExpr s) ctx = eval s ctx
+evalWrapped :: WrappedExpr -> Reader ExpressionContext SType
+evalWrapped (StringExpr s) = liftM (SString . T.toCaseFold) (eval s)
+evalWrapped (NumExpr n) = liftM SNum $ eval n
+evalWrapped (BoolExpr b) = liftM SBool $ eval b
+evalWrapped (ArrayExpr a) = undefined
+evalWrapped (ColorExpr c) = liftM SColor $ eval c
+evalWrapped (STypeExpr s) = eval s
 
-eval :: (SParseable a) => IsoExpr a -> ExpressionContext -> a
-eval (BoolE b) _ = b
-eval (Negation e) ctx = not $ eval e ctx
-eval (EqE o t) ctx = sEq (evalWrapped o ctx) (evalWrapped t ctx)
-eval (OrdE t a b) ctx = sOrd t (eval a ctx) (eval b ctx)
-eval (InE v t) ctx = sIn v t
-eval (AllE v) ctx = sAll (map (`sEval` ctx) v)
-eval (NumE e) _ = e
-eval (AddE a) ctx = sSum (map (`eval` ctx) a)
-eval (ProdE a) ctx = sProd (map (`eval` ctx) a)
-eval (SubE a b) ctx = sSub (eval a ctx) (eval b ctx)
-eval (DivE a b) ctx = sDiv (eval a ctx) (eval b ctx)
-eval (StringE s) _ = s
-eval (ColorE c) _ = c
-eval (AtE l i) ctx = sAt (map (`eval` ctx) l) (eval i ctx)
-eval (MatchE m v) ctx = sMatch (evalWrapped m ctx) v
-eval (CaseE c f) ctx = sCase (map (\(a, b) -> (eval a ctx, sEval b ctx)) c) (sEval f ctx)
-eval (CoalesceE n) ctx = sCoalesce (map (`evalWrapped` ctx) n)
-eval (InterpolateNumE t e a) ctx = sInterpolateNr t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
-eval (InterpolateColorE t e a) ctx = sInterpolateColor t (eval e ctx) (map (\(a', b) -> (eval a' ctx, b)) a)
-eval (IndexOfE e a) ctx = sIndexOf e a
-eval (LengthE a) ctx = slength a
-eval (GetE k) ctx = sGet k ctx
-eval (SgetE k) ctx = unwrapString $ sGet k ctx
-eval (NgetE k) ctx = unwrapNum $ sGet k ctx
-eval (BgetE k) ctx = unwrapBool $ sGet k ctx
-eval (CgetE k) ctx = unwrapColor $ sGet k ctx
-eval (HasE k) ctx = sHas k ctx
-eval (StepE f s) ctx = sStep (eval f ctx) s
-eval FgeometryE ctx = sGeometryType ctx
-eval FzoomE ctx = evalZoom ctx
-eval (STypeE s) ctx = s
-eval x ctx = eval x ctx
+eval :: (SParseable a) => IsoExpr a -> Reader ExpressionContext a
+eval (BoolE b) = return b
+eval (Negation e) = eval e >>= \x -> return $ not x
+-- eval (EqE o t) = sEq (evalWrapped o ctx) (evalWrapped t ctx)
+eval (OrdE t a b) = binaryOp (sOrd t) a b
+eval (InE v t) = return $ sIn v t
+eval (AllE v) = multiOp sAll v
+eval (NumE e) = return e
+eval (AddE a) = multiOp sSum a
+eval (ProdE a) = multiOp sProd a
+eval (SubE a b) = binaryOp sSub a b
+eval (DivE a b) = binaryOp sDiv a b
+eval (StringE s) = return s
+eval (ColorE c) = return c
+eval (AtE l i) = liftM2 sAt (traverse eval l) (eval i)
+-- eval (MatchE m v) = sMatch (evalWrapped m ctx) v
+eval (CaseE c f) = liftM2 sCase (traverse evalTuple c) (eval f)
+  where
+    evalTuple t = do
+      t1 <- eval (fst t)
+      t2 <- eval (snd t)
+      return (t1, t2)
+
+-- eval (CoalesceE n) = sCoalesce (map (`evalWrapped` ctx) n)
+eval (InterpolateNumE t e a) = liftM2 (sInterpolateNr t) (eval e) (traverse revealTuple a)
+  where
+    revealTuple t = do
+      t1 <- eval (fst t)
+      return (t1, snd t)
+eval (InterpolateColorE t e a) = liftM2 (sInterpolateColor t) (eval e) (traverse revealTuple a)
+  where
+    revealTuple t = do
+      t1 <- eval (fst t)
+      return (t1, snd t)
+eval (IndexOfE e a) = return $ sIndexOf e a
+eval (LengthE a) = return $ slength a
+eval (GetE k) = sGet' k
+eval (SgetE k) = sGet' k >>= return . unwrapString
+eval (NgetE k) = sGet' k >>= return . unwrapNum
+eval (BgetE k) = sGet' k >>= return . unwrapBool
+eval (CgetE k) = sGet' k >>= return . unwrapColor
+eval (HasE k) = sHas k
+eval (StepE f s) = liftM (`sStep` s) (eval f)
+eval FgeometryE = sGeometryType
+eval FzoomE = evalZoom
+eval (STypeE s) = return s
+eval _ = error "exhausted eval"
+
+multiOp :: (SParseable a) => ([a] -> b) -> [IsoExpr a] -> ReaderT ExpressionContext Identity b
+multiOp f a = f `liftM` traverse (eval >>= \x -> return x) a
+
+binaryOp :: (SParseable t, SParseable t1) => (t -> t1 -> b) -> IsoExpr t -> IsoExpr t1 -> ReaderT ExpressionContext Identity b
+binaryOp f a b = eval a >>= \x -> eval b >>= \y -> return $ f x y
 
 --------------------------------------------------------------------------------
 -- Poison
