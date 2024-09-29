@@ -93,24 +93,20 @@ l4 = "{\"id\":\"landcover_sand\",\"type\":\"fill\",\"metadata\":{},\"source\":\"
 testLayers :: [B.ByteString]
 testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l3, l2, l4]
 
-testEval :: (SParseable a) => T.Text -> IsoExpr a -> Tile -> [a]
-testEval layer expr t = map (eval expr) ctxs
-  where
-    layers = getLayers layer t
-    ctxs = toList $ constructCtx layers
+-- testEval :: (SParseable a) => T.Text -> IsoExpr a -> Tile -> [a]
+-- testEval layer expr t = map (eval expr) ctxs
+--   where
+--     layers = getLayers layer t
+--     ctxs = toList $ constructCtx layers
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
-      tbD = toBeDrawn t <$> stile
       pt = join $ _paint <$> stile
-   in (renderLayer <$> pt) <*> tbD
+   in renderTile t <$> stile
 
-renderStyles' :: SLayer -> Tile -> Maybe (D.Diagram D.B)
-renderStyles' sts' t =
-  let tbD = toBeDrawn t sts'
-      pt = sts' ^. paint
-   in fmap (`renderLayer` tbD) pt
+renderStyles' :: SLayer -> Tile -> D.Diagram D.B
+renderStyles' sts' t = renderTile t sts'
 
 split' :: [SLayer] -> ([SLayer], [SLayer])
 split' layers = (l', f')
@@ -132,7 +128,7 @@ buildFinalDiagram' l t =
         `D.atop` renderLayers' (snd splitted)
     )
   where
-    renderLayers' ls = mconcat (mapMaybe (`renderStyles'` t) ls)
+    renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
     bg = head $ filter (\x -> x ^. pType == "background") l
     splitted = split' l
 

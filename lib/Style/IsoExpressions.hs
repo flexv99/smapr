@@ -276,8 +276,6 @@ fgeometryP :: Parser (IsoExpr T.Text)
 fgeometryP = betweenSquareBrackets $ do
   FgeometryE <$ betweenDoubleQuotes (string "geometry-type")
 
-  stringExprP
-
 fzoomP :: Parser (IsoExpr INum)
 fzoomP = betweenSquareBrackets $ do
   FzoomE <$ betweenDoubleQuotes (string "zoom")

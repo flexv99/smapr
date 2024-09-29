@@ -59,6 +59,6 @@ instance A.FromJSON SLayer where
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
-evalLayer :: SLayer -> ExpressionContext -> Reader ExpressionContext Bool
-evalLayer (SLayer {_lfilter = Just fltr}) ctx = eval fltr
-evalLayer _ _ = return True
+evalLayer :: SLayer -> Reader ExpressionContext Bool
+evalLayer (SLayer {_lfilter = Just fltr}) = eval fltr
+evalLayer _ = return True

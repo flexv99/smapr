@@ -1,6 +1,11 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+
 module Renderer.Geometry where
 
 import Control.Lens
+import Control.Monad
+import Control.Monad.Reader
 import Data.Foldable
 import qualified Data.Sequence as S
 import Decoder.Geometry
@@ -27,16 +32,38 @@ on this type we can then apply our line appearence properties
 moveTo will determine where the origin is set
 -}
 
-featureToDiagram :: Paint -> ExpressionContext -> D.Diagram D.B
-featureToDiagram (LinePaint l) ctx = foldl1 D.atop $ map (drawLine l ctx . lineToPoints) (decode' (geometry (ctx ^. feature)) :: [LineG])
-featureToDiagram (FillPaint f) ctx = foldl1 D.atop $ map (drawPolygon f ctx . polygonToPoints) (decode' (geometry (ctx ^. feature)) :: [PolygonG])
+featureToDiagram ::
+  forall {b}.
+  (D.Renderable (D.Path D.V2 Double) b) =>
+  Maybe Paint ->
+  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+featureToDiagram (Just (LinePaint l)) = do
+  linePath <- decode'
+  liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
+featureToDiagram (Just (FillPaint f)) = do
+  polygonPath <- decode'
+  liftM mconcat (mapM (drawPolygon f . polygonToPoints) polygonPath)
+featureToDiagram _ = return $ D.strutX 0
 
-decode' :: (MapGeometry a) => S.Seq Word32 -> [a]
-decode' g = decode $ map fromIntegral $ toList g
+decode' :: (MapGeometry a) => Reader ExpressionContext [a]
+decode' = ask >>= \ctx -> return $ decode $ map fromIntegral $ toList (geometry (ctx ^. feature))
 
-renderLayer :: Paint -> S.Seq ExpressionContext -> D.Diagram D.B
-renderLayer _ S.Empty = D.strutX 0
-renderLayer style f = D.reflectY (foldl1 D.atop $ fmap (featureToDiagram style) f)
+renderTile ::
+  forall {b}.
+  (D.Renderable (D.Path D.V2 Double) b) =>
+  Tile ->
+  SLayer ->
+  D.QDiagram b D.V2 Double D.Any
+renderTile tile layer = do
+  D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
+  where
+    toBeDrawn = runReader (evalLayer layer)
+    eachLayer ctx = if toBeDrawn ctx then runReader (featureToDiagram (layer ^. paint)) ctx else D.strutX 0
+    layers' =
+      maybe
+        S.empty
+        (`getLayers` tile)
+        (layer ^. sourceLayer)
 
 -- TODO fix zoom
 constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
@@ -45,10 +72,3 @@ constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
     create :: Layer -> S.Seq ExpressionContext
     create l' = fmap (\f -> ExpressionContext f l' 17) (features l')
 constructCtx S.Empty = S.empty
-
-toBeDrawn :: Tile -> SLayer -> S.Seq ExpressionContext
-toBeDrawn t s = fmap (S.filter (evalLayer s)) constructCtx layers'
-  where
-    layers' = maybe S.empty (`getLayers` t) (s ^. sourceLayer)
-
--- TODO delegate atop between different source layers here.
