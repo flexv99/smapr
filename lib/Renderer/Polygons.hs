@@ -12,7 +12,6 @@ where
 import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
-import Data.Typeable
 import Decoder.Polygons
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
@@ -23,6 +22,7 @@ import Style.Parser
 geoMetryPointToDPoint :: Point -> D.P2 Double
 geoMetryPointToDPoint (x, y) = x D.^& y
 
+-- todo check isInner here
 polygonToPoints :: PolygonG -> [D.P2 Double]
 polygonToPoints (PolygonG moveTo lineTo closeP) = toDPoint $ _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
   where
