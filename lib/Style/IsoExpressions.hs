@@ -643,7 +643,7 @@ evalWrapped (STypeExpr s) = eval s
 eval :: (SParseable a) => IsoExpr a -> Reader ExpressionContext a
 eval (BoolE b) = return b
 eval (Negation e) = eval e >>= \x -> return $ not x
--- eval (EqE o t) = sEq (evalWrapped o ctx) (evalWrapped t ctx)
+eval (EqE o t) = liftM2 sEq (evalWrapped o) (evalWrapped t)
 eval (OrdE t a b) = binaryOp (sOrd t) a b
 eval (InE v t) = return $ sIn v t
 eval (AllE v) = multiOp sAll v
@@ -655,15 +655,14 @@ eval (DivE a b) = binaryOp sDiv a b
 eval (StringE s) = return s
 eval (ColorE c) = return c
 eval (AtE l i) = liftM2 sAt (traverse eval l) (eval i)
--- eval (MatchE m v) = sMatch (evalWrapped m ctx) v
+eval (MatchE m v) = liftM (`sMatch` v) (evalWrapped m)
 eval (CaseE c f) = liftM2 sCase (traverse evalTuple c) (eval f)
   where
     evalTuple t = do
       t1 <- eval (fst t)
       t2 <- eval (snd t)
       return (t1, t2)
-
--- eval (CoalesceE n) = sCoalesce (map (`evalWrapped` ctx) n)
+eval (CoalesceE n) = liftM sCoalesce (mapM (evalWrapped) n)
 eval (InterpolateNumE t e a) = liftM2 (sInterpolateNr t) (eval e) (traverse revealTuple a)
   where
     revealTuple t = do
