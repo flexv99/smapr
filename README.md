@@ -1,7 +1,7 @@
 # SMAPR - recreational project
-## Svg map renderer
+## Static map renderer
 
-Goal is to render MapBox [Vector tiles](https://github.com/mapbox/vector-tile-spec/blob/master/2.1/README.md) as SVG.
+Goal is to render MapBox [Vector tiles](https://github.com/mapbox/vector-tile-spec/blob/master/2.1/README.md) as Diagrams.
 
 Config structure. For smapr.cfg:
 ```
