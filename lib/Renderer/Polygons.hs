@@ -71,21 +71,7 @@ polyAtop ::
 polyAtop (Left a) = D.strokeLocLoop $ D.fromVertices a
 polyAtop (Right r) = mconcat $ map (\(a, b) -> D.strokeLocLoop (D.fromVertices a) <> mconcat (map (D.strokeLocLoop . D.reverseLocLoop . D.fromVertices) b)) r D.# D.fc D.purple D.# D.fillRule D.EvenOdd
 
--- multiPolyAtop (Interior i) (Exterior e) = Exterior (e <> D.reverseLocLoop i D.# D.fc D.red)
--- multiPolyAtop (Exterior e) (Interior i) = Exterior (e <> D.reverseLocLoop i D.# D.fc D.red)
--- multiPolyAtop (Exterior e) (Exterior i) = Exterior (i <> e D.# D.fc D.red)
--- multiPolyAtop (Interior e) (Interior i) = Exterior (i <> e D.# D.fc D.red)
-
--- -- testRender :: MultiPoint (D.QDiagram b D.V2 Double D.Any)
--- testRender = foldl1 multiPolyAtop (map delegate pts)
---   where
---     delegate (Exterior pts) = Exterior $ D.fromVertices pts
---     delegate (Interior pts) = Interior $ D.fromVertices pts
-
--- render2DVector :: D.Diagram D.B -> IO ()
--- render2DVector v = do
---   let sz = D.mkSizeSpec2D (Just 512) (Just 512)
---   dateStr <- dateTimeStr
---   path <- testPath dateStr
---   putStrLn path
---   D.renderSVG path sz $ v D.# D.fillRule D.EvenOdd
+{-
+difference seems to do the trick still need to apply it to located loops
+diffEx = (D.strokePath $ D.difference D.Winding (D.square 1) $ D.circle 0.3) D.# D.fc D.purple
+-}
