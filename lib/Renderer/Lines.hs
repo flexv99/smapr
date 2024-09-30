@@ -11,21 +11,11 @@ import Control.Lens
 import Control.Monad.Reader
 import Decoder.Geometry
 import Decoder.Lines
-import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
 import Style.IsoExpressions
 import Style.Layers.Line
 import Style.Parser
-import Util
-
-render2DVector :: D.Diagram D.B -> IO ()
-render2DVector v = do
-  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
-  dateStr <- dateTimeStr
-  path <- testPath dateStr
-  putStrLn path
-  D.renderSVG path sz $ v D.# D.showOrigin
 
 geometryPointToDPoint :: Point -> D.P2 Double
 geometryPointToDPoint (x, y) = x D.^& y

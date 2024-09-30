@@ -1,31 +1,22 @@
 module Decoder.Geometry
-  ( decPolygon,
-    decLine,
+  ( featureToGeo,
     PolygonG (..),
     LineG (..),
     MapGeometry (..),
   )
 where
 
+import Control.Monad.Reader
 import Data.Foldable
 import Decoder.Lines
 import Decoder.Polygons
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
+import Style.ExpressionsContext
 
-class MapGeometry a where
-  decode :: [Int] -> [a]
+data MapGeometry = LineGeo [LineG] | PolyGeo PolygonG deriving (Show)
 
-instance MapGeometry PolygonG where
-  decode = decPolygon
-
-instance MapGeometry LineG where
-  decode = decLine
-
-featureToGeo :: (MapGeometry a, Show a) => Feature -> [a]
-featureToGeo (Feature _ _ (Just POLYGON) g) = decode $ map fromIntegral $ toList g
-featureToGeo (Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g
-featureToGeo f = decodeGeometry (map fromIntegral $ toList $ geometry f)
-
-decodeGeometry :: (MapGeometry a) => [Int] -> [a]
-decodeGeometry = decode
+featureToGeo :: Feature -> MapGeometry
+featureToGeo (Feature _ _ (Just POLYGON) g) = LineGeo $ decLine $ map fromIntegral $ toList g
+featureToGeo (Feature _ _ (Just LINESTRING) g) = PolyGeo $ decPolygon $ map fromIntegral $ toList g
+featureToGeo f = LineGeo $ decLine (map fromIntegral $ toList $ geometry f)

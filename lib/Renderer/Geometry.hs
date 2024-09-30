@@ -45,8 +45,8 @@ featureToDiagram (Just (FillPaint f)) = do
   liftM mconcat (mapM (drawPolygon f . polygonToPoints) polygonPath)
 featureToDiagram _ = return $ D.strutX 0
 
-decode' :: (MapGeometry a) => Reader ExpressionContext [a]
-decode' = ask >>= \ctx -> return $ decode $ map fromIntegral $ toList (geometry (ctx ^. feature))
+decode' :: Reader ExpressionContext MapGeometry
+decode' = ask >>= \ctx -> return $ featureToGeo (ctx ^. feature)
 
 renderTile ::
   forall {b}.

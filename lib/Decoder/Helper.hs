@@ -14,16 +14,16 @@ type Point = (Double, Double)
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
-  { _cmd :: CommandA
-  , _count :: Int
+  { _cmd :: CommandA,
+    _count :: Int
   }
   deriving (Show, Eq)
 
 makeLenses ''Command
 
 data GeoAction = GeoAction
-  { _command :: Command
-  , _parameters :: [Point]
+  { _command :: Command,
+    _parameters :: [Point]
   }
   deriving (Show, Eq)
 
@@ -39,7 +39,6 @@ instance A.ToJSON Command where
 
 coordsOrigin :: Point
 coordsOrigin = (0.0, 0.0)
-
 
 -- command:
 -- 3 bits
@@ -101,25 +100,36 @@ splitAtMove xs = filter (not . null) $ f xs []
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x, y) (x', y') = (x + x', y + y')
 
-data PolygonG = PolygonG
-  { _pMoveTo :: GeoAction
-  , _pLineTo :: GeoAction
-  , _pClosePath :: GeoAction
+-- A single polygon
+data SPolygon = SPolygon
+  { _pMoveTo :: GeoAction,
+    _pLineTo :: GeoAction,
+    _pClosePath :: GeoAction
   }
   deriving (Show, Eq)
 
+makeLenses ''SPolygon
+
+type Inner = [SPolygon]
+
+type Outer = SPolygon
+
+type MPolygon = [(Outer, Inner)]
+
+data PolygonG = SinglePolygon SPolygon | MultiPolygon MPolygon deriving (Show)
+
 makeLenses ''PolygonG
 
-instance A.ToJSON PolygonG where
-  toJSON (PolygonG pMoveTo' pLineTo' pClosePath') =
-        A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo', "close_path" A..= pClosePath']
+instance A.ToJSON SPolygon where
+  toJSON (SPolygon pMoveTo' pLineTo' pClosePath') =
+    A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo', "close_path" A..= pClosePath']
 
-  toEncoding (PolygonG pMoveTo' pLineTo' pClosePath') =
-        A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo' <> "close_path" A..= pClosePath'
+  toEncoding (SPolygon pMoveTo' pLineTo' pClosePath') =
+    A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo' <> "close_path" A..= pClosePath'
 
 data LineG = LineG
-  { _lMoveTo :: GeoAction
-  , _lLineTo :: GeoAction
+  { _lMoveTo :: GeoAction,
+    _lLineTo :: GeoAction
   }
   deriving (Show, Eq)
 
@@ -127,10 +137,10 @@ makeLenses ''LineG
 
 instance A.ToJSON LineG where
   toJSON (LineG pMoveTo' pLineTo') =
-        A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo']
+    A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo']
 
   toEncoding (LineG pMoveTo' pLineTo') =
-        A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo'
+    A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo'
 
 data PointG = PointG
   { _pMoveT :: GeoAction
