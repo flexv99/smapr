@@ -26,7 +26,6 @@ import Util
 geoMetryPointToDPoint :: Point -> D.P2 Double
 geoMetryPointToDPoint (x, y) = x D.^& y
 
--- todo check isInner here
 polygonToPoints :: SPolygon -> [D.P2 Double]
 polygonToPoints (SPolygon moveTo lineTo closeP) = toDPoint $ _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
   where
@@ -51,7 +50,7 @@ drawPolygon style tour = do
   where
     tourPath = D.fromVertices tour
 
-testInner :: PolygonG
+testInner :: [PolygonG]
 testInner = decPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
 
 testS :: [SPolygon]
@@ -60,16 +59,35 @@ testS = helperDecSPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 1
 testOld :: IO ()
 testOld = writeSvg $ mconcat $ map ((D.strokeLocLoop . D.fromVertices) . polygonToPoints) testS
 
-polygonToPoints' :: PolygonG -> Either [D.P2 Double] [([D.P2 Double], [[D.P2 Double]])]
-polygonToPoints' (SinglePolygon s) = Left $ polygonToPoints s
-polygonToPoints' (MultiPolygon m) = Right $ map (bimap polygonToPoints (map polygonToPoints)) m
+singleToPoints :: SPolygon -> D.Located (D.Trail' D.Loop D.V2 Double)
+singleToPoints (SPolygon moveTo lineTo closeP) =
+  D.fromVertices $
+    toDPoint $
+      _parameters moveTo
+        ++ _parameters lineTo
+        ++ _parameters closeP
+  where
+    toDPoint = map geoMetryPointToDPoint
 
-polyAtop ::
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  Either [D.P2 Double] [([D.P2 Double], [[D.P2 Double]])] ->
-  D.QDiagram b D.V2 Double D.Any
-polyAtop (Left a) = D.strokeLocLoop $ D.fromVertices a
-polyAtop (Right r) = mconcat $ map (\(a, b) -> D.strokeLocLoop (D.fromVertices a) <> mconcat (map (D.strokeLocLoop . D.reverseLocLoop . D.fromVertices) b)) r D.# D.fc D.purple D.# D.fillRule D.EvenOdd
+multipleToPoints :: MPolygon -> D.Path D.V2 Double
+multipleToPoints (o, i) = D.difference D.EvenOdd (D.toPath (singleToPoints o)) (D.toPath (D.loopUnion 0.1 D.EvenOdd $ map singleToPoints i))
+
+polygonToLoop :: PolygonG -> D.Path D.V2 Double
+polygonToLoop (SinglePolygon s) = D.toPath $ singleToPoints s
+polygonToLoop (MultiPolygon m) = multipleToPoints m
+
+drawPolygon' =
+  mconcat $
+    map
+      ( \t ->
+          D.strokeP (polygonToLoop t)
+            D.# D.fc D.purple
+            D.# D.lc D.blue
+            D.# D.lwG 0
+      )
+      testInner
+
+-- >> writeSvg $ drawPolygon'
 
 {-
 difference seems to do the trick still need to apply it to located loops

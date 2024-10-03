@@ -114,7 +114,7 @@ type Inner = [SPolygon]
 
 type Outer = SPolygon
 
-type MPolygon = [(Outer, Inner)]
+type MPolygon = (Outer, Inner)
 
 data PolygonG = SinglePolygon SPolygon | MultiPolygon MPolygon deriving (Show)
 

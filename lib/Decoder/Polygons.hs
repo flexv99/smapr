@@ -12,8 +12,10 @@ module Decoder.Polygons
   )
 where
 
-import Control.Lens
+import Control.Lens hiding (uncons)
 import Data.List
+import qualified Data.List.Split as LS
+import Data.Maybe
 import Decoder.Helper
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
@@ -58,20 +60,29 @@ helperDecSPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygon
   where
     actionToPolygonG g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
 
-decPolygon :: [Int] -> PolygonG
-decPolygon i = delegator $ decodedP i
+decPolygon :: [Int] -> [PolygonG]
+decPolygon = delegator . decodedP
   where
     decodedP = map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
-    delegator [x] = SinglePolygon x
-    delegator xs = MultiPolygon $ [(x, filter isInner xs) | x <- xs, not (isInner x)]
     actionToPolygon :: [GeoAction] -> SPolygon
     actionToPolygon g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
+    delegator [x] = [SinglePolygon x]
+    delegator xs =
+      mapMaybe
+        ( \e ->
+            if length e == 1
+              then
+                Just $ SinglePolygon (head e)
+              else
+                MultiPolygon <$> uncons e
+        )
+        $ LS.split (LS.keepDelimsL $ LS.whenElt (not . isInner)) xs
 
 -- criteria inner/outer polygon
 -- https://en.wikipedia.org/wiki/Shoelace_formula
 -- p1 = (1, 6), p2 = (3, 1), p3 = (7, 2)
 
---  | 1 3|    |3 7|   |7  1|
+--  |1 3|    |3 7|   |7  1|
 --  |   | +  |   | + |    | -- matrix multp.
 --  |6 1|    |1 2|   |2  6|
 --  res is negative: inner polygon
