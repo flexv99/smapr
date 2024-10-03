@@ -5,6 +5,7 @@
 
 module Renderer.Polygons
   ( polygonToPoints,
+    decPolygon,
     drawPolygon,
   )
 where
@@ -35,29 +36,25 @@ drawPolygon ::
   forall {b}.
   (D.Renderable (D.Path D.V2 Double) b) =>
   FillS ->
-  [D.P2 Double] ->
+  [PolygonG] ->
   Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawPolygon style tour = do
   color <- fmap pureColor (eval (style ^. fillColor))
   opacity <- fmap numToDouble (eval (style ^. fillOpacity))
-  return
-    ( D.strokeLocLoop tourPath
-        D.# D.fcA (color `withOpacity` opacity)
-        D.# D.lcA (color `withOpacity` opacity)
-        D.# D.lwG 0
-        D.# D.fillRule D.Winding
-    )
-  where
-    tourPath = D.fromVertices tour
+  return $
+    mconcat $
+      map
+        ( \t ->
+            D.strokeP (polygonToLoop t)
+              D.# D.fcA (color `withOpacity` opacity)
+              D.# D.lcA (color `withOpacity` opacity)
+              D.# D.lwG 0
+              D.# D.fillRule D.Winding
+        )
+        tour
 
 testInner :: [PolygonG]
 testInner = decPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
-
-testS :: [SPolygon]
-testS = helperDecSPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
-
-testOld :: IO ()
-testOld = writeSvg $ mconcat $ map ((D.strokeLocLoop . D.fromVertices) . polygonToPoints) testS
 
 singleToPoints :: SPolygon -> D.Located (D.Trail' D.Loop D.V2 Double)
 singleToPoints (SPolygon moveTo lineTo closeP) =

@@ -38,15 +38,15 @@ featureToDiagram ::
   Maybe Paint ->
   Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
-  linePath <- decode'
+  linePath <- decode' :: Reader ExpressionContext [LineG]
   liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
 featureToDiagram (Just (FillPaint f)) = do
-  polygonPath <- decode'
-  liftM mconcat (mapM (drawPolygon f . polygonToPoints) polygonPath)
+  polygonPath <- decode' :: Reader ExpressionContext [PolygonG]
+  drawPolygon f polygonPath
 featureToDiagram _ = return $ D.strutX 0
 
-decode' :: Reader ExpressionContext MapGeometry
-decode' = ask >>= \ctx -> return $ featureToGeo (ctx ^. feature)
+decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
+decode' = ask >>= \ctx -> return $ decodeSeq (geometry (ctx ^. feature))
 
 renderTile ::
   forall {b}.
