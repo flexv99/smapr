@@ -53,7 +53,7 @@ sumMoveToAndLineTo :: [SPolygon] -> Point
 sumMoveToAndLineTo polygons =
   let extractPoints geoAction = if view (command . cmd) geoAction /= ClosePath then view parameters geoAction else []
       allPoints = concatMap (\polygon -> extractPoints (view pMoveTo polygon) ++ extractPoints (view pLineTo polygon)) polygons
-   in foldl' sumTuple (0, 0) allPoints
+   in foldl' sumTuple coordsOrigin allPoints
 
 helperDecSPolygon :: [Int] -> [SPolygon]
 helperDecSPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
@@ -85,6 +85,7 @@ decPolygon = delegator . decodedP
 --  |1 3|    |3 7|   |7  1|
 --  |   | +  |   | + |    | -- matrix multp.
 --  |6 1|    |1 2|   |2  6|
+
 --  res is negative: inner polygon
 polygonParams :: SPolygon -> [Point]
 polygonParams (SPolygon pMoveTo' pLineTo' pClosePath') =
@@ -101,7 +102,6 @@ shoelace p = sh' p / 2
     sh' [x] = shoelaceStep x fst'
     sh' (x : x' : xs) = shoelaceStep x x' + sh' (x' : xs)
     fst' = head p
-    shoelaceStep (x, y) (x', y') = (x * y') - (y * x')
 
 isInner :: SPolygon -> Bool
 isInner = (< 0) . shoelace . polygonParams

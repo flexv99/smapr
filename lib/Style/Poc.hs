@@ -173,11 +173,7 @@ featureToDiagramC (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawT
 featureToDiagramC _ = D.strutX 0
 
 lineToPoints :: LineG -> [D.P2 Double]
-lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parameters lLineTo
-  where
-    toDPoint = map geometryPointToDPoint
-    geometryPointToDPoint :: Point -> D.P2 Double
-    geometryPointToDPoint (x, y) = x D.^& y
+lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
 
 decodeC' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decodeC' g = decode $ map fromIntegral $ toList g

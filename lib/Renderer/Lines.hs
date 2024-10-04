@@ -17,13 +17,8 @@ import Style.IsoExpressions
 import Style.Layers.Line
 import Style.Parser
 
-geometryPointToDPoint :: Point -> D.P2 Double
-geometryPointToDPoint (x, y) = x D.^& y
-
 lineToPoints :: LineG -> [D.P2 Double]
-lineToPoints (LineG lMoveTo lLineTo) = toDPoint $ _parameters lMoveTo ++ _parameters lLineTo
-  where
-    toDPoint = map geometryPointToDPoint
+lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
 
 drawLine ::
   forall {b}.

@@ -24,13 +24,8 @@ import Style.Layers.Fill
 import Style.Parser
 import Util
 
-geoMetryPointToDPoint :: Point -> D.P2 Double
-geoMetryPointToDPoint (x, y) = x D.^& y
-
 polygonToPoints :: SPolygon -> [D.P2 Double]
-polygonToPoints (SPolygon moveTo lineTo closeP) = toDPoint $ _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
-  where
-    toDPoint = map geoMetryPointToDPoint
+polygonToPoints (SPolygon moveTo lineTo closeP) = _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
 
 drawPolygon ::
   forall {b}.
@@ -59,12 +54,9 @@ testInner = decPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 
 singleToPoints :: SPolygon -> D.Located (D.Trail' D.Loop D.V2 Double)
 singleToPoints (SPolygon moveTo lineTo closeP) =
   D.fromVertices $
-    toDPoint $
-      _parameters moveTo
-        ++ _parameters lineTo
-        ++ _parameters closeP
-  where
-    toDPoint = map geoMetryPointToDPoint
+    _parameters moveTo
+      ++ _parameters lineTo
+      ++ _parameters closeP
 
 multipleToPoints :: MPolygon -> D.Path D.V2 Double
 multipleToPoints (o, i) = D.difference D.EvenOdd (D.toPath (singleToPoints o)) (D.toPath (D.loopUnion 0.1 D.EvenOdd $ map singleToPoints i))

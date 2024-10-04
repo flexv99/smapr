@@ -10,7 +10,6 @@ import qualified Data.Map as MP
 import Data.Maybe
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
-import Decoder.Helper (tuplify)
 import GHC.Float
 import GHC.Word
 import Proto.Vector_tile.Tile
@@ -28,6 +27,11 @@ geometryTypeToString f = T.pack . show <$> type' f
 
 featureIdToString :: Feature -> Maybe T.Text
 featureIdToString f = T.pack . show <$> id f
+
+tuplify :: [a] -> [(a, a)]
+tuplify [] = []
+tuplify [_] = error "cannot tuplify single emelent"
+tuplify (x : x' : xs) = (x, x') : tuplify xs
 
 -- | mapping feature tags to key pairs
 featureProperties :: ExpressionContext -> MP.Map T.Text SType

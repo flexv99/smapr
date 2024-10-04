@@ -7,9 +7,10 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Aeson as A
 import Data.Bits
+import qualified Diagrams.Prelude as D
 import GHC.Float
 
-type Point = (Double, Double)
+type Point = D.P2 Double
 
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
@@ -29,16 +30,8 @@ data GeoAction = GeoAction
 
 makeLenses ''GeoAction
 
-instance A.ToJSON GeoAction where
-  toJSON (GeoAction command' parameters') =
-    A.object ["command" A..= command', "parameters" A..= parameters']
-
-instance A.ToJSON Command where
-  toJSON (Command cmd' count') =
-    A.object ["cmd" A..= show cmd', "count" A..= count']
-
 coordsOrigin :: Point
-coordsOrigin = (0.0, 0.0)
+coordsOrigin = 0.0 D.^& 0.0
 
 -- command:
 -- 3 bits
@@ -83,10 +76,10 @@ splitCommands c =
   where
     toBeSplitted = parametersCount (decodeCommand $ head c) + 1
 
-tuplify :: [a] -> [(a, a)]
+tuplify :: [a] -> [D.P2 a]
 tuplify [] = []
 tuplify [_] = error "cannot tuplify single emelent"
-tuplify (x : x' : xs) = (x, x') : tuplify xs
+tuplify (x : x' : xs) = x D.^& x' : tuplify xs
 
 splitAtMove :: [GeoAction] -> [[GeoAction]]
 splitAtMove xs = filter (not . null) $ f xs []
@@ -97,8 +90,15 @@ splitAtMove xs = filter (not . null) $ f xs []
         then agg : f ys [y]
         else f ys (agg ++ [y])
 
-sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
-sumTuple (x, y) (x', y') = (x + x', y + y')
+sumTuple :: (Num a) => D.P2 a -> D.P2 a -> D.P2 a
+sumTuple p1 p2 = D.p2 $ sum' (D.unp2 p1) (D.unp2 p2)
+  where
+    sum' (x, y) (x', y') = (x + x', y + y')
+
+shoelaceStep :: (Num a) => D.P2 a -> D.P2 a -> a
+shoelaceStep p1 p2 = step' (D.unp2 p1) (D.unp2 p2)
+  where
+    step' (x, y) (x', y') = (x * y') - (y * x')
 
 -- A single polygon
 data SPolygon = SPolygon
@@ -120,13 +120,6 @@ data PolygonG = SinglePolygon SPolygon | MultiPolygon MPolygon deriving (Show)
 
 makeLenses ''PolygonG
 
-instance A.ToJSON SPolygon where
-  toJSON (SPolygon pMoveTo' pLineTo' pClosePath') =
-    A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo', "close_path" A..= pClosePath']
-
-  toEncoding (SPolygon pMoveTo' pLineTo' pClosePath') =
-    A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo' <> "close_path" A..= pClosePath'
-
 data LineG = LineG
   { _lMoveTo :: GeoAction,
     _lLineTo :: GeoAction
@@ -134,13 +127,6 @@ data LineG = LineG
   deriving (Show, Eq)
 
 makeLenses ''LineG
-
-instance A.ToJSON LineG where
-  toJSON (LineG pMoveTo' pLineTo') =
-    A.object ["move_to" A..= pMoveTo', "line_to" A..= pLineTo']
-
-  toEncoding (LineG pMoveTo' pLineTo') =
-    A.pairs $ "move_to" A..= pMoveTo' <> "line_to" A..= pLineTo'
 
 data PointG = PointG
   { _pMoveT :: GeoAction
