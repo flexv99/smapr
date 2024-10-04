@@ -149,12 +149,9 @@ renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
   stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
-  tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
-  let tile = transformRawTile tc
-  let d = renderContourLayer "contour" <$> tile
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg (d <> dg)
+  maybe (putStrLn "Noting") writeSvg dg
 
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
@@ -190,7 +187,11 @@ renderContourLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagramC . he
 
 testContour :: IO ()
 testContour = do
-  t <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
-  let tile = transformRawTile t
+  t <- fakerTile
+  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
+  tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
+  let tile = transformRawTile tc
   let d = renderContourLayer "contour" <$> tile
-  maybe (putStrLn "Nothing") writeSvg d
+  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> t
+  maybe (putStrLn "Noting") writeSvg (d <> dg)
