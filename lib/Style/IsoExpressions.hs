@@ -282,21 +282,21 @@ fzoomP = betweenSquareBrackets $ do
 
 stringAssertP :: Parser (IsoExpr T.Text)
 stringAssertP = betweenSquareBrackets $ do
-  _ <- string "string"
+  _ <- betweenDoubleQuotes $ string "string"
   _ <- char ',' >> space
-  StringAssertE <$> (polyExprP `sepBy` (char ',' >> space))
+  StringAssertE <$> (polyFuncP `sepBy` (char ',' >> space))
 
 numAssertP :: Parser (IsoExpr INum)
 numAssertP = betweenSquareBrackets $ do
-  _ <- string "number"
+  _ <- betweenDoubleQuotes $ string "number"
   _ <- char ',' >> space
-  NumberAssertE <$> (polyExprP `sepBy` (char ',' >> space))
+  NumberAssertE <$> (polyFuncP `sepBy` (char ',' >> space))
 
 boolAssertP :: Parser (IsoExpr Bool)
 boolAssertP = betweenSquareBrackets $ do
-  _ <- string "boolean"
+  _ <- betweenDoubleQuotes $ string "boolean"
   _ <- char ',' >> space
-  BoolAssertE <$> (polyExprP `sepBy` (char ',' >> space))
+  BoolAssertE <$> (polyFuncP `sepBy` (char ',' >> space))
 
 --------------------------------------------------------------------------------
 -- Combined Parsers
@@ -310,10 +310,8 @@ stringP =
     fgeometryP,
     -- polymorphic
     atP,
-    -- matchP,
-    -- interpolateP,
+    matchP unwrapString,
     sGetP
-    -- fgeometryP
   ]
 
 stringExprP :: Parser (IsoExpr T.Text)
@@ -605,11 +603,8 @@ interpolateColor from to t =
       alpha = alphaChannel blendedColour
    in sRGB r g b `withOpacity` alpha
 
-sGet :: T.Text -> ExpressionContext -> SType
-sGet key ctx = fromMaybe SNull (key `MP.lookup` featureProperties ctx)
-
-sGet' :: T.Text -> Reader ExpressionContext SType
-sGet' key = ask >>= \ctx -> return $ fromMaybe SNull (key `MP.lookup` featureProperties ctx)
+sGet :: T.Text -> Reader ExpressionContext SType
+sGet key = ask >>= \ctx -> return $ fromMaybe SNull (key `MP.lookup` featureProperties ctx)
 
 sHas :: T.Text -> Reader ExpressionContext Bool
 sHas key = ask >>= \ctx -> return $ key `MP.member` featureProperties ctx
@@ -675,11 +670,11 @@ eval (InterpolateColorE t e a) = liftM2 (sInterpolateColor t) (eval e) (traverse
       return (t1, snd t)
 eval (IndexOfE e a) = return $ sIndexOf e a
 eval (LengthE a) = return $ slength a
-eval (GetE k) = sGet' k
-eval (SgetE k) = sGet' k >>= return . unwrapString
-eval (NgetE k) = sGet' k >>= return . unwrapNum
-eval (BgetE k) = sGet' k >>= return . unwrapBool
-eval (CgetE k) = sGet' k >>= return . unwrapColor
+eval (GetE k) = sGet k
+eval (SgetE k) = sGet k >>= return . unwrapString
+eval (NgetE k) = sGet k >>= return . unwrapNum
+eval (BgetE k) = sGet k >>= return . unwrapBool
+eval (CgetE k) = sGet k >>= return . unwrapColor
 eval (HasE k) = sHas k
 eval (StepE f s) = liftM (`sStep` s) (eval f)
 eval FgeometryE = sGeometryType

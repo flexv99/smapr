@@ -93,12 +93,6 @@ l4 = "{\"id\":\"landcover_sand\",\"type\":\"fill\",\"metadata\":{},\"source\":\"
 testLayers :: [B.ByteString]
 testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l3, l2, l4]
 
--- testEval :: (SParseable a) => T.Text -> IsoExpr a -> Tile -> [a]
--- testEval layer expr t = map (eval expr) ctxs
---   where
---     layers = getLayers layer t
---     ctxs = toList $ constructCtx layers
-
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
