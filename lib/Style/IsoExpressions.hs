@@ -12,6 +12,7 @@ import Data.Bifunctor
 import Data.Colour
 import Data.Colour.RGBSpace
 import Data.Colour.SRGB
+import Data.Either
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
@@ -37,10 +38,6 @@ instance SParseable Bool where
 
 instance SParseable Color where
   sParse = colorExprP
-  sEval = eval
-
-instance SParseable SType where
-  sParse = stypeExprP
   sEval = eval
 
 -- instance SParseable [a] where
@@ -103,12 +100,14 @@ ordTypeP = choice $ map try [less, lessEq, greater, greaterEq]
 
 ordP :: Parser (IsoExpr Bool)
 ordP = betweenSquareBrackets $ do
-  let argsP = numExprP
   key <- ordTypeP
   _ <- char ',' >> space
-  arg1 <- argsP
+  arg1 <- p'
   _ <- char ',' >> space
-  OrdE key arg1 <$> argsP
+  OrdE key arg1 <$> sndP' arg1
+  where
+    p' = Left <$> numExprP <|> Right <$> stringExprP
+    sndP' x = if isLeft x then Left <$> numExprP else Right <$> stringExprP
 
 atP :: (SParseable a, Show a) => Parser (IsoExpr a)
 atP = exprBaseP "at" $ do
@@ -250,9 +249,6 @@ getP c = betweenSquareBrackets $ do
   _ <- betweenDoubleQuotes $ string "get"
   _ <- char ',' >> space
   c <$> pString
-
-sTGetP :: Parser (IsoExpr SType)
-sTGetP = getP GetE
 
 sGetP :: Parser (IsoExpr T.Text)
 sGetP = getP SgetE
@@ -398,25 +394,11 @@ colorExprP = choice $ map try colorP
 colorFuncP :: Parser (IsoExpr Color)
 colorFuncP = choice $ map try (tail colorP)
 
--- | 4all expressions that return stype
-stypeP :: [Parser (IsoExpr SType)]
-stypeP =
-  [ atP,
-    sTGetP,
-    STypeE
-      <$> pAtom
-      <* hidden space
-  ]
-
-stypeExprP :: Parser (IsoExpr SType)
-stypeExprP = choice $ map try stypeP
-
 -- | 4all Polymorphic expressions
 polyExprP :: Parser WrappedExpr
 polyExprP =
   choice
-    [ wrap <$> stypeExprP, -- in first for a reason! has precedence
-      wrap <$> stringExprP,
+    [ wrap <$> stringExprP,
       wrap <$> numExprP,
       wrap <$> boolExprP,
       wrap <$> arrayExprP,
@@ -433,12 +415,19 @@ polyFuncP =
       wrap <$> colorFuncP
     ]
 
+-- polyOnlyP :: [Parser (IsoExpr a)]
+-- polyOnlyP =
+--   [ matchP,
+--     caseP,
+--     atP,
+--     stepP
+--   ]
+
 cParserForType :: WrappedExpr -> Parser WrappedExpr
 cParserForType (StringExpr a) = wrap <$> stringExprP
 cParserForType (NumExpr a) = wrap <$> numExprP
 cParserForType (BoolExpr a) = wrap <$> boolExprP
 cParserForType (ColorExpr a) = wrap <$> colorExprP
-cParserForType (STypeExpr a) = wrap <$> stypeExprP
 cParserForType (ArrayExpr a) = wrap <$> arrayExprP
 
 --------------------------------------------------------------------------------
@@ -486,7 +475,7 @@ sEq :: (Eq a) => a -> a -> Bool
 sEq i j = i == j
 
 -- | < & <= & > & >=
-sOrd :: OrdType -> INum -> INum -> Bool
+sOrd :: (Ord a) => OrdType -> a -> a -> Bool
 sOrd = op
   where
     op Less = (<)
@@ -633,13 +622,12 @@ evalWrapped (NumExpr n) = liftM SNum $ eval n
 evalWrapped (BoolExpr b) = liftM SBool $ eval b
 evalWrapped (ArrayExpr a) = undefined
 evalWrapped (ColorExpr c) = liftM SColor $ eval c
-evalWrapped (STypeExpr s) = eval s
 
 eval :: (SParseable a) => IsoExpr a -> Reader ExpressionContext a
 eval (BoolE b) = return b
 eval (Negation e) = eval e >>= \x -> return $ not x
 eval (EqE o t) = liftM2 sEq (evalWrapped o) (evalWrapped t)
-eval (OrdE t a b) = binaryOp (sOrd t) a b
+-- eval (OrdE t a b) = binaryOp (sOrd t) a b
 eval (InE v t) = return $ sIn v t
 eval (AllE v) = multiOp sAll v
 eval (NumE e) = return e
@@ -657,7 +645,7 @@ eval (CaseE c f) = liftM2 sCase (traverse evalTuple c) (eval f)
       t1 <- eval (fst t)
       t2 <- eval (snd t)
       return (t1, t2)
-eval (CoalesceE n) = liftM sCoalesce (mapM (evalWrapped) n)
+eval (CoalesceE n) = liftM sCoalesce (mapM evalWrapped n)
 eval (InterpolateNumE t e a) = liftM2 (sInterpolateNr t) (eval e) (traverse revealTuple a)
   where
     revealTuple t = do
@@ -670,7 +658,6 @@ eval (InterpolateColorE t e a) = liftM2 (sInterpolateColor t) (eval e) (traverse
       return (t1, snd t)
 eval (IndexOfE e a) = return $ sIndexOf e a
 eval (LengthE a) = return $ slength a
-eval (GetE k) = sGet k
 eval (SgetE k) = sGet k >>= return . unwrapString
 eval (NgetE k) = sGet k >>= return . unwrapNum
 eval (BgetE k) = sGet k >>= return . unwrapBool
@@ -679,7 +666,6 @@ eval (HasE k) = sHas k
 eval (StepE f s) = liftM (`sStep` s) (eval f)
 eval FgeometryE = sGeometryType
 eval FzoomE = evalZoom
-eval (STypeE s) = return s
 eval _ = error "exhausted eval"
 
 multiOp :: (SParseable a) => ([a] -> b) -> [IsoExpr a] -> ReaderT ExpressionContext Identity b

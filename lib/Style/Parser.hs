@@ -11,7 +11,6 @@ import Data.Colour.RGBSpace.HSL
 import Data.Colour.SRGB
 import Data.List (singleton)
 import Data.Scientific (isFloating, toRealFloat)
-import qualified Data.Text.Internal.Lazy as T
 import qualified Data.Text.Lazy as T
 import qualified Data.Vector as V
 import Data.Void
@@ -131,6 +130,8 @@ instance A.FromJSON SType where
       else pure $ SNum $ SInt (round n)
   parseJSON (A.Bool b) = pure $ SBool b
   parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
+  parseJSON A.Null = pure SNull
+  parseJSON (A.String s) = pure $ SString $ T.fromStrict s
   parseJSON a =
     A.withText
       "SType"
@@ -387,7 +388,6 @@ hslToColor h s l o = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb) 
 
 showSColor :: Color -> String
 showSColor a = sRGB24show $ pureColor a
-  where
 
 pureColor :: (Ord a, Fractional a) => AlphaColour a -> Colour a
 pureColor ac
