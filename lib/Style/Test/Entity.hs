@@ -2,20 +2,26 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Style.Test.Entity where
 
-import Control.Monad
+import Control.Lens
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Map as MP
+import qualified Data.Sequence as S
 import qualified Data.Vector as V
+import Proto.Vector_tile.Tile.Feature
+import Proto.Vector_tile.Tile.Layer
+import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
 import Style.Parser
 import Text.Megaparsec
+import qualified Text.ProtocolBuffers.Header as P'
 
 -- {
 --     propertySpec: any;
@@ -45,18 +51,22 @@ instance A.FromJSON ResultType where
 -- boolean, number,
 
 data ECompiled = ECompiled
-  { rType :: ResultType,
-    result :: String
+  { _rType :: ResultType,
+    _result :: String
   }
   deriving (Show)
+
+makeLenses ''ECompiled
 
 instance A.FromJSON ECompiled where
   parseJSON = A.withObject "ECompiled" $ \t -> ECompiled <$> t A..: "type" <*> t A..: "result"
 
 data EExpected where
-  EExpected :: {outputs :: [Maybe SType], compiled :: ECompiled} -> EExpected
+  EExpected :: {_outputs :: [Maybe SType], _compiled :: ECompiled} -> EExpected
 
 deriving instance Show EExpected
+
+makeLenses ''EExpected
 
 instance A.FromJSON EExpected where
   parseJSON = A.withObject "Outputs" $ \t -> do
@@ -74,22 +84,24 @@ instance A.FromJSON EExpected where
 pLiterals :: A.Value -> A.Parser [Maybe SType]
 pLiterals = A.withArray "list of literals" (return . V.toList . V.map (parseMaybe pAtom . A.encodeToLazyText))
 
+type Properties = (MP.Map String (MP.Map String SType))
+
 data ExpressionTestEntity = ExpressionTestEntity
-  { expression :: Maybe WrappedExpr,
-    inputs :: [[Maybe Properties]],
-    expected :: EExpected
+  { _expression :: Maybe WrappedExpr,
+    _inputs :: [[Maybe Properties]],
+    _expected :: EExpected
   }
 
 deriving instance Show ExpressionTestEntity
 
-type Properties = (MP.Map String (MP.Map String SType))
+makeLenses ''ExpressionTestEntity
 
 instance A.FromJSON ExpressionTestEntity where
   parseJSON = A.withObject "ExpressionTest" $ \p -> do
     expr <- p A..: "expression" >>= exprP
-    inputs <- p A..: "inputs"
-    expected <- p A..: "expected"
-    return $ ExpressionTestEntity expr inputs expected
+    inputs' <- p A..: "inputs"
+    expected' <- p A..: "expected"
+    return $ ExpressionTestEntity expr inputs' expected'
     where
       exprP :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
       exprP Nothing = pure Nothing
@@ -102,3 +114,12 @@ run = do
   let testPath = "/home/flex99/dev/smapr/test/json_test/test_2.json"
   tf <- B.readFile testPath
   return $ A.eitherDecode tf
+
+testCTXs :: [Properties] -> [ExpressionContext]
+testCTXs p = undefined
+  where
+    k' = map (S.fromList . MP.keys) p
+    v' = map (S.fromList . MP.elems) p
+    t' = take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    dLayer = P'.defaultValue :: Layer
+    dFeature = P'.defaultValue :: Feature
