@@ -63,10 +63,15 @@ data IsoExpr a where
   -- | check for equaliy on polymorphic types
   EqE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
   -- | < <= > >=
-  OrdE ::
+  OrdNumE ::
     OrdType ->
-    Either (IsoExpr INum) (IsoExpr T.Text) ->
-    Either (IsoExpr INum) (IsoExpr T.Text) ->
+    IsoExpr INum ->
+    IsoExpr INum ->
+    IsoExpr Bool
+  OrdStringE ::
+    OrdType ->
+    IsoExpr T.Text ->
+    IsoExpr T.Text ->
     IsoExpr Bool
   -- | checks if element is in an array or string
   InE :: SType -> LookupT -> IsoExpr Bool
@@ -94,10 +99,13 @@ data IsoExpr a where
   -- | step expr
   StepE :: (Show a, SParseable a) => IsoExpr INum -> [(a, Maybe INum)] -> IsoExpr a
   -- | getter on feature properties
+  GetE :: T.Text -> IsoExpr SType
   SgetE :: T.Text -> IsoExpr T.Text
   NgetE :: T.Text -> IsoExpr INum
   BgetE :: T.Text -> IsoExpr Bool
   CgetE :: T.Text -> IsoExpr Color
+  -- SType Literal
+  STypeE :: SType -> IsoExpr SType
   -- | coalesce
   CoalesceE :: [WrappedExpr] -> IsoExpr SType
 
@@ -115,6 +123,7 @@ data WrappedExpr where
   BoolExpr :: IsoExpr Bool -> WrappedExpr
   ArrayExpr :: IsoExpr [a] -> WrappedExpr
   ColorExpr :: IsoExpr Color -> WrappedExpr
+  STypeExpr :: IsoExpr SType -> WrappedExpr
 
 deriving instance Show WrappedExpr
 
@@ -135,6 +144,9 @@ instance KnownResType [a] where
 
 instance KnownResType Color where
   wrap = ColorExpr
+
+instance KnownResType SType where
+  wrap = STypeExpr
 
 data InterpolationType
   = Linear
