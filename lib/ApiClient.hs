@@ -3,7 +3,6 @@
 module ApiClient where
 
 import Control.Lens ((^.))
-import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Lazy.Internal
 import Data.Foldable
