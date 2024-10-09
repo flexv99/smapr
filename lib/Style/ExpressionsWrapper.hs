@@ -63,7 +63,16 @@ data IsoExpr a where
   -- | check for equaliy on polymorphic types
   EqE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
   -- | < <= > >=
-  OrdE :: OrdType -> IsoExpr INum -> IsoExpr INum -> IsoExpr Bool
+  OrdNumE ::
+    OrdType ->
+    IsoExpr INum ->
+    IsoExpr INum ->
+    IsoExpr Bool
+  OrdStringE ::
+    OrdType ->
+    IsoExpr T.Text ->
+    IsoExpr T.Text ->
+    IsoExpr Bool
   -- | checks if element is in an array or string
   InE :: SType -> LookupT -> IsoExpr Bool
   -- | all expr
