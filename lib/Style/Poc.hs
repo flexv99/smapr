@@ -66,39 +66,6 @@ instance A.FromJSON SWrap where
       <*> o A..: "name"
       <*> o A..: "layers"
 
-waterLayerStyle :: B.ByteString
-waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
-
-waterFill :: B.ByteString
-waterFill = "{\"id\":\"water\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"water\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"!=\",[\"get\",\"intermittent\"],1],[\"!=\",[\"get\",\"brunnel\"],\"tunnel\"]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(205,56%,73%)\"}}"
-
-transportationLayerStyle :: B.ByteString
-transportationLayerStyle = "{\"id\":\"road_trunk_primary\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"transportation\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"class\"],[\"primary\",\"trunk\"],true,false]],\"layout\":{\"line-cap\":\"round\",\"line-join\":\"round\"},\"paint\":{\"line-color\":\"#fff\",\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],6,0.5,20,30]}}"
-
-buildingsLayerStyle :: B.ByteString
-buildingsLayerStyle = "{\"id\":\"building\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"building\",\"paint\":{\"fill-antialias\":true,\"fill-color\":\"rgba(222,211,190,1)\",\"fill-opacity\":[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,15,1],\"fill-outline-color\":[\"interpolate\",[\"linear\"],[\"zoom\"],15,\"rgba(212,177,146,0)\",16,\"rgba(212,177,146,0.5)\"]}}"
-
-l1 :: B.ByteString
-l1 = "{\"id\":\"landuse-residential\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landuse\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"Polygon\"],[\"match\",[\"get\",\"class\"],[\"neighbourhood\",\"residential\",\"suburb\"],true,false]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"fill-color\":\"hsl(47,13%,86%)\",\"fill-opacity\":0.7}}"
-
-l2 :: B.ByteString
-l2 = "{\"id\":\"landcover_grass\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"==\",[\"get\",\"class\"],\"grass\"],\"paint\":{\"fill-color\":\"hsl(47, 26%, 88%)\",\"fill-opacity\":0.45}}"
-
-l3 :: B.ByteString
-l3 = "{\"id\":\"landcover_wood\",\"type\":\"fill\",\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"==\",[\"get\",\"class\"],\"wood\"],\"paint\":{\"fill-color\":\"hsl(82,46%,72%)\",\"fill-opacity\":[\"interpolate\",[\"linear\"],[\"zoom\"],8,0.6,22,1]}}"
-
-l4 :: B.ByteString
-l4 = "{\"id\":\"landcover_sand\",\"type\":\"fill\",\"metadata\":{},\"source\":\"openmaptiles\",\"source-layer\":\"landcover\",\"filter\":[\"match\",[\"get\",\"class\"],[\"sand\"],true,false],\"paint\":{\"fill-antialias\":false,\"fill-color\":\"rgba(232,214,38,1)\",\"fill-opacity\":0.3}}"
-
-testLayers :: [B.ByteString]
-testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLayerStyle, l1, l3, l2, l4]
-
--- testEval :: (SParseable a) => T.Text -> IsoExpr a -> Tile -> [a]
--- testEval layer expr t = map (eval expr) ctxs
---   where
---     layers = getLayers layer t
---     ctxs = toList $ constructCtx layers
-
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
@@ -116,9 +83,6 @@ split' layers = (l', f')
     l' = reverseList $ filter (\x -> x ^. pType == "line") layers
     f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
-buildFinalDiagram :: Tile -> D.Diagram D.B
-buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
-
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
   D.bg
@@ -131,16 +95,6 @@ buildFinalDiagram' l t =
     renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
     bg = head $ filter (\x -> x ^. pType == "background") l
     splitted = split' l
-
-test :: IO ()
-test = do
-  t <- fakerTile
-  maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
-
-testWithUrl :: String -> IO ()
-testWithUrl url = do
-  t <- getFromUrl url
-  maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
 
 pLayer :: IO (Either String SWrap)
 pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
