@@ -11,11 +11,16 @@ import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as BC
+import Data.Either
 import qualified Data.Map as MP
+import Data.Maybe
 import qualified Data.Sequence as S
+import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.Layer
+import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.ExpressionsWrapper
 import Style.IsoExpressions
@@ -115,11 +120,25 @@ run = do
   tf <- B.readFile testPath
   return $ A.eitherDecode tf
 
-testCTXs :: [Properties] -> [ExpressionContext]
-testCTXs p = undefined
+stypeToValue :: SType -> Value
+stypeToValue (SString s) = (P'.defaultValue :: Value) {string_value = fromEither $ P'.toUtf8 $ T.encodeUtf8 s}
   where
-    k' = map (S.fromList . MP.keys) p
-    v' = map (S.fromList . MP.elems) p
-    t' = take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
-    dLayer = P'.defaultValue :: Layer
-    dFeature = P'.defaultValue :: Feature
+    fromEither (Right a) = Just a
+    fromEither _ = Nothing
+stypeToValue (SNum (SDouble d)) = (P'.defaultValue :: Value) {double_value = Just d}
+stypeToValue (SNum (SInt i)) = (P'.defaultValue :: Value) {int_value = Just $ fromInteger $ toInteger i}
+stypeToValue (SBool b) = (P'.defaultValue :: Value) {bool_value = Just b}
+stypeToValue _ = error "unsupported type"
+
+testCTXs :: Properties -> Maybe ExpressionContext
+testCTXs p = fmap (\x -> ExpressionContext {_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
+  where
+    props = MP.lookup "properties" p
+    k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
+    v' = S.fromList . map stypeToValue . MP.elems <$> props
+    t' = S.fromList $ map fromInteger $ take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    dFeature = (P'.defaultValue :: Feature) {tags = t'}
+    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer) {keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
+
+-- >>> t <- run
+-- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)
