@@ -15,7 +15,7 @@ import Proto.Vector_tile.Tile.Layer
 -- kind of object
 
 data ExpressionContext = ExpressionContext
-  { _feature :: Feature,
+  { _feature :: Feature, -- todo change to feature source name
     _layer :: Layer,
     _ctxZoom :: Double
   }
