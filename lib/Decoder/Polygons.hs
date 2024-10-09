@@ -61,9 +61,8 @@ helperDecSPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygon
     actionToPolygonG g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
 
 decPolygon :: [Int] -> [PolygonG]
-decPolygon = delegator . decodedP
+decPolygon = delegator . map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
   where
-    decodedP = map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
     actionToPolygon :: [GeoAction] -> SPolygon
     actionToPolygon g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
     delegator [x] = [SinglePolygon x]
