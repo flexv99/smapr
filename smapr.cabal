@@ -46,6 +46,9 @@ library
                     , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util
+                    , Style.Lang.Types
+                    , Style.Lang.Lex
+                    , Style.Lang.Token
                     , Style.Test.Entity
                     , Style.Test.TestExpressionParser
                     , Util
