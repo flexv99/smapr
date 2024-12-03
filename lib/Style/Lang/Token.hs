@@ -8,4 +8,4 @@ data ColorToken
   | THsl
   | THsla
   | TName
-  deriving (Eq)
+  deriving (Eq, Show)

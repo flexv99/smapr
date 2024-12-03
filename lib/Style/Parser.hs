@@ -387,7 +387,6 @@ hslToColor h s l o = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb) 
 
 showSColor :: Color -> String
 showSColor a = sRGB24show $ pureColor a
-  where
 
 pureColor :: (Ord a, Fractional a) => AlphaColour a -> Colour a
 pureColor ac

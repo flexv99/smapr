@@ -3,10 +3,13 @@
 
 module Style.Lang.Lex (Parser) where
 
+import Control.Monad
+import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Void
 import Style.Lang.Token
 import Style.Lang.Types
+import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -59,13 +62,79 @@ pBool =
 pNum :: Parser SNum
 pNum = nullableP (lexeme (L.signed sc L.scientific) <|> L.scientific) <?> "number"
 
+pColor :: Parser SColor
+pColor = nullableP $ do
+  pFColor =<< colorSymbol
+
+pAtom :: Parser SData
+pAtom =
+  choice
+    [ DNum <$> pNum,
+      DBool <$> pBool,
+      DColor <$> pColor,
+      DString <$> pString
+    ]
+
+pPercentage :: Parser Double
+pPercentage = do
+  num <- lexeme L.decimal
+  _ <- char '%'
+  return num
+
+pDouble :: Parser Double
+pDouble = lexeme L.float
+
+pInt :: Parser Int
+pInt = lexeme L.decimal
+
 --------------------------------------------------------------------------------
 
 colorSymbol :: Parser ColorToken
 colorSymbol =
   choice
-    [ TRgb <$ string "rgb",
-      TRgba <$ string "rgba",
-      THsl <$ string "hsl",
-      THsla <$ string "hsla"
+    [ TRgba <$ string "rgba",
+      TRgb <$ string "rgb",
+      THsla <$ string "hsla",
+      THsl <$ string "hsl"
     ]
+
+-- | color function parser
+pFColor :: ColorToken -> Parser Color
+pFColor TRgb = pRgb
+  where
+    pRgb = betweenBrackets $ do
+      r <- fromIntegral <$> pInt
+      _ <- char ',' >> space
+      g <- fromIntegral <$> pInt
+      _ <- char ',' >> space
+      b <- fromIntegral <$> pInt
+      return $ rgbToColor r g b 1
+pFColor TRgba = pRgba
+  where
+    pRgba = betweenBrackets $ do
+      r <- fromIntegral <$> pInt
+      _ <- char ',' >> space
+      g <- fromIntegral <$> pInt
+      _ <- char ',' >> space
+      b <- fromIntegral <$> pInt
+      _ <- char ',' >> space
+      rgbToColor r g b <$> lexeme L.decimal
+pFColor THsla = pHsla
+  where
+    pHsla = betweenBrackets $ do
+      h <- pDouble
+      _ <- char ',' >> space
+      s <- pPercentage
+      _ <- char ',' >> space
+      l <- pPercentage
+      _ <- char ',' >> space
+      hslToColor h s l <$> pDouble
+pFColor THsl = pHsl
+  where
+    pHsl = betweenBrackets $ do
+      h <- lexeme L.decimal
+      _ <- char ',' >> space
+      s <- pPercentage
+      _ <- char ',' >> space
+      l <- pPercentage
+      return $ hslToColor h s l 1

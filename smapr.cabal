@@ -49,6 +49,7 @@ library
                     , Style.Lang.Types
                     , Style.Lang.Lex
                     , Style.Lang.Token
+                    , Style.Lang.Util
                     , Style.Test.Entity
                     , Style.Test.TestExpressionParser
                     , Util
