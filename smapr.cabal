@@ -46,8 +46,10 @@ library
                     , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util
+                    , Style.Lang.Ast
                     , Style.Lang.Types
                     , Style.Lang.Lex
+                    , Style.Lang.Parser
                     , Style.Lang.Token
                     , Style.Lang.Util
                     , Style.Test.Entity

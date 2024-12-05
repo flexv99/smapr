@@ -1,7 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Style.Lang.Lex (Parser (..)) where
+module Style.Lang.Lex
+  ( Parser (..),
+    betweenBrackets,
+    betweenSquareBrackets,
+    betweenDoubleQuotes,
+    numSymbol,
+    pAtom,
+    pString,
+    pNum,
+    pBool,
+    pColor,
+  )
+where
 
 import qualified Data.Text.Lazy as T
 import Data.Void
@@ -151,3 +163,16 @@ pHexColor = betweenDoubleQuotes $ do
   if validLength
     then return $ colorFromHexDigits hexDigits
     else fail "Invalid hex color code length"
+
+--------------------------------------------------------------------------------
+-- Num symbol
+--------------------------------------------------------------------------------
+
+numSymbol :: Parser NumToken
+numSymbol =
+  choice
+    [ Plus <$ char '+',
+      Minus <$ char '-',
+      Div <$ char '/',
+      Multi <$ char '*'
+    ]

@@ -1,4 +1,4 @@
-module Style.Lang.Token (ColorToken (..)) where
+module Style.Lang.Token where
 
 data ColorToken
   = THex3
@@ -8,4 +8,11 @@ data ColorToken
   | THsl
   | THsla
   | TName
+  deriving (Eq, Show)
+
+data NumToken
+  = Plus
+  | Minus
+  | Div
+  | Multi
   deriving (Eq, Show)
