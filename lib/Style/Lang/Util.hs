@@ -1,8 +1,16 @@
-module Style.Lang.Util (Color (..), hslToColor, rgbToColor) where
+module Style.Lang.Util
+  ( Color (..),
+    hslToColor,
+    rgbToColor,
+    expandShortHex,
+    colorFromHexDigits,
+  )
+where
 
 import Data.Colour
 import Data.Colour.RGBSpace.HSL
 import Data.Colour.SRGB
+import Data.List
 import GHC.Word
 
 --------------------------------------------------------------------------------
@@ -18,3 +26,11 @@ hslToColor h s l o = sRGB (channelRed rgb) (channelGreen rgb) (channelBlue rgb) 
 
 rgbToColor :: Word8 -> Word8 -> Word8 -> Double -> Color
 rgbToColor r g b o = sRGB24 r g b `withOpacity` o
+
+expandShortHex :: String -> String
+expandShortHex hex
+  | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
+  | otherwise = hex
+
+colorFromHexDigits :: (RealFloat a) => String -> AlphaColour a
+colorFromHexDigits d = sRGB24read ("#" <> expandShortHex d) `withOpacity` 1

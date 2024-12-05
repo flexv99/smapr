@@ -1,10 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Style.Lang.Lex (Parser) where
+module Style.Lang.Lex (Parser (..)) where
 
-import Control.Monad
-import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Void
 import Style.Lang.Token
@@ -60,11 +58,16 @@ pBool =
     <?> "bool"
 
 pNum :: Parser SNum
-pNum = nullableP (lexeme (L.signed sc L.scientific) <|> L.scientific) <?> "number"
+pNum =
+  nullableP
+    ( lexeme (L.signed sc L.scientific)
+        <|> L.scientific
+    )
+    <?> "number"
 
 pColor :: Parser SColor
 pColor = nullableP $ do
-  pFColor =<< colorSymbol
+  pHexColor <|> (pFColor =<< colorSymbol) <?> "color"
 
 pAtom :: Parser SData
 pAtom =
@@ -138,3 +141,13 @@ pFColor THsl = pHsl
       _ <- char ',' >> space
       l <- pPercentage
       return $ hslToColor h s l 1
+
+pHexColor :: Parser Color
+pHexColor = betweenDoubleQuotes $ do
+  _ <- char '#'
+  hexDigits <- try (some hexDigitChar)
+  let len = length hexDigits
+  let validLength = len == 6 || len == 3
+  if validLength
+    then return $ colorFromHexDigits hexDigits
+    else fail "Invalid hex color code length"
