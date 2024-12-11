@@ -7,11 +7,14 @@ module Style.Lang.Lex
     betweenSquareBrackets,
     betweenDoubleQuotes,
     numSymbol,
+    stringSymbol,
+    polySymbol,
     pAtom,
     pString,
     pNum,
     pBool,
     pColor,
+    pArray,
   )
 where
 
@@ -86,7 +89,7 @@ pAtom =
   choice
     [ DNum <$> pNum,
       DBool <$> pBool,
-      DColor <$> pColor,
+      try $ DColor <$> pColor,
       DString <$> pString
     ]
 
@@ -101,6 +104,10 @@ pDouble = lexeme L.float
 
 pInt :: Parser Int
 pInt = lexeme L.decimal
+
+-- TODO accept lists of one datatype only
+pArray :: Parser [SData]
+pArray = betweenSquareBrackets $ pAtom `sepBy` (char ',' >> space)
 
 --------------------------------------------------------------------------------
 
@@ -176,3 +183,26 @@ numSymbol =
       Div <$ char '/',
       Multi <$ char '*'
     ]
+    <|> NPoly
+    <$> polySymbol
+
+--------------------------------------------------------------------------------
+-- String symbol
+--------------------------------------------------------------------------------
+
+stringSymbol :: Parser StringToken
+stringSymbol =
+  choice
+    [ GeometryType <$ string "geometry-type",
+      Upcase <$ string "upcase",
+      Downcase <$ string "downcase",
+      Concat <$ string "concat",
+      TextAt <$ string "at"
+    ]
+
+--------------------------------------------------------------------------------
+-- Polymorphic symbol
+--------------------------------------------------------------------------------
+
+polySymbol :: Parser PolyToken
+polySymbol = choice [Get <$ string "get", At <$ string "at"]

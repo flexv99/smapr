@@ -15,4 +15,19 @@ data NumToken
   | Minus
   | Div
   | Multi
+  | NPoly PolyToken
+  deriving (Eq, Show)
+
+data StringToken
+  = GeometryType
+  | Upcase
+  | Downcase
+  | Concat
+  | TextAt
+  | SPoly PolyToken
+  deriving (Eq, Show)
+
+data PolyToken
+  = Get
+  | At
   deriving (Eq, Show)

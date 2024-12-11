@@ -1,4 +1,11 @@
-module Style.Lang.Parser where
+{-# LANGUAGE MonoLocalBinds #-}
+
+module Style.Lang.Parser
+  ( numExprP,
+    stringExprP,
+    polyExprP,
+  )
+where
 
 import Control.Monad
 import Style.Lang.Ast
@@ -8,22 +15,71 @@ import Style.Lang.Types
 import Text.Megaparsec
 import Text.Megaparsec.Char
 
-numExprP :: Parser (SExpr SNum)
-numExprP = NumE <$> pNum
+--------------------------------------------------------------------------------
+-- NUMERIC Functions
+--------------------------------------------------------------------------------
 
-arithmethicP :: Parser (SExpr SNum)
-arithmethicP = betweenSquareBrackets $ do
-  arithOp <- betweenDoubleQuotes numSymbol
+numExprP :: Parser (SExpr SNum)
+numExprP =
+  (NumE <$> pNum)
+    <|> betweenSquareBrackets
+      ( do
+          op <- betweenDoubleQuotes numSymbol
+          _ <- optional (char ',' >> space)
+          numOpParser op
+      )
+
+numOpParser :: NumToken -> Parser (SExpr SNum)
+numOpParser Plus = AddE <$> numExprP `sepBy` (char ',' >> space)
+numOpParser Minus = do
+  arg <- numExprP
   _ <- char ',' >> space
-  parserForOP arithOp
-  where
-    parserForOP :: NumToken -> Parser (SExpr SNum)
-    parserForOP Plus = AddE <$> numExprP `sepBy` (char ',' >> space)
-    parserForOP Minus = SubE <$> argWithComma <*> numExprP
-    parserForOP Div = DivE <$> argWithComma <*> numExprP
-    parserForOP Multi = ProdE <$> numExprP `sepBy` (char ',' >> space)
-    argWithComma :: Parser (SExpr SNum)
-    argWithComma = do
-      val <- numExprP
-      _ <- char ',' >> space
-      return val
+  SubE arg <$> numExprP
+numOpParser Multi = ProdE <$> numExprP `sepBy` (char ',' >> space)
+numOpParser Div = do
+  arg <- numExprP
+  _ <- char ',' >> space
+  DivE arg <$> numExprP
+numOpParser (NPoly n) = NumCastE <$> polyOpParser n
+
+--------------------------------------------------------------------------------
+-- STRING Functions
+--------------------------------------------------------------------------------
+
+stringExprP :: Parser (SExpr SString)
+stringExprP =
+  (StringE <$> pString)
+    <|> betweenSquareBrackets
+      ( do
+          op <- betweenDoubleQuotes stringSymbol
+          _ <- optional (char ',' >> space)
+          stringOpParser op
+      )
+
+stringOpParser :: StringToken -> Parser (SExpr SString)
+stringOpParser GeometryType = return FgeometryE
+stringOpParser TextAt = do
+  txt <- stringExprP
+  _ <- char ',' >> space
+  TextAtE txt <$> numExprP
+stringOpParser (SPoly n) = StringCastE <$> polyOpParser n
+
+--------------------------------------------------------------------------------
+-- POLYMORPHIC Functions
+--------------------------------------------------------------------------------
+
+polyExprP :: Parser (SExpr SData)
+polyExprP =
+  betweenSquareBrackets
+    ( do
+        op <- betweenDoubleQuotes polySymbol
+        _ <- optional (char ',' >> space)
+        polyOpParser op
+    )
+
+polyOpParser :: PolyToken -> Parser (SExpr SData)
+polyOpParser Get = FgetE <$> stringExprP
+polyOpParser At = do
+  lst <- ListE <$> pArray
+  _ <- char ',' >> space
+  AtE lst <$> numExprP
