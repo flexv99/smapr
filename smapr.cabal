@@ -53,6 +53,7 @@ library
                     , Style.Lang.Token
                     , Style.Lang.Util
                     , Style.Lang.Check
+                    , Style.Lang.Eval
                     , Style.Test.Entity
                     , Style.Test.TestExpressionParser
                     , Util
