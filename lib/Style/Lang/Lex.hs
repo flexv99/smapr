@@ -199,6 +199,8 @@ stringSymbol =
       Concat <$ string "concat",
       TextAt <$ string "at"
     ]
+    <|> SPoly
+    <$> polySymbol
 
 --------------------------------------------------------------------------------
 -- Polymorphic symbol

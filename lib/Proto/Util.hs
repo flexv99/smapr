@@ -8,6 +8,7 @@ import Data.ByteString.Lazy.Char8 (unpack)
 import Data.Foldable
 import qualified Data.Map as MP
 import Data.Maybe
+import Data.Scientific
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
 import GHC.Float
@@ -17,6 +18,7 @@ import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
+import Style.Lang.Types
 import Style.Parser
 import Text.ProtocolBuffers.Basic (uToString)
 import qualified Text.ProtocolBuffers.Header as P'
@@ -49,7 +51,8 @@ featureProperties ctx =
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys (ctx ^. layer)
     value = extractMappers $ toList $ values (ctx ^. layer)
 
-featureProperties'' :: ExpressionContext -> MP.Map T.Text Value
+-- | mapping feature tags to key pairs
+featureProperties'' :: ExpressionContext -> MP.Map T.Text SData
 featureProperties'' ctx =
   MP.fromList
     $ map
@@ -62,7 +65,7 @@ featureProperties'' ctx =
     $ tags (ctx ^. feature)
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys (ctx ^. layer)
-    value = toList $ values (ctx ^. layer)
+    value = extractMappers' $ toList $ values (ctx ^. layer)
 
 extractMappers :: [Value] -> [SType]
 extractMappers = concatMap extractMapper
@@ -78,6 +81,20 @@ extractMappers = concatMap extractMapper
           maybeToList $ SNum . SInt . fromIntegral <$> sint_value v,
           maybeToList $ SBool <$> bool_value v
         ]
+
+extractMappers' :: [Value] -> [SData]
+extractMappers' = concatMap extractMapper
+  where
+    extractMapper :: Value -> [SData]
+    extractMapper v =
+      [ DString $ (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v,
+        DNum $ fromFloatDigits <$> float_value v,
+        DNum $ fromFloatDigits <$> double_value v,
+        DNum $ fromIntegral <$> int_value v,
+        DNum $ fromIntegral <$> uint_value v,
+        DNum $ fromIntegral <$> sint_value v,
+        DBool $ bool_value v
+      ]
 
 getLayers :: T.Text -> Tile -> S.Seq Layer
 getLayers lName t =

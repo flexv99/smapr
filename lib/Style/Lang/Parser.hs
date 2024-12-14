@@ -78,7 +78,7 @@ polyExprP =
     )
 
 polyOpParser :: PolyToken -> Parser (SExpr SData)
-polyOpParser Get = FgetE <$> stringExprP
+polyOpParser Get = FgetE <$> pString
 polyOpParser At = do
   lst <- ListE <$> pArray
   _ <- char ',' >> space

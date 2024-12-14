@@ -38,7 +38,7 @@ data SExpr a where
   -- POLY
 
   -- | Get value from feature tags
-  FgetE :: SExpr SString -> SExpr SData
+  FgetE :: SString -> SExpr SData
   -- | element at index
   AtE :: SExpr [SData] -> SExpr SNum -> SExpr SData
 
