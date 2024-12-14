@@ -24,8 +24,8 @@ eval (NumCastE n) = unwrapN <$> eval n
     unwrapN _ = Nothing
 eval (AddE a) = multiOp (fmap sum . sequence) a
 eval (ProdE p) = multiOp (fmap product . sequence) p
-eval (SubE s1 s2) = undefined
-eval (DivE s1 s2) = undefined
+eval (SubE s1 s2) = binaryOp (\a b -> (-) <$> a <*> b) s1 s2
+eval (DivE s1 s2) = binaryOp (\a b -> (/) <$> a <*> b) s1 s2
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
   where
