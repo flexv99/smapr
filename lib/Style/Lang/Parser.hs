@@ -3,6 +3,7 @@
 module Style.Lang.Parser
   ( numExprP,
     stringExprP,
+    boolExprP,
     polyExprP,
   )
 where
@@ -62,7 +63,34 @@ stringOpParser TextAt = do
   txt <- stringExprP
   _ <- char ',' >> space
   TextAtE txt <$> numExprP
+stringOpParser Upcase = UpcaseE <$> stringExprP
+stringOpParser Downcase = DowncaseE <$> stringExprP
+stringOpParser Concat = do
+  s1 <- stringExprP
+  _ <- char ',' >> space
+  ConcatE s1 <$> stringExprP
 stringOpParser (SPoly n) = StringCastE <$> polyOpParser n
+
+--------------------------------------------------------------------------------
+-- BOOL Functions
+--------------------------------------------------------------------------------
+
+boolExprP :: Parser (SExpr SBool)
+boolExprP =
+  (BoolE <$> pBool)
+    <|> betweenSquareBrackets
+      ( do
+          op <- betweenDoubleQuotes boolSymbol
+          _ <- optional (char ',' >> space)
+          boolOpParser op
+      )
+
+boolOpParser :: BoolToken -> Parser (SExpr SBool)
+boolOpParser Equality = do
+  let argsP = SDataE <$> pAtom <|> polyExprP
+  v1 <- argsP
+  _ <- char ',' >> space
+  EqE v1 <$> argsP
 
 --------------------------------------------------------------------------------
 -- POLYMORPHIC Functions

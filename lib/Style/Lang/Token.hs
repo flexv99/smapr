@@ -27,6 +27,11 @@ data StringToken
   | SPoly PolyToken
   deriving (Eq, Show)
 
+data BoolToken
+  = Equality
+  | BPoly PolyToken
+  deriving (Eq, Show)
+
 data PolyToken
   = Get
   | At

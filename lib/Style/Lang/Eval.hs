@@ -24,6 +24,8 @@ eval (NumCastE n) = unwrapN <$> eval n
     unwrapN _ = Nothing
 eval (AddE a) = multiOp (fmap sum . sequence) a
 eval (ProdE p) = multiOp (fmap product . sequence) p
+eval (SubE s1 s2) = undefined
+eval (DivE s1 s2) = undefined
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
   where
@@ -34,6 +36,10 @@ eval (TextAtE t i) = textAt <$> eval t <*> eval i
   where
     textAt :: SString -> SNum -> SString
     textAt t i = T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
+eval (UpcaseE s) = eval s >>= \str -> return $ T.toUpper <$> str
+eval (DowncaseE s) = eval s >>= \str -> return $ T.toLower <$> str
+eval (ConcatE s1 s2) = eval s1 >>= \str1 -> eval s2 >>= \str2 -> return $ str1 <> str2
+eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
 eval (FgetE k) =
   ask >>= \ctx ->
     return $
@@ -41,6 +47,7 @@ eval (FgetE k) =
         (DNum Nothing)
         (\x -> featureProperties'' ctx MP.! x)
         k
+eval (SDataE d) = return d
 eval _ = error "not yet implemented"
 
 --------------------------------------------------------------------------------

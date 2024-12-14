@@ -25,18 +25,28 @@ data SExpr a where
   StringCastE :: SExpr SData -> SExpr SString
   -- | char at index
   TextAtE :: SExpr SString -> SExpr SNum -> SExpr SString
+  -- | to upper
+  UpcaseE :: SExpr SString -> SExpr SString
+  -- | to lower
+  DowncaseE :: SExpr SString -> SExpr SString
+  -- | string concatenation
+  ConcatE :: SExpr SString -> SExpr SString -> SExpr SString
   -- | Geometry type expression for a given feature
   FgeometryE :: SExpr SString
   -- | bool literal
   BoolE :: SBool -> SExpr SBool
   -- | cast SData to SBool
   BoolCastE :: SExpr SData -> SExpr SBool
+  -- | equality
+  EqE :: SExpr SData -> SExpr SData -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | list literal
   ListE :: (Show a) => [a] -> SExpr [a]
   -- POLY
 
+  -- | SData literal
+  SDataE :: SData -> SExpr SData
   -- | Get value from feature tags
   FgetE :: SString -> SExpr SData
   -- | element at index

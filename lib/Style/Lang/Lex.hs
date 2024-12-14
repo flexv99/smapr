@@ -8,6 +8,7 @@ module Style.Lang.Lex
     betweenDoubleQuotes,
     numSymbol,
     stringSymbol,
+    boolSymbol,
     polySymbol,
     pAtom,
     pString,
@@ -201,6 +202,13 @@ stringSymbol =
     ]
     <|> SPoly
     <$> polySymbol
+
+--------------------------------------------------------------------------------
+-- Bool symbol
+--------------------------------------------------------------------------------
+
+boolSymbol :: Parser BoolToken
+boolSymbol = choice [Equality <$ string "=="]
 
 --------------------------------------------------------------------------------
 -- Polymorphic symbol
