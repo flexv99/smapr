@@ -29,6 +29,7 @@ data StringToken
 
 data BoolToken
   = Equality
+  | Negated BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)
 

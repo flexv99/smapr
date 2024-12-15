@@ -86,6 +86,7 @@ boolExprP =
       )
 
 boolOpParser :: BoolToken -> Parser (SExpr SBool)
+boolOpParser (Negated t) = Negation <$> boolOpParser t
 boolOpParser Equality = do
   let argsP = SDataE <$> pAtom <|> polyExprP
   v1 <- argsP

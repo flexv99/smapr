@@ -35,6 +35,8 @@ data SExpr a where
   FgeometryE :: SExpr SString
   -- | bool literal
   BoolE :: SBool -> SExpr SBool
+  -- | bool negation
+  Negation :: SExpr SBool -> SExpr SBool
   -- | cast SData to SBool
   BoolCastE :: SExpr SData -> SExpr SBool
   -- | equality

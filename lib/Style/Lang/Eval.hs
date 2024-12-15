@@ -36,9 +36,14 @@ eval (TextAtE t i) = textAt <$> eval t <*> eval i
   where
     textAt :: SString -> SNum -> SString
     textAt t i = T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
-eval (UpcaseE s) = eval s >>= \str -> return $ T.toUpper <$> str
-eval (DowncaseE s) = eval s >>= \str -> return $ T.toLower <$> str
-eval (ConcatE s1 s2) = eval s1 >>= \str1 -> eval s2 >>= \str2 -> return $ str1 <> str2
+eval (AtE l i) = binaryOp atImpl l i
+  where
+    atImpl :: [SData] -> SNum -> SData
+    atImpl xs (Just i) = (!!) xs (floor $ toRealFloat i)
+    atImpl xs _ = error "index is null"
+eval (UpcaseE s) = monoOp (T.toUpper <$>) s
+eval (DowncaseE s) = monoOp (T.toLower <$>) s
+eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
 eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
 eval (FgetE k) =
   ask >>= \ctx ->
@@ -48,15 +53,19 @@ eval (FgetE k) =
         (\x -> featureProperties'' ctx MP.! x)
         k
 eval (SDataE d) = return d
+eval (ListE l) = return l
 eval _ = error "not yet implemented"
 
 --------------------------------------------------------------------------------
 
-multiOp :: ([a] -> b) -> [SExpr a] -> Reader ExpressionContext b
-multiOp f a = f `fmap` traverse eval a
+monoOp :: (t -> b) -> SExpr t -> Reader ExpressionContext b
+monoOp f a = eval a >>= \x -> return $ f x
 
 binaryOp :: (t -> t1 -> b) -> SExpr t -> SExpr t1 -> Reader ExpressionContext b
 binaryOp f a b = eval a >>= \x -> eval b >>= \y -> return $ f x y
+
+multiOp :: ([a] -> b) -> [SExpr a] -> Reader ExpressionContext b
+multiOp f a = f `fmap` traverse eval a
 
 --------------------------------------------------------------------------------
 
@@ -64,4 +73,4 @@ getEval :: T.Text -> Reader ExpressionContext SData
 getEval k = ask >>= \ctx -> return (featureProperties'' ctx MP.! k)
 
 -- Testing shite:
--- >>> fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")
+-- >>> join $ join $ fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")
