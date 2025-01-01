@@ -8,6 +8,8 @@ data ColorToken
   | THsl
   | THsla
   | TName
+  | CInterpolate
+  | CPoly PolyToken
   deriving (Eq, Show)
 
 data NumToken
@@ -15,6 +17,8 @@ data NumToken
   | Minus
   | Div
   | Multi
+  | NInterpolate
+  | Zoom
   | NPoly PolyToken
   deriving (Eq, Show)
 

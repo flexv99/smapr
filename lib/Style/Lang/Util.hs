@@ -4,6 +4,8 @@ module Style.Lang.Util
     rgbToColor,
     expandShortHex,
     colorFromHexDigits,
+    pureColor,
+    showSColor,
   )
 where
 
@@ -34,3 +36,11 @@ expandShortHex hex
 
 colorFromHexDigits :: (RealFloat a) => String -> AlphaColour a
 colorFromHexDigits d = sRGB24read ("#" <> expandShortHex d) `withOpacity` 1
+
+pureColor :: (Ord a, Fractional a) => AlphaColour a -> Colour a
+pureColor ac
+  | alphaChannel ac > 0 = darken (recip $ alphaChannel ac) (ac `over` black)
+  | otherwise = error "transparent has no pure colour"
+
+showSColor :: Color -> String
+showSColor a = sRGB24show $ pureColor a

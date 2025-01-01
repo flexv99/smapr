@@ -4,6 +4,7 @@ module Style.Lang.Parser
   ( numExprP,
     stringExprP,
     boolExprP,
+    colorExprP,
     polyExprP,
   )
 where
@@ -41,6 +42,19 @@ numOpParser Div = do
   arg <- numExprP
   _ <- char ',' >> space
   DivE arg <$> numExprP
+numOpParser NInterpolate = do
+  interType <- interpolationTypeP
+  _ <- char ',' >> space
+  input <- numExprP
+  _ <- char ',' >> space
+  InterpolateNumE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+  where
+    inOutPairs = do
+      num1 <- numExprP
+      _ <- char ',' >> space
+      num2 <- pNum
+      return (num1, num2)
+numOpParser Zoom = return FzoomE
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -94,6 +108,37 @@ boolOpParser Equality = do
   EqE v1 <$> argsP
 
 --------------------------------------------------------------------------------
+-- COLOR Functions
+--------------------------------------------------------------------------------
+colorExprP :: Parser (SExpr SColor)
+colorExprP =
+  (ColorE <$> pColor)
+    <|> betweenSquareBrackets
+      ( do
+          op <- betweenDoubleQuotes colorSymbol
+          _ <- optional (char ',' >> space)
+          colorOpParser op
+      )
+
+colorOpParser :: ColorToken -> Parser (SExpr SColor)
+colorOpParser TRgba = undefined
+colorOpParser TRgb = undefined
+colorOpParser THsla = undefined
+colorOpParser THsl = undefined
+colorOpParser CInterpolate = do
+  interType <- interpolationTypeP
+  _ <- char ',' >> space
+  input <- numExprP
+  _ <- char ',' >> space
+  InterpolateColorE interType input <$> inOutPairs `sepBy` (char ',' >> space)
+  where
+    inOutPairs = do
+      num1 <- numExprP
+      _ <- char ',' >> space
+      color <- pColor
+      return (num1, color)
+
+--------------------------------------------------------------------------------
 -- POLYMORPHIC Functions
 --------------------------------------------------------------------------------
 
@@ -112,3 +157,29 @@ polyOpParser At = do
   lst <- ListE <$> pArray
   _ <- char ',' >> space
   AtE lst <$> numExprP
+
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
+interpolationTypeP :: Parser InterpolationType
+interpolationTypeP = betweenSquareBrackets $ do
+  try linear <|> try exponential <|> try cubicBezier
+  where
+    linear = do
+      _ <- betweenDoubleQuotes $ string "linear"
+      return Linear
+    exponential = do
+      _ <- betweenDoubleQuotes $ string "exponential"
+      _ <- char ',' >> space
+      Exponential <$> pNum
+    cubicBezier = do
+      _ <- betweenDoubleQuotes $ string "cubic-bezier"
+      _ <- char ',' >> space
+      x1 <- pNum
+      _ <- char ',' >> space
+      x2 <- pNum
+      _ <- char ',' >> space
+      y1 <- pNum
+      _ <- char ',' >> space
+      CubicBezier x1 x2 y1 <$> pNum

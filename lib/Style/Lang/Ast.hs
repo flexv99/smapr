@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Style.Lang.Ast (SExpr (..)) where
+module Style.Lang.Ast (SExpr (..), InterpolationType (..)) where
 
 import Style.Lang.Types
 
@@ -19,6 +19,14 @@ data SExpr a where
   SubE :: SExpr SNum -> SExpr SNum -> SExpr SNum
   -- | division
   DivE :: SExpr SNum -> SExpr SNum -> SExpr SNum
+  -- | numeric interpolate expr
+  InterpolateNumE ::
+    InterpolationType ->
+    SExpr SNum ->
+    [(SExpr SNum, SNum)] ->
+    SExpr SNum
+  -- | Zoom
+  FzoomE :: SExpr SNum
   -- | string literal
   StringE :: SString -> SExpr SString
   -- | cast SData to SString
@@ -43,6 +51,12 @@ data SExpr a where
   EqE :: SExpr SData -> SExpr SData -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
+  -- | color interpolation
+  InterpolateColorE ::
+    InterpolationType ->
+    SExpr SNum ->
+    [(SExpr SNum, SColor)] ->
+    SExpr SColor
   -- | list literal
   ListE :: (Show a) => [a] -> SExpr [a]
   -- POLY
@@ -55,3 +69,9 @@ data SExpr a where
   AtE :: SExpr [SData] -> SExpr SNum -> SExpr SData
 
 deriving instance Show (SExpr a)
+
+data InterpolationType
+  = Linear
+  | Exponential SNum
+  | CubicBezier SNum SNum SNum SNum
+  deriving (Show, Eq)

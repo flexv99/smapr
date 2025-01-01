@@ -9,6 +9,7 @@ module Style.Lang.Lex
     numSymbol,
     stringSymbol,
     boolSymbol,
+    colorSymbol,
     polySymbol,
     pAtom,
     pString,
@@ -118,7 +119,8 @@ colorSymbol =
     [ TRgba <$ string "rgba",
       TRgb <$ string "rgb",
       THsla <$ string "hsla",
-      THsl <$ string "hsl"
+      THsl <$ string "hsl",
+      CInterpolate <$ string "interpolate"
     ]
 
 -- | color function parser
@@ -182,7 +184,9 @@ numSymbol =
     [ Plus <$ char '+',
       Minus <$ char '-',
       Div <$ char '/',
-      Multi <$ char '*'
+      Multi <$ char '*',
+      NInterpolate <$ string "interpolate",
+      Zoom <$ string "zoom"
     ]
     <|> NPoly
     <$> polySymbol
