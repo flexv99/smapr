@@ -49,9 +49,16 @@ eval (InterpolateNumE t e a) =
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
 eval FzoomE = ask >>= \ctx -> return $ Just $ fromFloatDigits (ctx ^. ctxZoom)
-eval (IndexOfList o e) = return (fromIntegral <$> elemIndex o e)
-eval (IndexOfString c s) = return (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
+eval (IndexOfList o e) = return $ handleNothing (fromIntegral <$> elemIndex o e)
   where
+    handleNothing :: SNum -> SNum
+    handleNothing (Just x) = Just x
+    handleNothing Nothing = Just (-1)
+eval (IndexOfString c s) = return $ handleNothing (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
+  where
+    handleNothing :: SNum -> SNum
+    handleNothing (Just x) = Just x
+    handleNothing Nothing = Just (-1)
     substringIndex :: T.Text -> T.Text -> Maybe Int
     substringIndex needle haystack
       | T.null needle = Just 0 -- Treat empty needle as found at the beginning
