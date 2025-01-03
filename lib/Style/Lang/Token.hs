@@ -19,6 +19,7 @@ data NumToken
   | Multi
   | NInterpolate
   | Zoom
+  | IndexOf
   | NPoly PolyToken
   deriving (Eq, Show)
 

@@ -17,6 +17,7 @@ module Style.Lang.Lex
     pBool,
     pColor,
     pArray,
+    pTraversable,
   )
 where
 
@@ -111,6 +112,9 @@ pInt = lexeme L.decimal
 pArray :: Parser [SData]
 pArray = betweenSquareBrackets $ pAtom `sepBy` (char ',' >> space)
 
+pTraversable :: Parser (Either [SData] SString)
+pTraversable = (Left <$> pArray) <|> (Right <$> pString)
+
 --------------------------------------------------------------------------------
 
 colorSymbol :: Parser ColorToken
@@ -186,7 +190,8 @@ numSymbol =
       Div <$ char '/',
       Multi <$ char '*',
       NInterpolate <$ string "interpolate",
-      Zoom <$ string "zoom"
+      Zoom <$ string "zoom",
+      IndexOf <$ string "index-of"
     ]
     <|> NPoly
     <$> polySymbol

@@ -12,6 +12,7 @@ import qualified Data.Map as MP
 import Data.Maybe
 import Data.Scientific
 import qualified Data.Text.Lazy as T
+import GHC.Float
 import Proto.Util
 import Style.ExpressionsContext
 import Style.Lang.Ast
@@ -48,6 +49,18 @@ eval (InterpolateNumE t e a) =
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
 eval FzoomE = ask >>= \ctx -> return $ Just $ fromFloatDigits (ctx ^. ctxZoom)
+eval (IndexOfList o e) = return (fromIntegral <$> elemIndex o e)
+eval (IndexOfString c s) = return (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
+  where
+    substringIndex :: T.Text -> T.Text -> Maybe Int
+    substringIndex needle haystack
+      | T.null needle = Just 0 -- Treat empty needle as found at the beginning
+      | otherwise = findIndex 0
+      where
+        findIndex i
+          | i + T.length needle > T.length haystack = Nothing
+          | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
+          | otherwise = findIndex (i + 1)
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
   where

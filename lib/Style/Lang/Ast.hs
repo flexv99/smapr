@@ -27,6 +27,10 @@ data SExpr a where
     SExpr SNum
   -- | Zoom
   FzoomE :: SExpr SNum
+  -- | index of element in list
+  IndexOfList :: SData -> [SData] -> SExpr SNum
+  -- | index of element in string
+  IndexOfString :: SString -> SString -> SExpr SNum
   -- | string literal
   StringE :: SString -> SExpr SString
   -- | cast SData to SString

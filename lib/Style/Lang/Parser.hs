@@ -55,6 +55,17 @@ numOpParser NInterpolate = do
       num2 <- pNum
       return (num1, num2)
 numOpParser Zoom = return FzoomE
+numOpParser IndexOf = do
+  elem <- pAtom
+  _ <- char ',' >> space
+  elems <- pTraversable
+  case elems of
+    (Left l) -> return $ IndexOfList elem l
+    (Right s) -> return $ IndexOfString (unwrapText elem) s
+  where
+    unwrapText :: SData -> SString
+    unwrapText (DString s) = s
+    unwrapText _ = Nothing -- for completeness, will newer happen
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
