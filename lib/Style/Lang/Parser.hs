@@ -60,12 +60,17 @@ numOpParser IndexOf = do
   _ <- char ',' >> space
   elems <- pTraversable
   case elems of
-    (Left l) -> return $ IndexOfList elem l
-    (Right s) -> return $ IndexOfString (unwrapText elem) s
+    (Left l) -> return $ IndexOfListE elem l
+    (Right s) -> return $ IndexOfStringE (unwrapText elem) s
   where
     unwrapText :: SData -> SString
     unwrapText (DString s) = s
     unwrapText _ = Nothing -- for completeness, will newer happen
+numOpParser Length = do
+  elems <- pTraversable
+  case elems of
+    (Left l) -> return $ LengthOfListE l
+    (Right s) -> return $ LengthOfStringE s
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------

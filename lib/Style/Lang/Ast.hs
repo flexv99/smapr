@@ -28,9 +28,13 @@ data SExpr a where
   -- | Zoom
   FzoomE :: SExpr SNum
   -- | index of element in list
-  IndexOfList :: SData -> [SData] -> SExpr SNum
+  IndexOfListE :: SData -> [SData] -> SExpr SNum
   -- | index of element in string
-  IndexOfString :: SString -> SString -> SExpr SNum
+  IndexOfStringE :: SString -> SString -> SExpr SNum
+  -- | length of array
+  LengthOfListE :: [SData] -> SExpr SNum
+  -- | length of string
+  LengthOfStringE :: SString -> SExpr SNum
   -- | string literal
   StringE :: SString -> SExpr SString
   -- | cast SData to SString

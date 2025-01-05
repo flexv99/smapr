@@ -49,12 +49,12 @@ eval (InterpolateNumE t e a) =
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
 eval FzoomE = ask >>= \ctx -> return $ Just $ fromFloatDigits (ctx ^. ctxZoom)
-eval (IndexOfList o e) = return $ handleNothing (fromIntegral <$> elemIndex o e)
+eval (IndexOfListE o e) = return $ handleNothing (fromIntegral <$> elemIndex o e)
   where
     handleNothing :: SNum -> SNum
     handleNothing (Just x) = Just x
     handleNothing Nothing = Just (-1)
-eval (IndexOfString c s) = return $ handleNothing (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
+eval (IndexOfStringE c s) = return $ handleNothing (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
   where
     handleNothing :: SNum -> SNum
     handleNothing (Just x) = Just x
@@ -68,6 +68,8 @@ eval (IndexOfString c s) = return $ handleNothing (fmap fromIntegral $ join $ su
           | i + T.length needle > T.length haystack = Nothing
           | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
           | otherwise = findIndex (i + 1)
+eval (LengthOfListE l) = return $ Just $ fromIntegral $ length l
+eval (LengthOfStringE s) = return $ fromIntegral . T.length <$> s
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
   where

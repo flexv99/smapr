@@ -191,7 +191,8 @@ numSymbol =
       Multi <$ char '*',
       NInterpolate <$ string "interpolate",
       Zoom <$ string "zoom",
-      IndexOf <$ string "index-of"
+      IndexOf <$ string "index-of",
+      Length <$ string "length"
     ]
     <|> NPoly
     <$> polySymbol
