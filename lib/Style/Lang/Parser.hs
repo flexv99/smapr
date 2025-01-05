@@ -122,6 +122,10 @@ boolOpParser Equality = do
   v1 <- argsP
   _ <- char ',' >> space
   EqE v1 <$> argsP
+boolOpParser Less = ordPFrame OLess
+boolOpParser LessEq = ordPFrame OLessEq
+boolOpParser Greater = ordPFrame OGreater
+boolOpParser GreaterEq = ordPFrame OGreaterEq
 
 --------------------------------------------------------------------------------
 -- COLOR Functions
@@ -199,3 +203,14 @@ interpolationTypeP = betweenSquareBrackets $ do
       y1 <- pNum
       _ <- char ',' >> space
       CubicBezier x1 x2 y1 <$> pNum
+
+pEitherNumString :: Parser (Either (SExpr SNum) (SExpr SString))
+pEitherNumString = (Left <$> numExprP) <|> (Right <$> stringExprP)
+
+ordPFrame :: OrdType -> Parser (SExpr SBool)
+ordPFrame o = do
+  arg1 <- pEitherNumString
+  _ <- char ',' >> space
+  case arg1 of
+    (Left n) -> OrdNumE o n <$> numExprP
+    (Right s) -> OrdStringE o s <$> stringExprP

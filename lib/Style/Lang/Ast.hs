@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Style.Lang.Ast (SExpr (..), InterpolationType (..)) where
+module Style.Lang.Ast (SExpr (..), InterpolationType (..), OrdType (..)) where
 
 import Style.Lang.Types
 
@@ -57,6 +57,10 @@ data SExpr a where
   BoolCastE :: SExpr SData -> SExpr SBool
   -- | equality
   EqE :: SExpr SData -> SExpr SData -> SExpr SBool
+  -- | < <= >=
+  OrdNumE :: OrdType -> SExpr SNum -> SExpr SNum -> SExpr SBool
+  -- | ordering strings
+  OrdStringE :: OrdType -> SExpr SString -> SExpr SString -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | color interpolation
@@ -83,3 +87,10 @@ data InterpolationType
   | Exponential SNum
   | CubicBezier SNum SNum SNum SNum
   deriving (Show, Eq)
+
+data OrdType
+  = OLess
+  | OLessEq
+  | OGreater
+  | OGreaterEq
+  deriving (Eq, Show)

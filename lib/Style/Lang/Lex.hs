@@ -218,7 +218,17 @@ stringSymbol =
 --------------------------------------------------------------------------------
 
 boolSymbol :: Parser BoolToken
-boolSymbol = choice [Negated Equality <$ string "!=", Equality <$ string "=="]
+boolSymbol =
+  choice
+    [ Negated Equality <$ string "!=",
+      Equality <$ string "==",
+      LessEq <$ string "<=",
+      Less <$ char '<',
+      GreaterEq <$ string ">=",
+      Greater <$ char '>'
+    ]
+    <|> BPoly
+    <$> polySymbol
 
 --------------------------------------------------------------------------------
 -- Polymorphic symbol

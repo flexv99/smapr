@@ -35,6 +35,10 @@ data StringToken
 
 data BoolToken
   = Equality
+  | Greater
+  | GreaterEq
+  | Less
+  | LessEq
   | Negated BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)
