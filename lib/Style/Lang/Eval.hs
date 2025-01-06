@@ -89,6 +89,14 @@ eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
 eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
+eval (OrdE t a1 a2) = case a1 of
+  (Left n) -> binaryOp (sOrd t) n (unwrapLeft a2)
+  (Right s) -> binaryOp (sOrd t) s (unwrapRight a2)
+  where
+    unwrapLeft (Left l) = l
+    unwrapLeft _ = error "err: value is a string"
+    unwrapRight (Right l) = l
+    unwrapRight _ = error "err: value is a number"
 eval (FgetE k) =
   ask >>= \ctx ->
     return $
@@ -187,6 +195,15 @@ interpolateNr from to t = from + t * (to - from)
 
 interpolateColor :: SColor -> SColor -> SNum -> SColor
 interpolateColor from to t = blend . toRealFloat <$> t <*> from <*> to
+
+-- | < & <= & > & >=
+sOrd :: (Ord a) => OrdType -> Maybe a -> Maybe a -> SBool
+sOrd t x y = op t <$> x <*> y
+  where
+    op OLess = (<)
+    op OLessEq = (<=)
+    op OGreater = (>)
+    op OGreaterEq = (>=)
 
 -- Testing shite:
 -- >>> join $ join $ fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")
