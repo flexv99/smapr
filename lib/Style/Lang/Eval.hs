@@ -103,6 +103,13 @@ eval (OrdE t a1 a2) = case a1 of
     unwrapLeft _ = error "err: value is a string"
     unwrapRight (Right l) = l
     unwrapRight _ = error "err: value is a number"
+eval (InE e t) = case t of
+  (Left l) -> monoOp (\e' -> Just $ e' `elem` l) e
+  (Right s) -> binaryOp (\e' s' -> T.isInfixOf <$> toString s' <*> e') s e
+  where
+    toString :: SData -> SString
+    toString (DString s) = s
+    toString _ = Nothing
 eval (FgetE k) =
   ask >>= \ctx ->
     return $
@@ -112,6 +119,9 @@ eval (FgetE k) =
         k
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
+eval (FromString s) = monoOp DString s
+eval (FromBool b) = monoOp DBool b
+eval (FromColor c) = monoOp DColor c
 eval (ListE l) = return l
 eval (ColorE c) = return c
 eval (InterpolateColorE t i pts) = do
