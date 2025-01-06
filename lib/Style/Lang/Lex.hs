@@ -17,7 +17,6 @@ module Style.Lang.Lex
     pBool,
     pColor,
     pArray,
-    pTraversable,
   )
 where
 
@@ -111,9 +110,6 @@ pInt = lexeme L.decimal
 -- TODO accept lists of one datatype only
 pArray :: Parser [SData]
 pArray = betweenSquareBrackets $ pAtom `sepBy` (char ',' >> space)
-
-pTraversable :: Parser (Either [SData] SString)
-pTraversable = (Left <$> pArray) <|> (Right <$> pString)
 
 --------------------------------------------------------------------------------
 
@@ -225,7 +221,8 @@ boolSymbol =
       LessEq <$ string "<=",
       Less <$ char '<',
       GreaterEq <$ string ">=",
-      Greater <$ char '>'
+      Greater <$ char '>',
+      In <$ string "in"
     ]
     <|> BPoly
     <$> polySymbol
@@ -235,4 +232,7 @@ boolSymbol =
 --------------------------------------------------------------------------------
 
 polySymbol :: Parser PolyToken
-polySymbol = choice [Get <$ string "get", At <$ string "at"]
+polySymbol =
+  choice [Get <$ string "get", At <$ string "at"]
+    <|> PNum
+    <$> numSymbol

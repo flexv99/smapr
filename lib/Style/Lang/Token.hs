@@ -39,6 +39,7 @@ data BoolToken
   | GreaterEq
   | Less
   | LessEq
+  | In
   | Negated BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)
@@ -46,4 +47,8 @@ data BoolToken
 data PolyToken
   = Get
   | At
+  | PNum NumToken
+  | PString StringToken
+  | PBool BoolToken
+  | PColor ColorToken
   deriving (Eq, Show)

@@ -54,7 +54,13 @@ eval (IndexOfListE o e) = return $ handleNothing (fromIntegral <$> elemIndex o e
     handleNothing :: SNum -> SNum
     handleNothing (Just x) = Just x
     handleNothing Nothing = Just (-1)
-eval (IndexOfStringE c s) = return $ handleNothing (fmap fromIntegral $ join $ substringIndex <$> c <*> s)
+eval (IndexOfStringE c s) =
+  monoOp
+    ( \s' ->
+        handleNothing
+          (fmap fromIntegral $ join $ substringIndex <$> c <*> s')
+    )
+    s
   where
     handleNothing :: SNum -> SNum
     handleNothing (Just x) = Just x
@@ -69,7 +75,7 @@ eval (IndexOfStringE c s) = return $ handleNothing (fmap fromIntegral $ join $ s
           | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
           | otherwise = findIndex (i + 1)
 eval (LengthOfListE l) = return $ Just $ fromIntegral $ length l
-eval (LengthOfStringE s) = return $ fromIntegral . T.length <$> s
+eval (LengthOfStringE s) = monoOp (\s' -> fromIntegral . T.length <$> s') s
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
   where
@@ -105,6 +111,7 @@ eval (FgetE k) =
         (\x -> featureProperties'' ctx MP.! x)
         k
 eval (SDataE d) = return d
+eval (FromNum n) = monoOp DNum n
 eval (ListE l) = return l
 eval (ColorE c) = return c
 eval (InterpolateColorE t i pts) = do

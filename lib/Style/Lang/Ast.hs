@@ -1,7 +1,14 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Style.Lang.Ast (SExpr (..), InterpolationType (..), NumOrString (..), OrdType (..)) where
+module Style.Lang.Ast
+  ( SExpr (..),
+    InterpolationType (..),
+    NumOrString (..),
+    STraversable (..),
+    OrdType (..),
+  )
+where
 
 import Style.Lang.Types
 
@@ -30,11 +37,11 @@ data SExpr a where
   -- | index of element in list
   IndexOfListE :: SData -> [SData] -> SExpr SNum
   -- | index of element in string
-  IndexOfStringE :: SString -> SString -> SExpr SNum
+  IndexOfStringE :: SString -> SExpr SString -> SExpr SNum
   -- | length of array
   LengthOfListE :: [SData] -> SExpr SNum
   -- | length of string
-  LengthOfStringE :: SString -> SExpr SNum
+  LengthOfStringE :: SExpr SString -> SExpr SNum
   -- | string literal
   StringE :: SString -> SExpr SString
   -- | cast SData to SString
@@ -59,6 +66,8 @@ data SExpr a where
   EqE :: SExpr SData -> SExpr SData -> SExpr SBool
   -- | < <= >=
   OrdE :: OrdType -> NumOrString -> NumOrString -> SExpr SBool
+  -- | in
+  InE :: SExpr SData -> STraversable -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | color interpolation
@@ -73,6 +82,11 @@ data SExpr a where
 
   -- | SData literal
   SDataE :: SData -> SExpr SData
+  -- | SData wrappers
+  FromNum :: SExpr SNum -> SExpr SData
+  FromString :: SExpr SString -> SExpr SData
+  FromBool :: SExpr SBool -> SExpr SData
+  FromColor :: SExpr SColor -> SExpr SData
   -- | Get value from feature tags
   FgetE :: SString -> SExpr SData
   -- | element at index
@@ -87,6 +101,8 @@ data InterpolationType
   deriving (Show, Eq)
 
 type NumOrString = Either (SExpr SNum) (SExpr SString)
+
+type STraversable = Either [SData] (SExpr SString)
 
 data OrdType
   = OLess

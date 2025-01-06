@@ -126,6 +126,7 @@ boolOpParser Less = OrdE OLess <$> numOrStringP <* (char ',' >> space) <*> numOr
 boolOpParser LessEq = OrdE OLessEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser Greater = OrdE OGreater <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser GreaterEq = OrdE OGreaterEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
+boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> pTraversable
 
 --------------------------------------------------------------------------------
 -- COLOR Functions
@@ -161,15 +162,22 @@ colorOpParser CInterpolate = do
 --------------------------------------------------------------------------------
 -- POLYMORPHIC Functions
 --------------------------------------------------------------------------------
-
+-- note that literals are checked separately, as they are not recognized otherwise
 polyExprP :: Parser (SExpr SData)
 polyExprP =
-  betweenSquareBrackets
-    ( do
-        op <- betweenDoubleQuotes polySymbol
-        _ <- optional (char ',' >> space)
-        polyOpParser op
-    )
+  try $
+    choice
+      [ FromNum . NumE <$> pNum,
+        FromString . StringE <$> pString,
+        FromBool . BoolE <$> pBool,
+        FromColor . ColorE <$> pColor
+      ]
+      <|> betweenSquareBrackets
+        ( do
+            op <- betweenDoubleQuotes polySymbol
+            _ <- optional (char ',' >> space)
+            polyOpParser op
+        )
 
 polyOpParser :: PolyToken -> Parser (SExpr SData)
 polyOpParser Get = FgetE <$> pString
@@ -177,6 +185,10 @@ polyOpParser At = do
   lst <- ListE <$> pArray
   _ <- char ',' >> space
   AtE lst <$> numExprP
+polyOpParser (PNum t) = FromNum <$> numOpParser t
+polyOpParser (PString t) = FromString <$> stringOpParser t
+polyOpParser (PBool t) = FromBool <$> boolOpParser t
+polyOpParser (PColor t) = FromColor <$> colorOpParser t
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -206,3 +218,6 @@ interpolationTypeP = betweenSquareBrackets $ do
 
 numOrStringP :: Parser NumOrString
 numOrStringP = (Left <$> numExprP) <|> (Right <$> stringExprP)
+
+pTraversable :: Parser STraversable
+pTraversable = (Left <$> pArray) <|> (Right <$> stringExprP)
