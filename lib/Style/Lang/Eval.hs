@@ -94,6 +94,8 @@ eval (AtE l i) = binaryOp atImpl l i
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
+eval (BoolE b) = return b
+eval (Negation b) = monoOp (not <$>) b
 eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
 eval (OrdE t a1 a2) = case a1 of
   (Left n) -> binaryOp (sOrd t) n (unwrapLeft a2)
@@ -110,13 +112,19 @@ eval (InE e t) = case t of
     toString :: SData -> SString
     toString (DString s) = s
     toString _ = Nothing
-eval (FgetE k) =
-  ask >>= \ctx ->
-    return $
-      maybe
-        (DNum Nothing)
-        (\x -> featureProperties'' ctx MP.! x)
-        k
+eval (HasE s) = eval s >>= featureHas
+  where
+    featureHas :: SString -> Reader ExpressionContext SBool
+    featureHas key = do
+      ctx <- ask
+      return (fmap (\x -> MP.member x (featureProperties'' ctx)) key)
+eval (AllE b) = multiOp (fmap and . sequence) b
+eval (FgetE k) = eval k >>= featureGet
+  where
+    featureGet :: SString -> Reader ExpressionContext SData
+    featureGet key = do
+      ctx <- ask
+      return $ maybe (DNum Nothing) (\x -> featureProperties'' ctx MP.! x) key
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s

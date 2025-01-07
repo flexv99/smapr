@@ -222,7 +222,9 @@ boolSymbol =
       Less <$ char '<',
       GreaterEq <$ string ">=",
       Greater <$ char '>',
-      In <$ string "in"
+      In <$ string "in",
+      Has <$ string "has",
+      All <$ string "all"
     ]
     <|> BPoly
     <$> polySymbol

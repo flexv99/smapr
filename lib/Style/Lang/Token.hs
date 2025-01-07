@@ -40,6 +40,8 @@ data BoolToken
   | Less
   | LessEq
   | In
+  | Has
+  | All
   | Negated BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)

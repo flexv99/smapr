@@ -127,6 +127,8 @@ boolOpParser LessEq = OrdE OLessEq <$> numOrStringP <* (char ',' >> space) <*> n
 boolOpParser Greater = OrdE OGreater <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser GreaterEq = OrdE OGreaterEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> pTraversable
+boolOpParser All = AllE <$> boolExprP `sepBy` (char ',' >> space)
+boolOpParser Has = HasE <$> stringExprP
 
 --------------------------------------------------------------------------------
 -- COLOR Functions
@@ -180,7 +182,7 @@ polyExprP =
         )
 
 polyOpParser :: PolyToken -> Parser (SExpr SData)
-polyOpParser Get = FgetE <$> pString
+polyOpParser Get = FgetE <$> stringExprP
 polyOpParser At = do
   lst <- ListE <$> pArray
   _ <- char ',' >> space

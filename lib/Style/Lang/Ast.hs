@@ -68,6 +68,12 @@ data SExpr a where
   OrdE :: OrdType -> NumOrString -> NumOrString -> SExpr SBool
   -- | in
   InE :: SExpr SData -> STraversable -> SExpr SBool
+  -- | has
+  HasE :: SExpr SString -> SExpr SBool
+  -- Has2E :: SExpr SString -> [(SString, SData)] -> SExpr SBool
+
+  -- | all
+  AllE :: [SExpr SBool] -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | color interpolation
@@ -88,7 +94,7 @@ data SExpr a where
   FromBool :: SExpr SBool -> SExpr SData
   FromColor :: SExpr SColor -> SExpr SData
   -- | Get value from feature tags
-  FgetE :: SString -> SExpr SData
+  FgetE :: SExpr SString -> SExpr SData
   -- | element at index
   AtE :: SExpr [SData] -> SExpr SNum -> SExpr SData
 
