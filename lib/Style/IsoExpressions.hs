@@ -59,10 +59,10 @@ arithmethicExprP =
   choice $
     map
       try
-      [ AddE <$> exprBaseP "+" (numExprP `sepBy` (char ',' >> space)),
-        exprBaseP "-" (SubE <$> argWithComma <*> numExprP),
-        ProdE <$> exprBaseP "*" (numExprP `sepBy` (char ',' >> space)),
-        exprBaseP "/" (DivE <$> argWithComma <*> numExprP)
+      [ AddE <$> exprBaseP "+" (numExprP `sepBy` (char ',' >> space))
+      , exprBaseP "-" (SubE <$> argWithComma <*> numExprP)
+      , ProdE <$> exprBaseP "*" (numExprP `sepBy` (char ',' >> space))
+      , exprBaseP "/" (DivE <$> argWithComma <*> numExprP)
       ]
   where
     argWithComma = do
@@ -247,9 +247,9 @@ typeParser = label "type" $ betweenSquareBrackets $ betweenDoubleQuotes $ do
 filterByP :: Parser FilterBy
 filterByP =
   choice
-    [ FId <$> pInteger,
-      try $ FTypeOf <$ typeParser,
-      FProp <$> pString
+    [ FId <$> pInteger
+    , try $ FTypeOf <$ typeParser
+    , FProp <$> pString
     ]
 
 getP :: (T.Text -> a) -> Parser a
@@ -312,13 +312,13 @@ boolAssertP = betweenSquareBrackets $ do
 -- | 4all expressions that return string
 stringP :: [Parser (IsoExpr T.Text)]
 stringP =
-  [ StringE <$> pString <* hidden space,
-    stringAssertP,
-    fgeometryP,
-    -- polymorphic
-    atP,
-    matchP unwrapString,
-    sGetP
+  [ StringE <$> pString <* hidden space
+  , stringAssertP
+  , fgeometryP
+  , -- polymorphic
+    atP
+  , matchP unwrapString
+  , sGetP
   ]
 
 stringExprP :: Parser (IsoExpr T.Text)
@@ -330,17 +330,17 @@ stringFuncP = choice $ map try (tail stringP)
 -- | 4all expressions that return num
 numP :: [Parser (IsoExpr INum)]
 numP =
-  [ numLitP,
-    numAssertP,
-    arithmethicExprP,
-    fzoomP,
-    indexOfP,
-    -- polymorphic
-    atP,
-    matchP unwrapNum,
-    interpolateNumP,
-    nGetP,
-    stepP pNum
+  [ numLitP
+  , numAssertP
+  , arithmethicExprP
+  , fzoomP
+  , indexOfP
+  , -- polymorphic
+    atP
+  , matchP unwrapNum
+  , interpolateNumP
+  , nGetP
+  , stepP pNum
   ]
   where
     numLitP = try (NumE . SDouble <$> pDouble <* hidden space) <|> NumE . SInt <$> pInteger <* hidden space
@@ -354,21 +354,21 @@ numFuncP = choice $ map try (tail numP)
 -- | 4all expressions that return bool
 boolP :: [Parser (IsoExpr Bool)]
 boolP =
-  [ BoolE <$> pBool <* hidden space,
-    boolAssertP,
-    negationP,
-    ordNumP,
-    ordStringP,
-    eqP,
-    inP,
-    allP,
-    hasP,
-    -- polymorphic
-    atP,
-    matchP
-      unwrapBool,
-    bGetP,
-    stepP pBool
+  [ BoolE <$> pBool <* hidden space
+  , boolAssertP
+  , negationP
+  , ordNumP
+  , ordStringP
+  , eqP
+  , inP
+  , allP
+  , hasP
+  , -- polymorphic
+    atP
+  , matchP
+      unwrapBool
+  , bGetP
+  , stepP pBool
   ]
 
 boolExprP :: Parser (IsoExpr Bool)
@@ -391,13 +391,13 @@ arrayFuncP = choice $ map try (tail arrayP)
 -- | 4all expressions that return color
 colorP :: [Parser (IsoExpr Color)]
 colorP =
-  [ ColorE <$> pColor <* hidden space,
-    -- polymorphic
-    atP,
-    matchP unwrapColor,
-    interpolateColorP,
-    cGetP,
-    stepP pColor
+  [ ColorE <$> pColor <* hidden space
+  , -- polymorphic
+    atP
+  , matchP unwrapColor
+  , interpolateColorP
+  , cGetP
+  , stepP pColor
   ]
 
 colorExprP :: Parser (IsoExpr Color)
@@ -410,21 +410,21 @@ colorFuncP = choice $ map try (tail colorP)
 polyExprP :: Parser WrappedExpr
 polyExprP =
   choice
-    [ wrap <$> stypeExprP,
-      wrap <$> stringExprP,
-      wrap <$> numExprP,
-      wrap <$> boolExprP,
-      wrap <$> arrayExprP,
-      wrap <$> colorExprP
+    [ wrap <$> stypeExprP
+    , wrap <$> stringExprP
+    , wrap <$> numExprP
+    , wrap <$> boolExprP
+    , wrap <$> arrayExprP
+    , wrap <$> colorExprP
     ]
 
 stypeP :: [Parser (IsoExpr SType)]
 stypeP =
   [ STypeE
       <$> pAtom
-      <* hidden space,
-    atP,
-    sTGetP
+      <* hidden space
+  , atP
+  , sTGetP
   ]
 
 stypeExprP :: Parser (IsoExpr SType)

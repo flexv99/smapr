@@ -1,12 +1,12 @@
-module Style.Lang.Util
-  ( Color (..),
-    hslToColor,
-    rgbToColor,
-    expandShortHex,
-    colorFromHexDigits,
-    pureColor,
-    showSColor,
-  )
+module Style.Lang.Util (
+  Color (..),
+  hslToColor,
+  rgbToColor,
+  expandShortHex,
+  colorFromHexDigits,
+  pureColor,
+  showSColor,
+)
 where
 
 import Data.Colour

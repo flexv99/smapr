@@ -1,12 +1,12 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Style.Lang.Parser
-  ( numExprP,
-    stringExprP,
-    boolExprP,
-    colorExprP,
-    polyExprP,
-  )
+module Style.Lang.Parser (
+  numExprP,
+  stringExprP,
+  boolExprP,
+  colorExprP,
+  polyExprP,
+)
 where
 
 import Control.Monad
@@ -90,6 +90,7 @@ stringExprP =
 stringOpParser :: StringToken -> Parser (SExpr SString)
 stringOpParser GeometryType = return FgeometryE
 stringOpParser TextAt = do
+  -- causes infinite loop on at, as ther is a polymorphic one too
   txt <- stringExprP
   _ <- char ',' >> space
   TextAtE txt <$> numExprP
@@ -129,6 +130,7 @@ boolOpParser GreaterEq = OrdE OGreaterEq <$> numOrStringP <* (char ',' >> space)
 boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> pTraversable
 boolOpParser All = AllE <$> boolExprP `sepBy` (char ',' >> space)
 boolOpParser Has = HasE <$> stringExprP
+boolOpParser (BPoly t) = BoolCastE <$> polyOpParser t
 
 --------------------------------------------------------------------------------
 -- COLOR Functions
@@ -169,10 +171,10 @@ polyExprP :: Parser (SExpr SData)
 polyExprP =
   try $
     choice
-      [ FromNum . NumE <$> pNum,
-        FromString . StringE <$> pString,
-        FromBool . BoolE <$> pBool,
-        FromColor . ColorE <$> pColor
+      [ FromNum . NumE <$> pNum
+      , FromString . StringE <$> pString
+      , FromBool . BoolE <$> pBool
+      , FromColor . ColorE <$> pColor
       ]
       <|> betweenSquareBrackets
         ( do

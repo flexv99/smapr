@@ -43,11 +43,11 @@ data IsoExpr a where
   -- | division
   DivE :: IsoExpr INum -> IsoExpr INum -> IsoExpr INum
   -- | numeric interpolate expr
-  InterpolateNumE ::
-    InterpolationType ->
-    IsoExpr INum ->
-    [(IsoExpr INum, INum)] ->
-    IsoExpr INum
+  InterpolateNumE
+    :: InterpolationType
+    -> IsoExpr INum
+    -> [(IsoExpr INum, INum)]
+    -> IsoExpr INum
   -- | Zoom
   FzoomE :: IsoExpr INum
   -- | Index of
@@ -63,16 +63,16 @@ data IsoExpr a where
   -- | check for equaliy on polymorphic types
   EqE :: WrappedExpr -> WrappedExpr -> IsoExpr Bool
   -- | < <= > >=
-  OrdNumE ::
-    OrdType ->
-    IsoExpr INum ->
-    IsoExpr INum ->
-    IsoExpr Bool
-  OrdStringE ::
-    OrdType ->
-    IsoExpr T.Text ->
-    IsoExpr T.Text ->
-    IsoExpr Bool
+  OrdNumE
+    :: OrdType
+    -> IsoExpr INum
+    -> IsoExpr INum
+    -> IsoExpr Bool
+  OrdStringE
+    :: OrdType
+    -> IsoExpr T.Text
+    -> IsoExpr T.Text
+    -> IsoExpr Bool
   -- | checks if element is in an array or string
   InE :: SType -> LookupT -> IsoExpr Bool
   -- | all expr
@@ -85,11 +85,11 @@ data IsoExpr a where
   ColorE :: Color -> IsoExpr Color
   -- | Color interpolate expr
   -- | numeric interpolate expr
-  InterpolateColorE ::
-    InterpolationType ->
-    IsoExpr INum ->
-    [(IsoExpr INum, Color)] ->
-    IsoExpr Color
+  InterpolateColorE
+    :: InterpolationType
+    -> IsoExpr INum
+    -> [(IsoExpr INum, Color)]
+    -> IsoExpr Color
   -- | match expr
   MatchE :: (Show a, SParseable a) => WrappedExpr -> ([(SType, a)], a) -> IsoExpr a
   -- | case expr

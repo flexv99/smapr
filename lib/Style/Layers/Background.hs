@@ -11,10 +11,10 @@ import Style.Layers.Util
 import Style.Parser
 
 data BackgroundS = BackgroundS
-  { _visibility :: Visibility, -- defaults to visible
-    _backgroundOpacity :: IsoExpr INum, -- defaults to 1, need to support inrepolate expressions
-    _backgroundColor :: IsoExpr Color -- defaults to #000000, disabled by fill-pattern
-    -- , _backgroundPattern
+  { _visibility :: Visibility -- defaults to visible
+  , _backgroundOpacity :: IsoExpr INum -- defaults to 1, need to support inrepolate expressions
+  , _backgroundColor :: IsoExpr Color -- defaults to #000000, disabled by fill-pattern
+  -- , _backgroundPattern
   }
   deriving (Show)
 

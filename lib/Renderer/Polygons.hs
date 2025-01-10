@@ -3,11 +3,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Renderer.Polygons
-  ( polygonToPoints,
-    decPolygon,
-    drawPolygon,
-  )
+module Renderer.Polygons (
+  polygonToPoints,
+  decPolygon,
+  drawPolygon,
+)
 where
 
 import Control.Lens
@@ -27,12 +27,12 @@ import Util
 polygonToPoints :: SPolygon -> [D.P2 Double]
 polygonToPoints (SPolygon moveTo lineTo closeP) = _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
 
-drawPolygon ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  FillS ->
-  [PolygonG] ->
-  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+drawPolygon
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => FillS
+  -> [PolygonG]
+  -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawPolygon style tour = do
   color <- fmap pureColor (eval (style ^. fillColor))
   opacity <- fmap numToDouble (eval (style ^. fillOpacity))

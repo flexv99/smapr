@@ -24,12 +24,12 @@ import Text.Megaparsec
 data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)
 
 data SLayer = SLayer
-  { _id :: T.Text,
-    _pType :: T.Text,
-    _source :: Maybe T.Text,
-    _sourceLayer :: Maybe T.Text,
-    _lfilter :: Maybe (IsoExpr Bool),
-    _paint :: Maybe Paint
+  { _id :: T.Text
+  , _pType :: T.Text
+  , _source :: Maybe T.Text
+  , _sourceLayer :: Maybe T.Text
+  , _lfilter :: Maybe (IsoExpr Bool)
+  , _paint :: Maybe Paint
   }
 
 makeLenses ''SLayer
@@ -60,5 +60,5 @@ instance A.FromJSON SLayer where
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
 evalLayer :: SLayer -> Reader ExpressionContext Bool
-evalLayer (SLayer {_lfilter = Just fltr}) = eval fltr
+evalLayer (SLayer{_lfilter = Just fltr}) = eval fltr
 evalLayer _ = return True

@@ -45,23 +45,23 @@ instance A.FromJSON ResolvedImage where
   parseJSON = A.withObject "ResolvedImage" $ \v -> ResolvedImage <$> v A..: "icon-image"
 
 data LineS = LineS
-  { _lineCap :: D.LineCap,
-    _lineJoin :: D.LineJoin,
-    _lineMiterLimit :: IsoExpr INum, -- defaults to 2, interpolate support
-    _lineRoundLimit :: IsoExpr INum, -- defaults to 1.05, interpolate support
-    _lineSortKey :: Maybe (IsoExpr INum),
-    _visibility :: Visibility, -- defaults to Visible
-    _lineOpacity :: IsoExpr INum, -- defaults to 1, interpolate support
-    _lineColor :: IsoExpr Color, -- defaults to #000000, TODO interpolate support
-    -- _lineTranslate :: WrappedExpr, -- defaults to [0, 0]
-    _lineTranslateAnchor :: TranslateAnchor, -- defaults to Map
-    _lineWidth :: IsoExpr INum, -- defaults to 1
-    _lineGapWidth :: IsoExpr INum, -- defaults to 0
-    _lineOffset :: IsoExpr INum, -- defaults to 0
-    _lineBlur :: IsoExpr INum, -- defaults to 0
-    -- _lineDasharray :: Maybe WrappedExpr,
-    _linePattern :: Maybe ResolvedImage
-    -- _lineGradient :: Maybe WrappedExpr
+  { _lineCap :: D.LineCap
+  , _lineJoin :: D.LineJoin
+  , _lineMiterLimit :: IsoExpr INum -- defaults to 2, interpolate support
+  , _lineRoundLimit :: IsoExpr INum -- defaults to 1.05, interpolate support
+  , _lineSortKey :: Maybe (IsoExpr INum)
+  , _visibility :: Visibility -- defaults to Visible
+  , _lineOpacity :: IsoExpr INum -- defaults to 1, interpolate support
+  , _lineColor :: IsoExpr Color -- defaults to #000000, TODO interpolate support
+  -- _lineTranslate :: WrappedExpr, -- defaults to [0, 0]
+  , _lineTranslateAnchor :: TranslateAnchor -- defaults to Map
+  , _lineWidth :: IsoExpr INum -- defaults to 1
+  , _lineGapWidth :: IsoExpr INum -- defaults to 0
+  , _lineOffset :: IsoExpr INum -- defaults to 0
+  , _lineBlur :: IsoExpr INum -- defaults to 0
+  -- _lineDasharray :: Maybe WrappedExpr,
+  , _linePattern :: Maybe ResolvedImage
+  -- _lineGradient :: Maybe WrappedExpr
   }
   deriving (Show)
 

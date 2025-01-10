@@ -56,8 +56,8 @@ instance A.FromJSON ResultType where
 -- boolean, number,
 
 data ECompiled = ECompiled
-  { _rType :: ResultType,
-    _result :: String
+  { _rType :: ResultType
+  , _result :: String
   }
   deriving (Show)
 
@@ -92,9 +92,9 @@ pLiterals = A.withArray "list of literals" (return . V.toList . V.map (parseMayb
 type Properties = (MP.Map String (MP.Map String SType))
 
 data ExpressionTestEntity = ExpressionTestEntity
-  { _expression :: Maybe WrappedExpr,
-    _inputs :: [[Maybe Properties]],
-    _expected :: EExpected
+  { _expression :: Maybe WrappedExpr
+  , _inputs :: [[Maybe Properties]]
+  , _expected :: EExpected
   }
 
 deriving instance Show ExpressionTestEntity
@@ -121,24 +121,24 @@ run = do
   return $ A.eitherDecode tf
 
 stypeToValue :: SType -> Value
-stypeToValue (SString s) = (P'.defaultValue :: Value) {string_value = fromEither $ P'.toUtf8 $ T.encodeUtf8 s}
+stypeToValue (SString s) = (P'.defaultValue :: Value){string_value = fromEither $ P'.toUtf8 $ T.encodeUtf8 s}
   where
     fromEither (Right a) = Just a
     fromEither _ = Nothing
-stypeToValue (SNum (SDouble d)) = (P'.defaultValue :: Value) {double_value = Just d}
-stypeToValue (SNum (SInt i)) = (P'.defaultValue :: Value) {int_value = Just $ fromInteger $ toInteger i}
-stypeToValue (SBool b) = (P'.defaultValue :: Value) {bool_value = Just b}
+stypeToValue (SNum (SDouble d)) = (P'.defaultValue :: Value){double_value = Just d}
+stypeToValue (SNum (SInt i)) = (P'.defaultValue :: Value){int_value = Just $ fromInteger $ toInteger i}
+stypeToValue (SBool b) = (P'.defaultValue :: Value){bool_value = Just b}
 stypeToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> Maybe ExpressionContext
-testCTXs p = fmap (\x -> ExpressionContext {_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
+testCTXs p = fmap (\x -> ExpressionContext{_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
   where
     props = MP.lookup "properties" p
     k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
     v' = S.fromList . map stypeToValue . MP.elems <$> props
     t' = S.fromList $ map fromInteger $ take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
-    dFeature = (P'.defaultValue :: Feature) {tags = t'}
-    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer) {keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
+    dFeature = (P'.defaultValue :: Feature){tags = t'}
+    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
 
 -- >>> t <- run
 -- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)

@@ -15,9 +15,9 @@ import Proto.Vector_tile.Tile.Layer
 -- kind of object
 
 data ExpressionContext = ExpressionContext
-  { _feature :: Feature,
-    _layer :: Layer,
-    _ctxZoom :: Double
+  { _feature :: Feature
+  , _layer :: Layer
+  , _ctxZoom :: Double
   }
   deriving (Show, Eq)
 

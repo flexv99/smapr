@@ -1,10 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Renderer.Lines
-  ( lineToPoints,
-    drawLine,
-  )
+module Renderer.Lines (
+  lineToPoints,
+  drawLine,
+)
 where
 
 import Control.Lens
@@ -20,12 +20,12 @@ import Style.Parser
 lineToPoints :: LineG -> [D.P2 Double]
 lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
 
-drawLine ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  LineS ->
-  [D.Point D.V2 Double] ->
-  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+drawLine
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => LineS
+  -> [D.Point D.V2 Double]
+  -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawLine style tour = do
   color <- eval (style ^. lineColor)
   stroke <- liftM numToDouble (eval (style ^. lineWidth))

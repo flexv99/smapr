@@ -218,24 +218,24 @@ pAtom :: Parser SType
 pAtom =
   try $
     choice
-      [ numberLitP,
-        boolLitP,
-        nullP,
-        try $ SColor <$> pColor,
-        stringLitP,
-        arrayLitP
+      [ numberLitP
+      , boolLitP
+      , nullP
+      , try $ SColor <$> pColor
+      , stringLitP
+      , arrayLitP
       ]
 
 pNotNullAtom :: Parser SType
 pNotNullAtom =
   try $
     choice
-      [ numberLitP,
-        boolLitP,
-        nullP,
-        try $ SColor <$> pColor,
-        stringLitP,
-        arrayLitP
+      [ numberLitP
+      , boolLitP
+      , nullP
+      , try $ SColor <$> pColor
+      , stringLitP
+      , arrayLitP
       ]
 
 parserForType :: SType -> Parser SType

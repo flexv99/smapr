@@ -11,15 +11,15 @@ import Style.Layers.Util
 import Style.Parser
 
 data FillS = FillS
-  { _fillSortKey :: Maybe Int,
-    _visibility :: Visibility, -- defaults to visible
-    _fillAntialias :: IsoExpr Bool, -- defauts to true
-    _fillOpacity :: IsoExpr INum, -- defaults to 1, need to support inrepolate expressions
-    _fillColor :: IsoExpr Color, -- defaults to #000000, disabled by fill-pattern
-    _fillOutlineColor :: Maybe (IsoExpr Color), -- disabled by fill-pattern
-    _fillTranslate :: Maybe SType, -- defaults to [0, 0], need to support interpolate expressions
-    _fillTranslateAnchor :: TranslateAnchor
-    -- , fill-pattern
+  { _fillSortKey :: Maybe Int
+  , _visibility :: Visibility -- defaults to visible
+  , _fillAntialias :: IsoExpr Bool -- defauts to true
+  , _fillOpacity :: IsoExpr INum -- defaults to 1, need to support inrepolate expressions
+  , _fillColor :: IsoExpr Color -- defaults to #000000, disabled by fill-pattern
+  , _fillOutlineColor :: Maybe (IsoExpr Color) -- disabled by fill-pattern
+  , _fillTranslate :: Maybe SType -- defaults to [0, 0], need to support interpolate expressions
+  , _fillTranslateAnchor :: TranslateAnchor
+  -- , fill-pattern
   }
   deriving (Show)
 

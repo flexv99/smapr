@@ -73,13 +73,13 @@ extractMappers = concatMap extractMapper
     extractMapper :: Value -> [SType]
     extractMapper v =
       concat
-        [ maybeToList $ SString . (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v,
-          maybeToList $ SNum . SDouble . float2Double <$> float_value v,
-          maybeToList $ SNum . SDouble <$> double_value v,
-          maybeToList $ SNum . SInt . fromIntegral <$> int_value v,
-          maybeToList $ SNum . SInt . fromIntegral <$> uint_value v,
-          maybeToList $ SNum . SInt . fromIntegral <$> sint_value v,
-          maybeToList $ SBool <$> bool_value v
+        [ maybeToList $ SString . (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v
+        , maybeToList $ SNum . SDouble . float2Double <$> float_value v
+        , maybeToList $ SNum . SDouble <$> double_value v
+        , maybeToList $ SNum . SInt . fromIntegral <$> int_value v
+        , maybeToList $ SNum . SInt . fromIntegral <$> uint_value v
+        , maybeToList $ SNum . SInt . fromIntegral <$> sint_value v
+        , maybeToList $ SBool <$> bool_value v
         ]
 
 extractMappers' :: [Value] -> [SData]
@@ -87,13 +87,13 @@ extractMappers' = concatMap extractMapper
   where
     extractMapper :: Value -> [SData]
     extractMapper v =
-      [ DString $ (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v,
-        DNum $ fromFloatDigits <$> float_value v,
-        DNum $ fromFloatDigits <$> double_value v,
-        DNum $ fromIntegral <$> int_value v,
-        DNum $ fromIntegral <$> uint_value v,
-        DNum $ fromIntegral <$> sint_value v,
-        DBool $ bool_value v
+      [ DString $ (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v
+      , DNum $ fromFloatDigits <$> float_value v
+      , DNum $ fromFloatDigits <$> double_value v
+      , DNum $ fromIntegral <$> int_value v
+      , DNum $ fromIntegral <$> uint_value v
+      , DNum $ fromIntegral <$> sint_value v
+      , DBool $ bool_value v
       ]
 
 getLayers :: T.Text -> Tile -> S.Seq Layer

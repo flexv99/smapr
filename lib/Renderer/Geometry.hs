@@ -32,11 +32,11 @@ on this type we can then apply our line appearence properties
 moveTo will determine where the origin is set
 -}
 
-featureToDiagram ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  Maybe Paint ->
-  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+featureToDiagram
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => Maybe Paint
+  -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
   linePath <- decode' :: Reader ExpressionContext [LineG]
   liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
@@ -48,12 +48,12 @@ featureToDiagram _ = return $ D.strutX 0
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
 decode' = ask >>= \ctx -> return $ decodeSeq (geometry (ctx ^. feature))
 
-renderTile ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  Tile ->
-  SLayer ->
-  D.QDiagram b D.V2 Double D.Any
+renderTile
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => Tile
+  -> SLayer
+  -> D.QDiagram b D.V2 Double D.Any
 renderTile tile layer = do
   D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
   where

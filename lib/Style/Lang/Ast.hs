@@ -1,13 +1,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Style.Lang.Ast
-  ( SExpr (..),
-    InterpolationType (..),
-    NumOrString (..),
-    STraversable (..),
-    OrdType (..),
-  )
+module Style.Lang.Ast (
+  SExpr (..),
+  InterpolationType (..),
+  NumOrString (..),
+  STraversable (..),
+  OrdType (..),
+)
 where
 
 import Style.Lang.Types
@@ -27,11 +27,11 @@ data SExpr a where
   -- | division
   DivE :: SExpr SNum -> SExpr SNum -> SExpr SNum
   -- | numeric interpolate expr
-  InterpolateNumE ::
-    InterpolationType ->
-    SExpr SNum ->
-    [(SExpr SNum, SNum)] ->
-    SExpr SNum
+  InterpolateNumE
+    :: InterpolationType
+    -> SExpr SNum
+    -> [(SExpr SNum, SNum)]
+    -> SExpr SNum
   -- | Zoom
   FzoomE :: SExpr SNum
   -- | index of element in list
@@ -77,11 +77,11 @@ data SExpr a where
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | color interpolation
-  InterpolateColorE ::
-    InterpolationType ->
-    SExpr SNum ->
-    [(SExpr SNum, SColor)] ->
-    SExpr SColor
+  InterpolateColorE
+    :: InterpolationType
+    -> SExpr SNum
+    -> [(SExpr SNum, SColor)]
+    -> SExpr SColor
   -- | list literal
   ListE :: (Show a) => [a] -> SExpr [a]
   -- POLY

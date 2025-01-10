@@ -95,6 +95,10 @@ eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
 eval (BoolE b) = return b
+eval (BoolCastE b) = unwrapBool <$> eval b
+  where
+    unwrapBool (DBool b) = b
+    unwrapBool _ = Nothing
 eval (Negation b) = monoOp (not <$>) b
 eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
 eval (OrdE t a1 a2) = case a1 of

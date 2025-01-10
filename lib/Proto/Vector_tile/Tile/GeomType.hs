@@ -1,21 +1,36 @@
-{-# LANGUAGE BangPatterns, DataKinds, DeriveDataTypeable, DeriveGeneric, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings
- #-}
-{-# OPTIONS_GHC  -w #-}
-module Proto.Vector_tile.Tile.GeomType (GeomType(..)) where
-import Prelude ((+), (/), (.))
-import qualified Prelude as Prelude'
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -w #-}
+
+module Proto.Vector_tile.Tile.GeomType (GeomType (..)) where
+
+import qualified Data.Data as Prelude'
 import qualified Data.List as Prelude'
 import qualified Data.Typeable as Prelude'
 import qualified GHC.Generics as Prelude'
-import qualified Data.Data as Prelude'
 import qualified Text.ProtocolBuffers.Header as P'
+import Prelude ((+), (.), (/))
+import qualified Prelude as Prelude'
 
-data GeomType = UNKNOWN
-              | POINT
-              | LINESTRING
-              | POLYGON
-                deriving (Prelude'.Read, Prelude'.Show, Prelude'.Eq, Prelude'.Ord, Prelude'.Typeable, Prelude'.Data,
-                          Prelude'.Generic)
+data GeomType
+  = UNKNOWN
+  | POINT
+  | LINESTRING
+  | POLYGON
+  deriving
+    ( Prelude'.Read
+    , Prelude'.Show
+    , Prelude'.Eq
+    , Prelude'.Ord
+    , Prelude'.Typeable
+    , Prelude'.Data
+    , Prelude'.Generic
+    )
 
 instance P'.Mergeable GeomType
 
@@ -63,8 +78,9 @@ instance P'.MessageAPI msg' (msg' -> GeomType) GeomType where
 
 instance P'.ReflectEnum GeomType where
   reflectEnum = [(0, "UNKNOWN", UNKNOWN), (1, "POINT", POINT), (2, "LINESTRING", LINESTRING), (3, "POLYGON", POLYGON)]
-  reflectEnumInfo _
-   = P'.EnumInfo (P'.makePNF (P'.pack ".vector_tile.Tile.GeomType") [] ["Vector_tile", "Tile"] "GeomType")
+  reflectEnumInfo _ =
+    P'.EnumInfo
+      (P'.makePNF (P'.pack ".vector_tile.Tile.GeomType") [] ["Vector_tile", "Tile"] "GeomType")
       ["Vector_tile", "Tile", "GeomType.hs"]
       [(0, "UNKNOWN"), (1, "POINT"), (2, "LINESTRING"), (3, "POLYGON")]
       Prelude'.False

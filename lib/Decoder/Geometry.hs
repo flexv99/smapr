@@ -1,10 +1,10 @@
-module Decoder.Geometry
-  ( featureToGeo,
-    decodeSeq,
-    PolygonG (..),
-    LineG (..),
-    MapGeometry (..),
-  )
+module Decoder.Geometry (
+  featureToGeo,
+  decodeSeq,
+  PolygonG (..),
+  LineG (..),
+  MapGeometry (..),
+)
 where
 
 import Control.Monad.Reader

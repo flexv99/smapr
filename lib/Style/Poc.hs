@@ -39,8 +39,8 @@ import Util
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
 
 data Width = Width
-  { base :: Maybe SType,
-    stops :: Maybe SType
+  { base :: Maybe SType
+  , stops :: Maybe SType
   }
   deriving (Show, Eq, Generic)
 
@@ -53,9 +53,9 @@ instance A.FromJSON Width where
       <*> obj A..:? "stops"
 
 data SWrap = SWrap
-  { version :: Int,
-    name :: T.Text,
-    tlayers :: [SLayer]
+  { version :: Int
+  , name :: T.Text
+  , tlayers :: [SLayer]
   }
   deriving (Show, Generic)
 

@@ -2,14 +2,14 @@
 
 module Decoder.DecoderSpec (spec) where
 
+import Data.Foldable
 import Data.Functor ((<&>))
 import qualified Data.Map as MP
 import qualified Data.Text.Lazy as T
-import Test.Hspec
-import Data.Foldable
 import Proto.Util
 import Proto.Vector_tile.Tile.Layer
 import Style.Parser
+import Test.Hspec
 
 spec :: Spec
 spec = do
@@ -22,7 +22,6 @@ spec = do
   describe "feature's id as string" $ do
     it "retrieve a feature's id" $ do
       (waterLayer <&> fmap (featureIdToString . head . toList . features)) `shouldReturn` Just (Just "1")
-      
 
 featureTagsMapperRes :: Maybe (MP.Map T.Text SType)
-featureTagsMapperRes = Just (MP.fromList [("class", SString "stream"),("intermittent",SNum (SInt 0)),("name_de", SString ""),("name_en", SString"")])
+featureTagsMapperRes = Just (MP.fromList [("class", SString "stream"), ("intermittent", SNum (SInt 0)), ("name_de", SString ""), ("name_en", SString "")])

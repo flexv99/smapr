@@ -1,23 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Style.Lang.Lex
-  ( Parser (..),
-    betweenBrackets,
-    betweenSquareBrackets,
-    betweenDoubleQuotes,
-    numSymbol,
-    stringSymbol,
-    boolSymbol,
-    colorSymbol,
-    polySymbol,
-    pAtom,
-    pString,
-    pNum,
-    pBool,
-    pColor,
-    pArray,
-  )
+module Style.Lang.Lex (
+  Parser (..),
+  betweenBrackets,
+  betweenSquareBrackets,
+  betweenDoubleQuotes,
+  numSymbol,
+  stringSymbol,
+  boolSymbol,
+  colorSymbol,
+  polySymbol,
+  pAtom,
+  pString,
+  pNum,
+  pBool,
+  pColor,
+  pArray,
+)
 where
 
 import qualified Data.Text.Lazy as T
@@ -89,10 +89,10 @@ pColor = nullableP $ do
 pAtom :: Parser SData
 pAtom =
   choice
-    [ DNum <$> pNum,
-      DBool <$> pBool,
-      try $ DColor <$> pColor,
-      DString <$> pString
+    [ DNum <$> pNum
+    , DBool <$> pBool
+    , try $ DColor <$> pColor
+    , DString <$> pString
     ]
 
 pPercentage :: Parser Double
@@ -116,11 +116,11 @@ pArray = betweenSquareBrackets $ pAtom `sepBy` (char ',' >> space)
 colorSymbol :: Parser ColorToken
 colorSymbol =
   choice
-    [ TRgba <$ string "rgba",
-      TRgb <$ string "rgb",
-      THsla <$ string "hsla",
-      THsl <$ string "hsl",
-      CInterpolate <$ string "interpolate"
+    [ TRgba <$ string "rgba"
+    , TRgb <$ string "rgb"
+    , THsla <$ string "hsla"
+    , THsl <$ string "hsl"
+    , CInterpolate <$ string "interpolate"
     ]
 
 -- | color function parser
@@ -181,14 +181,14 @@ pHexColor = betweenDoubleQuotes $ do
 numSymbol :: Parser NumToken
 numSymbol =
   choice
-    [ Plus <$ char '+',
-      Minus <$ char '-',
-      Div <$ char '/',
-      Multi <$ char '*',
-      NInterpolate <$ string "interpolate",
-      Zoom <$ string "zoom",
-      IndexOf <$ string "index-of",
-      Length <$ string "length"
+    [ Plus <$ char '+'
+    , Minus <$ char '-'
+    , Div <$ char '/'
+    , Multi <$ char '*'
+    , NInterpolate <$ string "interpolate"
+    , Zoom <$ string "zoom"
+    , IndexOf <$ string "index-of"
+    , Length <$ string "length"
     ]
     <|> NPoly
     <$> polySymbol
@@ -200,11 +200,11 @@ numSymbol =
 stringSymbol :: Parser StringToken
 stringSymbol =
   choice
-    [ GeometryType <$ string "geometry-type",
-      Upcase <$ string "upcase",
-      Downcase <$ string "downcase",
-      Concat <$ string "concat",
-      TextAt <$ string "at"
+    [ GeometryType <$ string "geometry-type"
+    , Upcase <$ string "upcase"
+    , Downcase <$ string "downcase"
+    , Concat <$ string "concat"
+    , TextAt <$ string "at"
     ]
     <|> SPoly
     <$> polySymbol
@@ -216,15 +216,15 @@ stringSymbol =
 boolSymbol :: Parser BoolToken
 boolSymbol =
   choice
-    [ Negated Equality <$ string "!=",
-      Equality <$ string "==",
-      LessEq <$ string "<=",
-      Less <$ char '<',
-      GreaterEq <$ string ">=",
-      Greater <$ char '>',
-      In <$ string "in",
-      Has <$ string "has",
-      All <$ string "all"
+    [ Negated Equality <$ string "!="
+    , Equality <$ string "=="
+    , LessEq <$ string "<="
+    , Less <$ char '<'
+    , GreaterEq <$ string ">="
+    , Greater <$ char '>'
+    , In <$ string "in"
+    , Has <$ string "has"
+    , All <$ string "all"
     ]
     <|> BPoly
     <$> polySymbol
