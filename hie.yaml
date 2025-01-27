@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    component: "lib:haskell-language-server"
+
+format:
+  provider: fourmolu
