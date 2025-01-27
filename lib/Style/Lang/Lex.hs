@@ -62,7 +62,7 @@ pString =
     ( T.pack
         <$> betweenDoubleQuotes
           (lexeme (many snakeCaseChar))
-        <?> "string"
+          <?> "string"
     )
 
 pBool :: Parser SBool
@@ -235,6 +235,6 @@ boolSymbol =
 
 polySymbol :: Parser PolyToken
 polySymbol =
-  choice [Get <$ string "get", At <$ string "at"]
+  choice [Get <$ string "get", At <$ string "at", Match <$ string "match"]
     <|> PNum
     <$> numSymbol

@@ -7,24 +7,27 @@
 module Style.Test.Entity where
 
 import Control.Lens
+import Control.Monad
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
+import Data.Scientific
 import Data.Either
 import qualified Data.Map as MP
-import Data.Maybe
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy.Encoding as T
+import qualified Data.Text.Lazy as T
 import qualified Data.Vector as V
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
-import Style.ExpressionsWrapper
-import Style.IsoExpressions
-import Style.Parser
+import Style.Lang.Types
+import Style.Lang.Ast
+import Style.Lang.Parser
+import Style.Lang.Lex
 import Text.Megaparsec
 import qualified Text.ProtocolBuffers.Header as P'
 
@@ -56,8 +59,8 @@ instance A.FromJSON ResultType where
 -- boolean, number,
 
 data ECompiled = ECompiled
-  { _rType :: ResultType
-  , _result :: String
+  { _rType :: ResultType,
+    _result :: String
   }
   deriving (Show)
 
@@ -67,7 +70,7 @@ instance A.FromJSON ECompiled where
   parseJSON = A.withObject "ECompiled" $ \t -> ECompiled <$> t A..: "type" <*> t A..: "result"
 
 data EExpected where
-  EExpected :: {_outputs :: [Maybe SType], _compiled :: ECompiled} -> EExpected
+  EExpected :: {_outputs :: [Maybe SData], _compiled :: ECompiled} -> EExpected
 
 deriving instance Show EExpected
 
@@ -86,15 +89,33 @@ instance A.FromJSON EExpected where
         A..!= []
     return $ EExpected out comp
 
-pLiterals :: A.Value -> A.Parser [Maybe SType]
+pLiterals :: A.Value -> A.Parser [Maybe SData]
 pLiterals = A.withArray "list of literals" (return . V.toList . V.map (parseMaybe pAtom . A.encodeToLazyText))
 
-type Properties = (MP.Map String (MP.Map String SType))
+type Properties = (MP.Map String (MP.Map String SData))
+
+instance A.FromJSON SData where
+  parseJSON (A.Number n) = pure $ DNum $ Just n
+    -- if isFloating n
+    --   then pure $ DNum (toRealFloat n)
+    --   else pure $ DNum (round n)
+  parseJSON (A.Bool b) = pure $ DBool $ Just b
+  -- parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
+  parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
+  parseJSON a =
+    A.withText
+      "SData"
+      ( \v ->
+          case parse pAtom "" (T.fromStrict v) of
+            Left err -> fail $ errorBundlePretty err
+            Right res -> return res
+      )
+      a
 
 data ExpressionTestEntity = ExpressionTestEntity
-  { _expression :: Maybe WrappedExpr
-  , _inputs :: [[Maybe Properties]]
-  , _expected :: EExpected
+  { _expression :: Maybe (SExpr SData),
+    _inputs :: [[Maybe Properties]],
+    _expected :: EExpected
   }
 
 deriving instance Show ExpressionTestEntity
@@ -108,7 +129,7 @@ instance A.FromJSON ExpressionTestEntity where
     expected' <- p A..: "expected"
     return $ ExpressionTestEntity expr inputs' expected'
     where
-      exprP :: Maybe A.Value -> A.Parser (Maybe WrappedExpr)
+      exprP :: Maybe A.Value -> A.Parser (Maybe (SExpr SData))
       exprP Nothing = pure Nothing
       exprP (Just v) = case parse polyExprP "" (A.encodeToLazyText v) of
         Left err -> fail $ errorBundlePretty err
@@ -116,29 +137,29 @@ instance A.FromJSON ExpressionTestEntity where
 
 run :: IO (Either String ExpressionTestEntity)
 run = do
-  let testPath = "/home/flex99/dev/smapr/test/json_test/test_2.json"
+  let testPath = "/Users/felixvalentini/dev/smapr/test/json_test/match/basic/test.json"
   tf <- B.readFile testPath
   return $ A.eitherDecode tf
+  -- add actions to handle either
 
-stypeToValue :: SType -> Value
-stypeToValue (SString s) = (P'.defaultValue :: Value){string_value = fromEither $ P'.toUtf8 $ T.encodeUtf8 s}
+stypeToValue :: SData -> Value
+stypeToValue (DString s) = (P'.defaultValue :: Value) {string_value = join $ fromEither . P'.toUtf8 . T.encodeUtf8 <$> s}
   where
     fromEither (Right a) = Just a
     fromEither _ = Nothing
-stypeToValue (SNum (SDouble d)) = (P'.defaultValue :: Value){double_value = Just d}
-stypeToValue (SNum (SInt i)) = (P'.defaultValue :: Value){int_value = Just $ fromInteger $ toInteger i}
-stypeToValue (SBool b) = (P'.defaultValue :: Value){bool_value = Just b}
+stypeToValue (DNum d) = (P'.defaultValue :: Value) {double_value = toRealFloat <$> d}
+stypeToValue (DBool b) = (P'.defaultValue :: Value) {bool_value = b}
 stypeToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> Maybe ExpressionContext
-testCTXs p = fmap (\x -> ExpressionContext{_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
+testCTXs p = fmap (\x -> ExpressionContext {_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
   where
     props = MP.lookup "properties" p
     k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
     v' = S.fromList . map stypeToValue . MP.elems <$> props
     t' = S.fromList $ map fromInteger $ take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
-    dFeature = (P'.defaultValue :: Feature){tags = t'}
-    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
+    dFeature = (P'.defaultValue :: Feature) {tags = t'}
+    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer) {keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
 
 -- >>> t <- run
 -- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)

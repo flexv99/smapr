@@ -97,6 +97,8 @@ data SExpr a where
   FgetE :: SExpr SString -> SExpr SData
   -- | element at index
   AtE :: SExpr [SData] -> SExpr SNum -> SExpr SData
+  -- | match
+  MatchE :: SExpr SData -> [(SExpr SData, SExpr SData)] -> SExpr SData -> SExpr SData
 
 deriving instance Show (SExpr a)
 
