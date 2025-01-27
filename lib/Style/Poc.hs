@@ -39,32 +39,32 @@ import Util
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
 
 data Width = Width
-  { base :: Maybe SType,
-    stops :: Maybe SType
-  }
-  deriving (Show, Eq, Generic)
+        { base :: Maybe SType
+        , stops :: Maybe SType
+        }
+        deriving (Show, Eq, Generic)
 
 -- Helper for use in combination with .:? to provide default values for optional JSON object fields.
 
 instance A.FromJSON Width where
-  parseJSON = A.withObject "Width" $ \obj ->
-    Width
-      <$> obj A..:? "base"
-      <*> obj A..:? "stops"
+        parseJSON = A.withObject "Width" $ \obj ->
+                Width
+                        <$> obj A..:? "base"
+                        <*> obj A..:? "stops"
 
 data SWrap = SWrap
-  { version :: Int,
-    name :: T.Text,
-    tlayers :: [SLayer]
-  }
-  deriving (Show, Generic)
+        { version :: Int
+        , name :: T.Text
+        , tlayers :: [SLayer]
+        }
+        deriving (Show, Generic)
 
 instance A.FromJSON SWrap where
-  parseJSON = A.withObject "Base" $ \o ->
-    SWrap
-      <$> o A..: "version"
-      <*> o A..: "name"
-      <*> o A..: "layers"
+        parseJSON = A.withObject "Base" $ \o ->
+                SWrap
+                        <$> o A..: "version"
+                        <*> o A..: "name"
+                        <*> o A..: "layers"
 
 waterLayerStyle :: B.ByteString
 waterLayerStyle = "{\"id\":\"waterway\",\"type\":\"line\",\"source\":\"openmaptiles\",\"source-layer\":\"waterway\",\"filter\":[\"all\",[\"==\",[\"geometry-type\"],\"LineString\"],[\"match\",[\"get\",\"brunnel\"],[\"bridge\",\"tunnel\"],false,true],[\"!=\",[\"get\",\"intermittent\"],1]],\"layout\":{\"visibility\":\"visible\"},\"paint\":{\"line-color\":\"hsl(205,56%,73%)\",\"line-opacity\":1,\"line-width\":[\"interpolate\",[\"exponential\",1.4],[\"zoom\"],8,1,20,8]}}"
@@ -101,72 +101,72 @@ testLayers = [waterLayerStyle, waterFill, transportationLayerStyle, buildingsLay
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
-  let stile = A.decode sts' :: Maybe SLayer
-      pt = join $ _paint <$> stile
-   in renderTile t <$> stile
+        let stile = A.decode sts' :: Maybe SLayer
+            pt = join $ _paint <$> stile
+         in renderTile t <$> stile
 
 renderStyles' :: SLayer -> Tile -> D.Diagram D.B
 renderStyles' sts' t = renderTile t sts'
 
 split' :: [SLayer] -> ([SLayer], [SLayer])
 split' layers = (l', f')
-  where
-    reverseList :: [a] -> [a]
-    reverseList = foldl (flip (:)) []
-    l' = reverseList $ filter (\x -> x ^. pType == "line") layers
-    f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
+    where
+        reverseList :: [a] -> [a]
+        reverseList = foldl (flip (:)) []
+        l' = reverseList $ filter (\x -> x ^. pType == "line") layers
+        f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
 buildFinalDiagram :: Tile -> D.Diagram D.B
 buildFinalDiagram t = D.bg (sRGB24 232 229 216) (foldl D.atop (D.strutX 0) (mapMaybe (`renderStyles` t) testLayers))
 
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
-  D.bg
-    (sRGB24 232 229 216)
-    ( renderLayers'
-        (fst splitted)
-        `D.atop` renderLayers' (snd splitted)
-    )
-  where
-    renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
-    bg = head $ filter (\x -> x ^. pType == "background") l
-    splitted = split' l
+        D.bg
+                (sRGB24 232 229 216)
+                ( renderLayers'
+                        (fst splitted)
+                        `D.atop` renderLayers' (snd splitted)
+                )
+    where
+        renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
+        bg = head $ filter (\x -> x ^. pType == "background") l
+        splitted = split' l
 
 test :: IO ()
 test = do
-  t <- fakerTile
-  maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
+        t <- fakerTile
+        maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
 
 testWithUrl :: String -> IO ()
 testWithUrl url = do
-  t <- getFromUrl url
-  maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
+        t <- getFromUrl url
+        maybe (putStrLn "Noting") (writeSvg . buildFinalDiagram) t
 
 pLayer :: IO (Either String SWrap)
 pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 
 renderStyleSpec :: IO ()
 renderStyleSpec = do
-  t <- fakerTile
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg dg
+        t <- fakerTile
+        stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+        let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+        let dg = buildFinalDiagram' <$> layy <*> t
+        maybe (putStrLn "Noting") writeSvg dg
 
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
-  t <- getFromUrl url
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg dg
+        t <- getFromUrl url
+        stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+        let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+        let dg = buildFinalDiagram' <$> layy <*> t
+        maybe (putStrLn "Noting") writeSvg dg
 
 drawTour :: [D.P2 Double] -> D.Diagram D.B
 drawTour tour = tourPoints <> D.strokeP tourPath
-  where
-    tourPath = D.fromVertices tour
-    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-    dot = D.circle 0.05 D.# D.fc D.black
+    where
+        tourPath = D.fromVertices tour
+        tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+        dot = D.circle 0.05 D.# D.fc D.black
 
 featureToDiagramC :: Feature -> D.Diagram D.B
 featureToDiagramC (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTour . lineToPoints) (decodeC' g :: [LineG])
@@ -183,11 +183,11 @@ renderContourLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagramC . he
 
 testContour :: IO ()
 testContour = do
-  t <- fakerTile
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
-  tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
-  let tile = transformRawTile tc
-  let d = renderContourLayer "contour" <$> tile
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg (d <> dg)
+        t <- fakerTile
+        stile <- B.readFile "/home/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+        tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
+        let tile = transformRawTile tc
+        let d = renderContourLayer "contour" <$> tile
+        let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+        let dg = buildFinalDiagram' <$> layy <*> t
+        maybe (putStrLn "Noting") writeSvg (d <> dg)
