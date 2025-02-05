@@ -129,6 +129,7 @@ eval (FgetE k) = eval k >>= featureGet
     featureGet key = do
       ctx <- ask
       return $ maybe (DNum Nothing) (\x -> featureProperties'' ctx MP.! x) key
+eval (MatchE i c f) = undefined
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
@@ -233,6 +234,12 @@ sOrd t x y = op t <$> x <*> y
     op OLessEq = (<=)
     op OGreater = (>)
     op OGreaterEq = (>=)
+
+sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
+  where
+    -- binary (SArray a, b) = if t `elem` a then Just b else Nothing
+    binary (a, b) = if a == t then Just b else Nothing
+    isIn = mapMaybe binary
 
 -- Testing shite:
 -- >>> join $ join $ fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")

@@ -1,6 +1,6 @@
 cradle:
   cabal:
-    component: "lib:haskell-language-server"
+    component: "lib:smapr"
 
 format:
   provider: fourmolu
