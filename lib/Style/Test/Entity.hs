@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -8,6 +9,7 @@ module Style.Test.Entity where
 
 import Control.Lens
 import Control.Monad
+import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
@@ -147,14 +149,19 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
     createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
     defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
 
-runTest :: IO Bool
+runTest :: (MonadError String m, MonadIO m) => m (Maybe SData)
 runTest = do
-  t <- run
-  case t of
-    Right r -> return True
-    Left l -> return False
+  t <- liftIO run >>= liftEither -- Run IO action and lift Either into MonadError
+  return $ join $ testWithContexts t
+  where
+    testWithContexts t =
+      fmap
+        (\r -> runReader r <$> head (contexts t))
+        (eval <$> view expression t)
+    contexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
 
 -- >>> t <- run
 -- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)
-
 -- fmap (\r -> runReader r <$> (head contexts)) (eval <$> (view expression (unwap t)))
+
+-- >> runExceptT runTest
