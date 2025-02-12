@@ -55,7 +55,6 @@ library
                     , Style.Lang.Check
                     , Style.Lang.Eval
                     , Style.Test.Entity
-                    , Style.Test.TestExpressionParser
                     , Util
                     , ApiClient
 
