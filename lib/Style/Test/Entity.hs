@@ -35,6 +35,7 @@ import Style.Lang.Parser
 import Style.Lang.Types
 import Text.Megaparsec
 import qualified Text.ProtocolBuffers.Header as P'
+import Util
 
 data ResultType = RNumber | RBoolean | RArray | RString | RColor deriving (Show)
 
@@ -123,7 +124,8 @@ instance A.FromJSON ExpressionTestEntity where
 
 run :: IO (Either String ExpressionTestEntity)
 run = do
-  let testPath = "/Users/flex99/dev/hs/smapr/test/json_test/maplibre-style-spec/test/integration/expression/tests/plus/basic/test.json"
+  conf <- smaprConfig
+  let testPath = jsonTestPath conf ++ "plus/basic/test.json"
   tf <- B.readFile testPath
   return $ A.eitherDecode tf
 
@@ -149,15 +151,17 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
     createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
     defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
 
-runTest :: (MonadError String m, MonadIO m) => m (Maybe SData)
+runTest :: (MonadError String m, MonadIO m) => m [Bool]
 runTest = do
   t <- liftIO run >>= liftEither -- Run IO action and lift Either into MonadError
-  return $ join $ testWithContexts t
+  let results = testWithContexts t
+  return $ zipWith (\a b -> fmap (\x -> x == b) a) (testWithContexts t) (expectedRes t)
   where
     testWithContexts t =
       fmap
-        (\r -> runReader r <$> head (contexts t))
+        (\r -> map (runReader r <$>) (contexts t))
         (eval <$> view expression t)
+    expectedRes t = t ^. (expected . outputs)
     contexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
 
 -- >>> t <- run

@@ -39,6 +39,7 @@ data Sconf = Sconf
   , mtApi :: MTApi
   , testTilePath :: String
   , testDestinationPath :: String
+  , jsonTestPath :: String
   }
   deriving (Show, Generic)
 
@@ -62,12 +63,14 @@ makeSconf conf = do
   nextzenApi' <- makeNextzenApiConf conf :: IO (Maybe MTApi)
   testDestinationPath' <- C.lookup conf "test_dest_path" :: IO (Maybe String)
   testTilePath' <- C.lookup conf "test_tile_path" :: IO (Maybe String)
+  jsonTestPath' <- C.lookup conf "json_test_path" :: IO (Maybe String)
   return $
     Sconf
       <$> localApi'
       <*> nextzenApi'
       <*> testTilePath'
       <*> testDestinationPath'
+      <*> jsonTestPath'
 
 smaprConfig :: IO Sconf
 smaprConfig = do
