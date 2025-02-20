@@ -122,15 +122,6 @@ instance A.FromJSON ExpressionTestEntity where
         Left err -> fail $ errorBundlePretty err
         Right res -> pure $ Just res
 
-run :: IO (Either String ExpressionTestEntity)
-run = do
-  conf <- smaprConfig
-  let testPath = jsonTestPath conf ++ "plus/basic/test.json"
-  tf <- B.readFile testPath
-  return $ A.eitherDecode tf
-
--- add actions to handle either
-
 sDataToValue :: SData -> Value
 sDataToValue (DString s) = (P'.defaultValue :: Value){string_value = (fromEither . P'.toUtf8 . T.encodeUtf8) =<< s}
   where
@@ -151,18 +142,36 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
     createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
     defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
 
-runTest :: (MonadError String m, MonadIO m) => m [Bool]
-runTest = do
-  t <- liftIO run >>= liftEither -- Run IO action and lift Either into MonadError
-  let results = testWithContexts t
-  return $ zipWith (\a b -> fmap (\x -> x == b) a) (testWithContexts t) (expectedRes t)
+runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
+runTestWithResult = do
+  t <- liftIO readTest >>= liftEither -- Run IO action and lift Either into MonadError
+  return $  fromMaybe [] (testWithContexts t)
   where
     testWithContexts t =
       fmap
-        (\r -> map (runReader r <$>) (contexts t))
+        (\r -> map (runReader r <$>) (tContexts t))
         (eval <$> view expression t)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+
+runTest :: (MonadError String m, MonadIO m) => m [Maybe Bool]
+runTest = do
+  t <- liftIO readTest >>= liftEither -- Run IO action and lift Either into MonadError
+  let results = fromMaybe [] (testWithContexts t)
+  return $ zipWith (\a b -> (==) <$> a <*> b) results (expectedRes t)
+  where
+    testWithContexts t =
+      fmap
+        (\r -> map (runReader r <$>) (tContexts t))
+        (eval <$> view expression t)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
     expectedRes t = t ^. (expected . outputs)
-    contexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+
+readTest :: IO (Either String ExpressionTestEntity)
+readTest = do
+  conf <- smaprConfig
+  let testPath' = jsonTestPath conf ++ "get/basic/test.json"
+  tf <- B.readFile testPath'
+  return $ A.eitherDecode tf
 
 -- >>> t <- run
 -- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)

@@ -5,7 +5,6 @@ module Decoder.Helper where
 
 import Control.Lens
 import Control.Monad
-import qualified Data.Aeson as A
 import Data.Bits
 import qualified Diagrams.Prelude as D
 import GHC.Float

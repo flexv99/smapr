@@ -1,12 +1,12 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Style.Lang.Parser
-  ( numExprP,
-    stringExprP,
-    boolExprP,
-    colorExprP,
-    polyExprP,
-  )
+module Style.Lang.Parser (
+  numExprP,
+  stringExprP,
+  boolExprP,
+  colorExprP,
+  polyExprP,
+)
 where
 
 import Control.Monad
@@ -71,6 +71,7 @@ numOpParser Length = do
   case elems of
     (Left l) -> return $ LengthOfListE l
     (Right s) -> return $ LengthOfStringE s
+numOpParser Number = NumCastE <$> polyExprP
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -171,10 +172,10 @@ polyExprP :: Parser (SExpr SData)
 polyExprP =
   try $
     choice
-      [ FromNum . NumE <$> pNum,
-        FromString . StringE <$> pString,
-        FromBool . BoolE <$> pBool,
-        FromColor . ColorE <$> pColor
+      [ FromNum . NumE <$> pNum
+      , FromString . StringE <$> pString
+      , FromBool . BoolE <$> pBool
+      , FromColor . ColorE <$> pColor
       ]
       <|> betweenSquareBrackets
         ( do
@@ -199,10 +200,10 @@ polyOpParser Match = do
     tuplifyWithFallback :: [a] -> ([(a, a)], a)
     tuplifyWithFallback [] = error "no fallback value"
     tuplifyWithFallback [_] = error "no fallback value"
-    tuplifyWithFallback (x:y:xs) = go [(x, y)] y xs
+    tuplifyWithFallback (x : y : xs) = go [(x, y)] y xs
       where
         go pairs _ [] = (pairs, y) -- Return the pairs and the last element
-        go pairs prev (z:zs) = go (pairs ++ [(prev, z)]) z zs
+        go pairs prev (z : zs) = go (pairs ++ [(prev, z)]) z zs
 polyOpParser (PNum t) = FromNum <$> numOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t
 polyOpParser (PBool t) = FromBool <$> boolOpParser t

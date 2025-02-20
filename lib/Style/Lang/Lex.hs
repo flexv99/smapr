@@ -181,7 +181,8 @@ pHexColor = betweenDoubleQuotes $ do
 numSymbol :: Parser NumToken
 numSymbol =
   choice
-    [ Plus <$ char '+'
+    [ Number <$ string "number"
+    , Plus <$ char '+'
     , Minus <$ char '-'
     , Div <$ char '/'
     , Multi <$ char '*'
@@ -204,7 +205,7 @@ stringSymbol =
     , Upcase <$ string "upcase"
     , Downcase <$ string "downcase"
     , Concat <$ string "concat"
-    , TextAt <$ string "at"
+    -- , TextAt <$ string "at"
     ]
     <|> SPoly
     <$> polySymbol

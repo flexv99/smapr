@@ -12,17 +12,14 @@ where
 
 import Control.Lens
 import Control.Monad.Reader
-import Data.Bifunctor
 import Data.Colour
 import Decoder.Polygons
-import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D hiding (difference)
 import qualified Diagrams.TwoD.Path.Boolean as D
 import Style.ExpressionsContext
 import Style.IsoExpressions
 import Style.Layers.Fill
 import Style.Parser
-import Util
 
 polygonToPoints :: SPolygon -> [D.P2 Double]
 polygonToPoints (SPolygon moveTo lineTo closeP) = _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
@@ -48,9 +45,6 @@ drawPolygon style tour = do
         )
         tour
 
-testInner :: [PolygonG]
-testInner = decPolygon [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
-
 singleToPoints :: SPolygon -> D.Located (D.Trail' D.Loop D.V2 Double)
 singleToPoints (SPolygon moveTo lineTo closeP) =
   D.fromVertices $
@@ -64,17 +58,6 @@ multipleToPoints (o, i) = D.difference D.EvenOdd (D.toPath (singleToPoints o)) (
 polygonToLoop :: PolygonG -> D.Path D.V2 Double
 polygonToLoop (SinglePolygon s) = D.toPath $ singleToPoints s
 polygonToLoop (MultiPolygon m) = multipleToPoints m
-
-drawPolygon' =
-  mconcat $
-    map
-      ( \t ->
-          D.strokeP (polygonToLoop t)
-            D.# D.fc D.purple
-            D.# D.lc D.blue
-            D.# D.lwG 0
-      )
-      testInner
 
 -- >> writeSvg $ drawPolygon'
 

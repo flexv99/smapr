@@ -13,7 +13,8 @@ data ColorToken
   deriving (Eq, Show)
 
 data NumToken
-  = Plus
+  = Number
+  | Plus
   | Minus
   | Div
   | Multi

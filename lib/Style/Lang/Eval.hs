@@ -5,20 +5,16 @@ module Style.Lang.Eval (eval) where
 import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
-import Data.Functor
-import Data.Functor.Identity
 import Data.List
 import qualified Data.Map as MP
 import Data.Maybe
 import Data.Scientific
 import qualified Data.Text.Lazy as T
-import GHC.Float
 import Proto.Util
 import Style.ExpressionsContext
 import Style.Lang.Ast
 import Style.Lang.Parser
 import Style.Lang.Types
-import Style.Lang.Util
 
 eval :: SExpr a -> Reader ExpressionContext a
 eval (NumE i) = return i
@@ -128,7 +124,8 @@ eval (FgetE k) = eval k >>= featureGet
     featureGet :: SString -> Reader ExpressionContext SData
     featureGet key = do
       ctx <- ask
-      return $ maybe (DNum Nothing) (\x -> featureProperties'' ctx MP.! x) key
+      let props = featureProperties'' ctx
+      return $ fromMaybe (DNum Nothing) ((`MP.lookup` props) =<< key)
 eval (MatchE i c f) = undefined
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
