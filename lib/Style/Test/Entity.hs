@@ -8,7 +8,6 @@
 module Style.Test.Entity where
 
 import Control.Lens
-import Control.Monad
 import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
@@ -21,7 +20,6 @@ import qualified Data.Map as MP
 import Data.Maybe
 import Data.Scientific
 import qualified Data.Sequence as S
-import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
 import Proto.Vector_tile.Tile.Feature
@@ -83,21 +81,6 @@ pLiterals :: A.Value -> A.Parser [Maybe SData]
 pLiterals = A.withArray "list of literals" (return . V.toList . V.map (parseMaybe pAtom . A.encodeToLazyText))
 
 type Properties = (MP.Map String (MP.Map String SData))
-
-instance A.FromJSON SData where
-  parseJSON (A.Number n) = pure $ DNum $ Just n
-  parseJSON (A.Bool b) = pure $ DBool $ Just b
-  -- parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
-  parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
-  parseJSON a =
-    A.withText
-      "SData"
-      ( \v ->
-          case parse pAtom "" (T.fromStrict v) of
-            Left err -> fail $ errorBundlePretty err
-            Right res -> return res
-      )
-      a
 
 data ExpressionTestEntity = ExpressionTestEntity
   { _expression :: Maybe (SExpr SData)

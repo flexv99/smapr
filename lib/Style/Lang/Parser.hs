@@ -9,13 +9,29 @@ module Style.Lang.Parser (
 )
 where
 
-import Control.Monad
+import qualified Data.Aeson as A
+import qualified Data.Text.Lazy as T
 import Style.Lang.Ast
 import Style.Lang.Lex
 import Style.Lang.Token
 import Style.Lang.Types
 import Text.Megaparsec
 import Text.Megaparsec.Char
+
+instance A.FromJSON SData where
+  parseJSON (A.Number n) = pure $ DNum $ Just n
+  parseJSON (A.Bool b) = pure $ DBool $ Just b
+  -- parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
+  parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
+  parseJSON a =
+    A.withText
+      "SData"
+      ( \v ->
+          case parse pAtom "" (T.fromStrict v) of
+            Left err -> fail $ errorBundlePretty err
+            Right res -> return res
+      )
+      a
 
 --------------------------------------------------------------------------------
 -- NUMERIC Functions

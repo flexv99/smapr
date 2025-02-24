@@ -83,7 +83,7 @@ extractMappers = concatMap extractMapper
         ]
 
 extractMappers' :: [Value] -> [SData]
-extractMappers' = concatMap extractMapper
+extractMappers' = concatMap extractMapper -- TODO issue is here!!
   where
     extractMapper :: Value -> [SData]
     extractMapper v =

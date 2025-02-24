@@ -4,7 +4,6 @@ module Style.Lang.Types where
 
 import Data.Colour
 import Data.Scientific
-import qualified Data.Aeson as A
 import qualified Data.Text.Lazy as T
 import GHC.Generics (Generic)
 
@@ -22,4 +21,3 @@ data SData
   | DBool SBool
   | DColor SColor
   deriving (Show, Generic, Eq)
-
