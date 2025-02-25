@@ -83,7 +83,7 @@ extractMappers = concatMap extractMapper
         ]
 
 extractMappers' :: [Value] -> [SData]
-extractMappers' = concatMap extractMapper -- TODO issue is here!!
+extractMappers' = concatMap (filter filterValue . extractMapper)
   where
     extractMapper :: Value -> [SData]
     extractMapper v =
@@ -95,6 +95,11 @@ extractMappers' = concatMap extractMapper -- TODO issue is here!!
       , DNum $ fromIntegral <$> sint_value v
       , DBool $ bool_value v
       ]
+    filterValue :: SData -> Bool
+    filterValue (DString Nothing) = False
+    filterValue (DNum Nothing) = False
+    filterValue (DBool Nothing) = False
+    filterValue _ = True
 
 getLayers :: T.Text -> Tile -> S.Seq Layer
 getLayers lName t =
