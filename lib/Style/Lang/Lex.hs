@@ -239,3 +239,9 @@ polySymbol =
   choice [Get <$ string "get", At <$ string "at", Match <$ string "match"]
     <|> PNum
     <$> numSymbol
+      <|> PString
+    <$> stringSymbol
+      <|> PBool
+    <$> boolSymbol
+      <|> PColor
+    <$> colorSymbol
