@@ -87,7 +87,7 @@ numOpParser Length = do
   case elems of
     (Left l) -> return $ LengthOfListE l
     (Right s) -> return $ LengthOfStringE s
-numOpParser Number = NumCastE <$> polyExprP
+numOpParser Number = NumberE <$> (polyExprP `sepBy1` (char ',' >> space))
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ stringExprP =
 stringOpParser :: StringToken -> Parser (SExpr SString)
 stringOpParser GeometryType = return FgeometryE
 stringOpParser TextAt = do
-  -- causes infinite loop on at, as ther is a polymorphic one too
+  -- causes infinite loop on at, as there is a polymorphic one too
   txt <- stringExprP
   _ <- char ',' >> space
   TextAtE txt <$> numExprP

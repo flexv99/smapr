@@ -23,6 +23,11 @@ eval (NumCastE n) = unwrapN <$> eval n
     unwrapN :: SData -> SNum
     unwrapN (DNum n) = n
     unwrapN _ = Nothing
+eval (NumberE n) = multiOp (listToMaybe . mapMaybe numVal) n
+  where
+    numVal :: SData -> SNum
+    numVal (DNum (Just x)) = Just x
+    numVal _ = Nothing
 eval (AddE a) = multiOp (fmap sum . sequence) a
 eval (ProdE p) = multiOp (fmap product . sequence) p
 eval (SubE s1 s2) = binaryOp (\a b -> (-) <$> a <*> b) s1 s2

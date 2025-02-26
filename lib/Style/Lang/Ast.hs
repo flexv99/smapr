@@ -18,6 +18,8 @@ data SExpr a where
   NumE :: SNum -> SExpr SNum
   -- | cast SData to SNum
   NumCastE :: SExpr SData -> SExpr SNum
+  -- | num expression
+  NumberE :: [SExpr SData] -> SExpr SNum
   -- | addition
   AddE :: [SExpr SNum] -> SExpr SNum
   -- | product
