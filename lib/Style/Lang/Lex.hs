@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Style.Lang.Lex (
-  Parser (..),
+  Parser,
   betweenBrackets,
   betweenSquareBrackets,
   betweenDoubleQuotes,
@@ -263,4 +263,5 @@ polySymbol =
     <$> boolSymbol
       <|> PColor
     <$> colorSymbol
-    <|> PArray <$> arraySymbol
+      <|> PArray
+    <$> arraySymbol

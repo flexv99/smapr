@@ -4,9 +4,9 @@
 module Style.Lang.Ast (
   SExpr (..),
   InterpolationType (..),
-  NumOrString (..),
-  STraversable (..),
   OrdType (..),
+  NumOrString,
+  STraversable,
 )
 where
 

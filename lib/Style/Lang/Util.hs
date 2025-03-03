@@ -1,5 +1,5 @@
 module Style.Lang.Util (
-  Color (..),
+  Color,
   hslToColor,
   rgbToColor,
   expandShortHex,

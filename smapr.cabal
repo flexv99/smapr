@@ -54,7 +54,7 @@ library
                     , Style.Lang.Util
                     , Style.Lang.Check
                     , Style.Lang.Eval
-                    , Style.Test.Entity
+                    , Style.Test.Unit
                     , Util
                     , ApiClient
 

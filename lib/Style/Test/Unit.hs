@@ -5,7 +5,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Style.Test.Entity where
+module Style.Test.Unit where
 
 import Control.Lens
 import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
