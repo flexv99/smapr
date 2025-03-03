@@ -128,7 +128,7 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
 runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
 runTestWithResult = do
   t <- liftIO readTest >>= liftEither -- Run IO action and lift Either into MonadError
-  return $  fromMaybe [] (testWithContexts t)
+  return $ fromMaybe [] (testWithContexts t)
   where
     testWithContexts t =
       fmap
@@ -152,7 +152,7 @@ runTest = do
 readTest :: IO (Either String ExpressionTestEntity)
 readTest = do
   conf <- smaprConfig
-  let testPath' = jsonTestPath conf ++ "get/basic/test.json"
+  let testPath' = jsonTestPath conf ++ "at/basic/test.json"
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
 

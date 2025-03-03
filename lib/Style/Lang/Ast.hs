@@ -48,8 +48,6 @@ data SExpr a where
   StringE :: SString -> SExpr SString
   -- | cast SData to SString
   StringCastE :: SExpr SData -> SExpr SString
-  -- | char at index
-  TextAtE :: SExpr SString -> SExpr SNum -> SExpr SString
   -- | to upper
   UpcaseE :: SExpr SString -> SExpr SString
   -- | to lower
@@ -85,7 +83,11 @@ data SExpr a where
     -> [(SExpr SNum, SColor)]
     -> SExpr SColor
   -- | list literal
-  ListE :: (Show a) => [a] -> SExpr [a]
+  ArrE :: [SData] -> SExpr [SData]
+  -- array assert expr
+  ArrayE :: [SExpr SData] -> SExpr [SData]
+  -- | cast sdata to array
+  ArrayCastE :: SExpr SData -> SExpr [SData]
   -- POLY
 
   -- | SData literal
@@ -95,10 +97,11 @@ data SExpr a where
   FromString :: SExpr SString -> SExpr SData
   FromBool :: SExpr SBool -> SExpr SData
   FromColor :: SExpr SColor -> SExpr SData
+  FromArray :: SExpr [SData] -> SExpr SData
   -- | Get value from feature tags
   FgetE :: SExpr SString -> SExpr SData
   -- | element at index
-  AtE :: SExpr [SData] -> SExpr SNum -> SExpr SData
+  AtE :: SExpr SNum -> STraversable -> SExpr SData
   -- | match
   MatchE :: SExpr SData -> [(SExpr SData, SExpr SData)] -> SExpr SData -> SExpr SData
 

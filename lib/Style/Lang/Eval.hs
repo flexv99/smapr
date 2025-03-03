@@ -83,15 +83,15 @@ eval (StringCastE s) = unwrapS <$> eval s
     unwrapS :: SData -> SString
     unwrapS (DString s) = s
     unwrapS _ = Nothing
-eval (TextAtE t i) = textAt <$> eval t <*> eval i
-  where
-    textAt :: SString -> SNum -> SString
-    textAt t i = T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
-eval (AtE l i) = binaryOp atImpl l i
+eval (AtE i (Left l)) = monoOp (atImpl l) i
   where
     atImpl :: [SData] -> SNum -> SData
     atImpl xs (Just i) = (!!) xs (floor $ toRealFloat i)
     atImpl xs _ = error "index is null"
+eval (AtE i (Right r)) = textAt <$> eval r <*> eval i
+  where
+    textAt :: SString -> SNum -> SData
+    textAt t i = DString $ T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
@@ -137,7 +137,7 @@ eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
 eval (FromBool b) = monoOp DBool b
 eval (FromColor c) = monoOp DColor c
-eval (ListE l) = return l
+eval (ArrE l) = return l
 eval (ColorE c) = return c
 eval (InterpolateColorE t i pts) = do
   i' <- eval i

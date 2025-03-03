@@ -20,4 +20,5 @@ data SData
   | DString SString
   | DBool SBool
   | DColor SColor
+  | DArray [SData]
   deriving (Show, Generic, Eq)

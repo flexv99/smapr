@@ -74,7 +74,7 @@ numOpParser Zoom = return FzoomE
 numOpParser IndexOf = do
   elem <- pAtom
   _ <- char ',' >> space
-  elems <- pTraversable
+  elems <- traversableP
   case elems of
     (Left l) -> return $ IndexOfListE elem l
     (Right s) -> return $ IndexOfStringE (unwrapText elem) s
@@ -83,7 +83,7 @@ numOpParser IndexOf = do
     unwrapText (DString s) = s
     unwrapText _ = Nothing -- for completeness, will newer happen
 numOpParser Length = do
-  elems <- pTraversable
+  elems <- traversableP
   case elems of
     (Left l) -> return $ LengthOfListE l
     (Right s) -> return $ LengthOfStringE s
@@ -106,11 +106,6 @@ stringExprP =
 
 stringOpParser :: StringToken -> Parser (SExpr SString)
 stringOpParser GeometryType = return FgeometryE
-stringOpParser TextAt = do
-  -- causes infinite loop on at, as there is a polymorphic one too
-  txt <- stringExprP
-  _ <- char ',' >> space
-  TextAtE txt <$> numExprP
 stringOpParser Upcase = UpcaseE <$> stringExprP
 stringOpParser Downcase = DowncaseE <$> stringExprP
 stringOpParser Concat = do
@@ -144,10 +139,28 @@ boolOpParser Less = OrdE OLess <$> numOrStringP <* (char ',' >> space) <*> numOr
 boolOpParser LessEq = OrdE OLessEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser Greater = OrdE OGreater <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
 boolOpParser GreaterEq = OrdE OGreaterEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
-boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> pTraversable
+boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> traversableP
 boolOpParser All = AllE <$> boolExprP `sepBy` (char ',' >> space)
 boolOpParser Has = HasE <$> stringExprP
 boolOpParser (BPoly t) = BoolCastE <$> polyOpParser t
+
+--------------------------------------------------------------------------------
+-- ARRAY Functions
+--------------------------------------------------------------------------------
+
+arrayExprP :: Parser (SExpr [SData])
+arrayExprP =
+  try (ArrE <$> pArray)
+    <|> betweenSquareBrackets
+      ( do
+          op <- betweenDoubleQuotes arraySymbol
+          _ <- optional (char ',' >> space)
+          arrayOpParser op
+      )
+
+arrayOpParser :: ArrayToken -> Parser (SExpr [SData])
+arrayOpParser Array = ArrayE <$> (polyExprP `sepBy1` (char ',' >> space))
+arrayOpParser (APoly a) = ArrayCastE <$> polyOpParser a
 
 --------------------------------------------------------------------------------
 -- COLOR Functions
@@ -192,6 +205,7 @@ polyExprP =
       , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
       , FromColor . ColorE <$> pColor
+      , FromArray . ArrE <$> pArray
       ]
       <|> betweenSquareBrackets
         ( do
@@ -203,9 +217,9 @@ polyExprP =
 polyOpParser :: PolyToken -> Parser (SExpr SData)
 polyOpParser Get = FgetE <$> stringExprP
 polyOpParser At = do
-  lst <- ListE <$> pArray
+  idx <- numExprP
   _ <- char ',' >> space
-  AtE lst <$> numExprP
+  AtE idx <$> traversableP
 polyOpParser Match = do
   v <- polyExprP
   _ <- char ',' >> space
@@ -254,5 +268,5 @@ interpolationTypeP = betweenSquareBrackets $ do
 numOrStringP :: Parser NumOrString
 numOrStringP = (Left <$> numExprP) <|> (Right <$> stringExprP)
 
-pTraversable :: Parser STraversable
-pTraversable = (Left <$> pArray) <|> (Right <$> stringExprP)
+traversableP :: Parser STraversable
+traversableP = (Left <$> pArray) <|> (Right <$> stringExprP)

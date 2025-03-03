@@ -30,7 +30,6 @@ data StringToken
   | Upcase
   | Downcase
   | Concat
-  | TextAt
   | SPoly PolyToken
   deriving (Eq, Show)
 
@@ -47,6 +46,11 @@ data BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)
 
+data ArrayToken
+  = Array
+  | APoly PolyToken
+  deriving (Eq, Show)
+
 data PolyToken
   = Get
   | At
@@ -55,4 +59,5 @@ data PolyToken
   | PString StringToken
   | PBool BoolToken
   | PColor ColorToken
+  | PArray ArrayToken
   deriving (Eq, Show)

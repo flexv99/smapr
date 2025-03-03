@@ -10,6 +10,7 @@ module Style.Lang.Lex (
   stringSymbol,
   boolSymbol,
   colorSymbol,
+  arraySymbol,
   polySymbol,
   pAtom,
   pString,
@@ -107,9 +108,20 @@ pDouble = lexeme L.float
 pInt :: Parser Int
 pInt = lexeme L.decimal
 
--- TODO accept lists of one datatype only
 pArray :: Parser [SData]
-pArray = betweenSquareBrackets $ pAtom `sepBy` (char ',' >> space)
+pArray = betweenSquareBrackets $ do
+  firstElem <- pAtom
+  _ <- char ',' >> space
+  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+  return (firstElem : restElems)
+
+parserForType :: SData -> Parser SData
+parserForType t = case t of
+  DNum _ -> DNum <$> pNum
+  DBool _ -> DBool <$> pBool
+  DString _ -> DString <$> pString
+  DArray _ -> DArray <$> pArray
+  _ -> pAtom
 
 --------------------------------------------------------------------------------
 
@@ -205,7 +217,6 @@ stringSymbol =
     , Upcase <$ string "upcase"
     , Downcase <$ string "downcase"
     , Concat <$ string "concat"
-    -- , TextAt <$ string "at"
     ]
     <|> SPoly
     <$> polySymbol
@@ -231,6 +242,13 @@ boolSymbol =
     <$> polySymbol
 
 --------------------------------------------------------------------------------
+-- Array symbol
+--------------------------------------------------------------------------------
+
+arraySymbol :: Parser ArrayToken
+arraySymbol = choice [Array <$ string "array"] <|> APoly <$> polySymbol
+
+--------------------------------------------------------------------------------
 -- Polymorphic symbol
 --------------------------------------------------------------------------------
 
@@ -245,3 +263,4 @@ polySymbol =
     <$> boolSymbol
       <|> PColor
     <$> colorSymbol
+    <|> PArray <$> arraySymbol
