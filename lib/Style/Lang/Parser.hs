@@ -5,6 +5,7 @@ module Style.Lang.Parser (
   stringExprP,
   boolExprP,
   colorExprP,
+  arrayExprP,
   polyExprP,
 )
 where
@@ -87,7 +88,7 @@ numOpParser Length = do
   case elems of
     (Left l) -> return $ LengthOfListE l
     (Right s) -> return $ LengthOfStringE s
-numOpParser Number = NumberE <$> (polyExprP `sepBy1` (char ',' >> space))
+numOpParser Number = NumberE <$> (try polyExprP `sepBy1` (char ',' >> space))
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -205,7 +206,7 @@ polyExprP =
       , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
       , FromColor . ColorE <$> pColor
-      , FromArray . ArrE <$> pArray
+      , try $ FromArray . ArrE <$> pArray -- not so nice...
       ]
       <|> betweenSquareBrackets
         ( do
