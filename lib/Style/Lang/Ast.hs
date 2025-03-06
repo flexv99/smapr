@@ -37,11 +37,11 @@ data SExpr a where
   -- | Zoom
   FzoomE :: SExpr SNum
   -- | index of element in list
-  IndexOfListE :: SData -> [SData] -> SExpr SNum
+  IndexOfListE :: SData -> SExpr [SData] -> SExpr SNum
   -- | index of element in string
   IndexOfStringE :: SString -> SExpr SString -> SExpr SNum
   -- | length of array
-  LengthOfListE :: [SData] -> SExpr SNum
+  LengthOfListE :: SExpr [SData] -> SExpr SNum
   -- | length of string
   LengthOfStringE :: SExpr SString -> SExpr SNum
   -- | string literal
@@ -115,7 +115,7 @@ data InterpolationType
 
 type NumOrString = Either (SExpr SNum) (SExpr SString)
 
-type STraversable = Either [SData] (SExpr SString)
+type STraversable = Either (SExpr [SData]) (SExpr SString)
 
 data OrdType
   = OLess

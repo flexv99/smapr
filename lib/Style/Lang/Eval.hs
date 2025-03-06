@@ -50,7 +50,7 @@ eval (InterpolateNumE t e a) =
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
 eval FzoomE = ask >>= \ctx -> return $ Just $ fromFloatDigits (ctx ^. ctxZoom)
-eval (IndexOfListE o e) = return $ handleNothing (fromIntegral <$> elemIndex o e)
+eval (IndexOfListE o e) = monoOp (\e' -> handleNothing (fromIntegral <$> elemIndex o e')) e
   where
     handleNothing :: SNum -> SNum
     handleNothing (Just x) = Just x
@@ -75,7 +75,7 @@ eval (IndexOfStringE c s) =
           | i + T.length needle > T.length haystack = Nothing
           | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
           | otherwise = findIndex (i + 1)
-eval (LengthOfListE l) = return $ Just $ fromIntegral $ length l
+eval (LengthOfListE l) = monoOp (Just . fromIntegral . length) l
 eval (LengthOfStringE s) = monoOp (\s' -> fromIntegral . T.length <$> s') s
 eval (StringE s) = return s
 eval (StringCastE s) = unwrapS <$> eval s
@@ -83,7 +83,7 @@ eval (StringCastE s) = unwrapS <$> eval s
     unwrapS :: SData -> SString
     unwrapS (DString s) = s
     unwrapS _ = Nothing
-eval (AtE i (Left l)) = monoOp (atImpl l) i
+eval (AtE i (Left l)) = binaryOp atImpl l i
   where
     atImpl :: [SData] -> SNum -> SData
     atImpl xs (Just i) = (!!) xs (floor $ toRealFloat i)
@@ -111,7 +111,7 @@ eval (OrdE t a1 a2) = case a1 of
     unwrapRight (Right l) = l
     unwrapRight _ = error "err: value is a number"
 eval (InE e t) = case t of
-  (Left l) -> monoOp (\e' -> Just $ e' `elem` l) e
+  (Left l) -> binaryOp (\e' l' -> Just $ e' `elem` l') e l
   (Right s) -> binaryOp (\e' s' -> T.isInfixOf <$> toString s' <*> e') s e
   where
     toString :: SData -> SString

@@ -12,6 +12,7 @@ where
 
 import qualified Data.Aeson as A
 import qualified Data.Text.Lazy as T
+import Data.Vector (toList)
 import Style.Lang.Ast
 import Style.Lang.Lex
 import Style.Lang.Token
@@ -22,8 +23,8 @@ import Text.Megaparsec.Char
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
   parseJSON (A.Bool b) = pure $ DBool $ Just b
-  -- parseJSON (A.Array a) = SArray <$> traverse A.parseJSON (V.toList a)
   parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
+  parseJSON (A.Array a) = DArray <$> traverse A.parseJSON (toList a)
   parseJSON a =
     A.withText
       "SData"
@@ -136,12 +137,34 @@ boolOpParser Equality = do
   v1 <- argsP
   _ <- char ',' >> space
   EqE v1 <$> argsP
-boolOpParser Less = OrdE OLess <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
-boolOpParser LessEq = OrdE OLessEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
-boolOpParser Greater = OrdE OGreater <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
-boolOpParser GreaterEq = OrdE OGreaterEq <$> numOrStringP <* (char ',' >> space) <*> numOrStringP
-boolOpParser In = InE <$> polyExprP <* (char ',' >> space) <*> traversableP
-boolOpParser All = AllE <$> boolExprP `sepBy` (char ',' >> space)
+boolOpParser Less =
+  OrdE OLess
+    <$> numOrStringP
+    <* (char ',' >> space)
+    <*> numOrStringP
+boolOpParser LessEq =
+  OrdE OLessEq
+    <$> numOrStringP
+    <* (char ',' >> space)
+    <*> numOrStringP
+boolOpParser Greater =
+  OrdE OGreater
+    <$> numOrStringP
+    <* (char ',' >> space)
+    <*> numOrStringP
+boolOpParser GreaterEq =
+  OrdE OGreaterEq
+    <$> numOrStringP
+    <* (char ',' >> space)
+    <*> numOrStringP
+boolOpParser In =
+  InE
+    <$> polyExprP
+    <* (char ',' >> space)
+    <*> traversableP
+boolOpParser All =
+  AllE
+    <$> boolExprP `sepBy` (char ',' >> space)
 boolOpParser Has = HasE <$> stringExprP
 boolOpParser (BPoly t) = BoolCastE <$> polyOpParser t
 
@@ -151,13 +174,13 @@ boolOpParser (BPoly t) = BoolCastE <$> polyOpParser t
 
 arrayExprP :: Parser (SExpr [SData])
 arrayExprP =
-  try (ArrE <$> pArray)
-    <|> betweenSquareBrackets
-      ( do
-          op <- betweenDoubleQuotes arraySymbol
-          _ <- optional (char ',' >> space)
-          arrayOpParser op
-      )
+  betweenSquareBrackets
+    ( do
+        op <- betweenDoubleQuotes arraySymbol
+        _ <- optional (char ',' >> space)
+        arrayOpParser op
+    )
+    <|> try (ArrE <$> pArray)
 
 arrayOpParser :: ArrayToken -> Parser (SExpr [SData])
 arrayOpParser Array = ArrayE <$> (polyExprP `sepBy1` (char ',' >> space))
@@ -206,7 +229,6 @@ polyExprP =
       , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
       , FromColor . ColorE <$> pColor
-      , try $ FromArray . ArrE <$> pArray -- not so nice...
       ]
       <|> betweenSquareBrackets
         ( do
@@ -214,6 +236,8 @@ polyExprP =
             _ <- optional (char ',' >> space)
             polyOpParser op
         )
+      <|> try
+        (FromArray . ArrE <$> pArray) -- last chance
 
 polyOpParser :: PolyToken -> Parser (SExpr SData)
 polyOpParser Get = FgetE <$> stringExprP
@@ -236,6 +260,7 @@ polyOpParser Match = do
         go pairs _ [] = (pairs, y) -- Return the pairs and the last element
         go pairs prev (z : zs) = go (pairs ++ [(prev, z)]) z zs
 polyOpParser (PNum t) = FromNum <$> numOpParser t
+polyOpParser (PArray t) = FromArray <$> arrayOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t
 polyOpParser (PBool t) = FromBool <$> boolOpParser t
 polyOpParser (PColor t) = FromColor <$> colorOpParser t
@@ -270,4 +295,4 @@ numOrStringP :: Parser NumOrString
 numOrStringP = (Left <$> numExprP) <|> (Right <$> stringExprP)
 
 traversableP :: Parser STraversable
-traversableP = (Left <$> pArray) <|> (Right <$> stringExprP)
+traversableP = (Left <$> arrayExprP) <|> (Right <$> stringExprP)

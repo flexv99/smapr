@@ -23,7 +23,7 @@ import qualified Data.Sequence as S
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
 import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer
+import Proto.Vector_tile.Tile.Layer hiding (ext'field)
 import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.Lang.Ast
@@ -112,6 +112,7 @@ sDataToValue (DString s) = (P'.defaultValue :: Value){string_value = (fromEither
     fromEither _ = Nothing
 sDataToValue (DNum d) = (P'.defaultValue :: Value){double_value = toRealFloat <$> d}
 sDataToValue (DBool b) = (P'.defaultValue :: Value){bool_value = b}
+sDataToValue (DArray d) = (P'.defaultValue :: Value) -- cannot return array value
 sDataToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> ExpressionContext
