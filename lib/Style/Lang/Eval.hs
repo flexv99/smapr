@@ -140,6 +140,15 @@ eval (MatchE i c f) = do
     revTuple t = sequence [eval $ fst t, eval $ snd t]
     tuplify (x : x' : _) = (x, x')
     tuplify _ = error "err: not a list of 2 elems, this should newer happen"
+eval (CaseE cs f) = do
+  cs' <- mapM reveal cs
+  f' <- eval f
+  return $ sCase cs' f'
+  where
+    reveal (f, s) = do
+      f' <- eval f
+      s' <- eval s
+      return (f', s')
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
@@ -251,6 +260,11 @@ sMatch t matches fallback = fromMaybe fallback (listToMaybe $ isIn matches)
     binary (DArray a, b) = if t `elem` a then Just b else Nothing
     binary (a, b) = if a == t then Just b else Nothing
     isIn = mapMaybe binary
+
+sCase :: [(SBool, SData)] -> SData -> SData
+sCase ((Just b, r) : xs) f = if b then r else sCase xs f
+sCase [] f = f
+sCase _ f = f
 
 -- Testing shite:
 -- >>> join $ join $ fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")

@@ -153,7 +153,7 @@ runTest = do
 readTest :: IO (Either String ExpressionTestEntity)
 readTest = do
   conf <- smaprConfig
-  let testPath' = jsonTestPath conf ++ "match/basic/test.json"
+  let testPath' = jsonTestPath conf ++ "case/basic/test.json"
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
 

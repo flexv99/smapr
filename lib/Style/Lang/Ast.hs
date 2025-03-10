@@ -104,6 +104,8 @@ data SExpr a where
   AtE :: SExpr SNum -> STraversable -> SExpr SData
   -- | match
   MatchE :: SExpr SData -> [(SExpr SData, SExpr SData)] -> SExpr SData -> SExpr SData
+  -- | case
+  CaseE :: [(SExpr SBool, SExpr SData)] -> SExpr SData -> SExpr SData
 
 deriving instance Show (SExpr a)
 

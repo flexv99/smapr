@@ -254,7 +254,7 @@ arraySymbol = choice [Array <$ string "array"] <|> APoly <$> polySymbol
 
 polySymbol :: Parser PolyToken
 polySymbol =
-  choice [Get <$ string "get", At <$ string "at", Match <$ string "match"]
+  choice [Get <$ string "get", At <$ string "at", Match <$ string "match", Case <$ string "case"]
     <|> PNum
     <$> numSymbol
       <|> PString

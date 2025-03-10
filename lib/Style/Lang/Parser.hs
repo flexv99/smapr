@@ -260,6 +260,16 @@ polyOpParser Match = do
         initXs = init xs
         pairUp (x : y : rest) = (x, y) : pairUp rest
         pairUp _ = []
+polyOpParser Case = do
+  choices <- many choicesP
+  CaseE choices <$> polyExprP
+  where
+    choicesP = do
+      arg1 <- boolExprP
+      _ <- char ',' >> space
+      arg2 <- polyExprP
+      _ <- char ',' >> space
+      return (arg1, arg2)
 polyOpParser (PNum t) = FromNum <$> numOpParser t
 polyOpParser (PArray t) = FromArray <$> arrayOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t

@@ -55,6 +55,7 @@ data PolyToken
   = Get
   | At
   | Match
+  | Case
   | PNum NumToken
   | PString StringToken
   | PBool BoolToken
