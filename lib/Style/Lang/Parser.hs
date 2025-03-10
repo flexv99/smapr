@@ -249,16 +249,17 @@ polyOpParser Match = do
   v <- polyExprP
   _ <- char ',' >> space
   cases' <- polyExprP `sepBy` (char ',' >> space)
-  let (cases, fallback) = tuplifyWithFallback cases'
+  let (cases, fallback) = tuplify cases'
   return $ MatchE v cases fallback
   where
-    tuplifyWithFallback :: [a] -> ([(a, a)], a)
-    tuplifyWithFallback [] = error "no fallback value"
-    tuplifyWithFallback [_] = error "no fallback value"
-    tuplifyWithFallback (x : y : xs) = go [(x, y)] y xs
+    tuplify :: [a] -> ([(a, a)], a)
+    tuplify xs
+      | odd (length xs) = (pairUp initXs, last xs)
+      | otherwise = error "List must have an odd number of elements"
       where
-        go pairs _ [] = (pairs, y) -- Return the pairs and the last element
-        go pairs prev (z : zs) = go (pairs ++ [(prev, z)]) z zs
+        initXs = init xs
+        pairUp (x : y : rest) = (x, y) : pairUp rest
+        pairUp _ = []
 polyOpParser (PNum t) = FromNum <$> numOpParser t
 polyOpParser (PArray t) = FromArray <$> arrayOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t

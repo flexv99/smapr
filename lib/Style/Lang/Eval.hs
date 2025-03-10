@@ -69,12 +69,12 @@ eval (IndexOfStringE c s) =
     substringIndex :: T.Text -> T.Text -> Maybe Int
     substringIndex needle haystack
       | T.null needle = Just 0 -- Treat empty needle as found at the beginning
-      | otherwise = findIndex 0
+      | otherwise = findIndex' 0
       where
-        findIndex i
+        findIndex' i
           | i + T.length needle > T.length haystack = Nothing
           | T.take (T.length needle) (T.drop i haystack) == needle = Just (fromIntegral i)
-          | otherwise = findIndex (i + 1)
+          | otherwise = findIndex' (i + 1)
 eval (LengthOfListE l) = monoOp (Just . fromIntegral . length) l
 eval (LengthOfStringE s) = monoOp (\s' -> fromIntegral . T.length <$> s') s
 eval (StringE s) = return s
@@ -131,7 +131,15 @@ eval (FgetE k) = eval k >>= featureGet
       ctx <- ask
       let props = featureProperties'' ctx
       return $ fromMaybe (DNum Nothing) ((`MP.lookup` props) =<< key)
-eval (MatchE i c f) = undefined
+eval (MatchE i c f) = do
+  t <- eval i
+  matches <- mapM (fmap tuplify . revTuple) c
+  fallback <- eval f
+  return $ sMatch t matches fallback
+  where
+    revTuple t = sequence [eval $ fst t, eval $ snd t]
+    tuplify (x : x' : _) = (x, x')
+    tuplify _ = error "err: not a list of 2 elems, this should newer happen"
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
@@ -237,9 +245,10 @@ sOrd t x y = op t <$> x <*> y
     op OGreater = (>)
     op OGreaterEq = (>=)
 
-sMatch t (matches, fallback) = fromMaybe fallback (listToMaybe $ isIn matches)
+sMatch :: SData -> [(SData, SData)] -> SData -> SData
+sMatch t matches fallback = fromMaybe fallback (listToMaybe $ isIn matches)
   where
-    -- binary (SArray a, b) = if t `elem` a then Just b else Nothing
+    binary (DArray a, b) = if t `elem` a then Just b else Nothing
     binary (a, b) = if a == t then Just b else Nothing
     isIn = mapMaybe binary
 

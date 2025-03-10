@@ -112,7 +112,7 @@ sDataToValue (DString s) = (P'.defaultValue :: Value){string_value = (fromEither
     fromEither _ = Nothing
 sDataToValue (DNum d) = (P'.defaultValue :: Value){double_value = toRealFloat <$> d}
 sDataToValue (DBool b) = (P'.defaultValue :: Value){bool_value = b}
-sDataToValue (DArray d) = (P'.defaultValue :: Value) -- cannot return array value
+sDataToValue (DArray d) = P'.defaultValue :: Value -- cannot store arrays to value
 sDataToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> ExpressionContext
@@ -153,7 +153,7 @@ runTest = do
 readTest :: IO (Either String ExpressionTestEntity)
 readTest = do
   conf <- smaprConfig
-  let testPath' = jsonTestPath conf ++ "at/basic/test.json"
+  let testPath' = jsonTestPath conf ++ "match/basic/test.json"
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
 

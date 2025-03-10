@@ -58,7 +58,7 @@ featureProperties'' ctx =
     $ map
       ( \(x, y) ->
           let (i, j) = (fromIntegral x, fromIntegral y)
-           in (T.pack (key !! i), value !! j)
+           in (T.pack (fromMaybe "" (key !? j)), fromMaybe (DNum Nothing) (value !? j))
       )
     $ tuplify
     $ toList
@@ -66,6 +66,17 @@ featureProperties'' ctx =
   where
     key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys (ctx ^. layer)
     value = extractMappers' $ toList $ values (ctx ^. layer)
+    xs !? n
+      | n < 0 = Nothing
+      | otherwise =
+          foldr
+            ( \x r k -> case k of
+                0 -> Just x
+                _ -> r (k - 1)
+            )
+            (const Nothing)
+            xs
+            n
 
 extractMappers :: [Value] -> [SType]
 extractMappers = concatMap extractMapper
