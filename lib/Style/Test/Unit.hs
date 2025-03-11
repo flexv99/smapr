@@ -119,9 +119,10 @@ testCTXs :: Properties -> ExpressionContext
 testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x, _feature = dFeature}) createLayer
   where
     props = MP.lookup "properties" p
+    nrProps = maybe 0 (length . MP.keys) props
     k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
     v' = S.fromList . map sDataToValue . MP.elems <$> props
-    t' = S.fromList $ map fromInteger $ take (length p * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    t' = S.fromList $ map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
     dFeature = (P'.defaultValue :: Feature){tags = t'}
     createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
     defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
