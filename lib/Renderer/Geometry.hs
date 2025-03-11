@@ -7,6 +7,7 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.Reader
 import Data.Foldable
+import Data.Maybe (fromMaybe)
 import qualified Data.Sequence as S
 import Decoder.Geometry
 import qualified Diagrams.Prelude as D
@@ -56,7 +57,7 @@ renderTile tile layer' = do
   D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
   where
     toBeDrawn = runReader (evalLayer layer')
-    eachLayer ctx = if toBeDrawn ctx then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
+    eachLayer ctx = if fromMaybe False (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
     layers' =
       maybe
         S.empty

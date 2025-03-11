@@ -69,7 +69,7 @@ instance A.FromJSON SWrap where
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
-      pt = join $ _paint <$> stile
+      pt = (_paint =<< stile)
    in renderTile t <$> stile
 
 renderStyles' :: SLayer -> Tile -> D.Diagram D.B
@@ -102,7 +102,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg

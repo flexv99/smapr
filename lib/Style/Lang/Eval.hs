@@ -92,6 +92,7 @@ eval (AtE i (Right r)) = textAt <$> eval r <*> eval i
   where
     textAt :: SString -> SNum -> SData
     textAt t i = DString $ T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
+eval FgeometryE = ask >>= \ctx -> return $ geometryTypeToString (ctx ^. feature)
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
@@ -149,6 +150,14 @@ eval (CaseE cs f) = do
       f' <- eval f
       s' <- eval s
       return (f', s')
+eval (StepE i cs) = do
+  i' <- eval i
+  cs' <- mapM reveal cs
+  return $ sStep i' cs'
+  where
+    reveal (f, s) = do
+      f' <- eval f
+      return (f', s)
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
@@ -265,6 +274,14 @@ sCase :: [(SBool, SData)] -> SData -> SData
 sCase ((Just b, r) : xs) f = if b then r else sCase xs f
 sCase [] f = f
 sCase _ f = f
+
+sStep :: SNum -> [(SData, SNum)] -> SData
+sStep n xs = maybe (fst $ last xs) fst (find (\(_, b) -> fromMaybe True (isSmaller n b)) xs)
+  where
+    isSmaller :: SNum -> SNum -> SBool
+    isSmaller n m = (<=) <$> n <*> m
+
+-- isSmaller n Nothing = True
 
 -- Testing shite:
 -- >>> join $ join $ fmap (\r -> runReader r <$> ctx) (eval <$> parseMaybe stringExprP "[\"get\", \"class\"]")

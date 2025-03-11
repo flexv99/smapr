@@ -204,7 +204,7 @@ numSymbol =
     , Length <$ string "length"
     ]
     <|> NPoly
-    <$> polySymbol
+    <$> polyReciever
 
 --------------------------------------------------------------------------------
 -- String symbol
@@ -219,7 +219,7 @@ stringSymbol =
     , Concat <$ string "concat"
     ]
     <|> SPoly
-    <$> polySymbol
+    <$> polyReciever
 
 --------------------------------------------------------------------------------
 -- Bool symbol
@@ -239,23 +239,35 @@ boolSymbol =
     , All <$ string "all"
     ]
     <|> BPoly
-    <$> polySymbol
+    <$> polyReciever
 
 --------------------------------------------------------------------------------
 -- Array symbol
 --------------------------------------------------------------------------------
 
 arraySymbol :: Parser ArrayToken
-arraySymbol = choice [Array <$ string "array"] <|> APoly <$> polySymbol
+arraySymbol = choice [Array <$ string "array"] <|> APoly <$> polyReciever
 
 --------------------------------------------------------------------------------
 -- Polymorphic symbol
 --------------------------------------------------------------------------------
 
+polyReciever :: Parser PolyToken
+polyReciever =
+  choice
+    [ Get <$ string "get"
+    , At <$ string "at"
+    , Match <$ string "match"
+    , Case <$ string "case"
+    , Step <$ string "step"
+    ]
+
 polySymbol :: Parser PolyToken
 polySymbol =
-  choice [Get <$ string "get", At <$ string "at", Match <$ string "match", Case <$ string "case"]
-    <|> PNum
+  polyReciever
+    <|> PArray
+    <$> arraySymbol
+      <|> PNum
     <$> numSymbol
       <|> PString
     <$> stringSymbol
@@ -263,5 +275,3 @@ polySymbol =
     <$> boolSymbol
       <|> PColor
     <$> colorSymbol
-      <|> PArray
-    <$> arraySymbol

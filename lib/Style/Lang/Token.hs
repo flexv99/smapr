@@ -56,6 +56,7 @@ data PolyToken
   | At
   | Match
   | Case
+  | Step
   | PNum NumToken
   | PString StringToken
   | PBool BoolToken

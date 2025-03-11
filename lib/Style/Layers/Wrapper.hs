@@ -14,8 +14,10 @@ import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Text.Lazy as T
 import Style.ExpressionsContext
-import Style.ExpressionsWrapper
-import Style.IsoExpressions
+import Style.Lang.Ast
+import Style.Lang.Eval
+import Style.Lang.Parser
+import Style.Lang.Types
 import Style.Layers.Background
 import Style.Layers.Fill
 import Style.Layers.Line
@@ -28,7 +30,7 @@ data SLayer = SLayer
   , _pType :: T.Text
   , _source :: Maybe T.Text
   , _sourceLayer :: Maybe T.Text
-  , _lfilter :: Maybe (IsoExpr Bool)
+  , _lfilter :: Maybe (SExpr SBool)
   , _paint :: Maybe Paint
   }
 
@@ -47,7 +49,7 @@ instance A.FromJSON SLayer where
     let p' = sequenceA $ paintP type' <$> p
     SLayer id' type' source' sourceLayer' filter' <$> p'
     where
-      fexpr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr Bool))
+      fexpr :: Maybe A.Value -> A.Parser (Maybe (SExpr SBool))
       fexpr Nothing = pure Nothing
       fexpr (Just v) = case parse boolExprP "" (A.encodeToLazyText v) of
         Left err -> fail $ errorBundlePretty err
@@ -59,6 +61,6 @@ instance A.FromJSON SLayer where
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
-evalLayer :: SLayer -> Reader ExpressionContext Bool
+evalLayer :: SLayer -> Reader ExpressionContext SBool
 evalLayer (SLayer{_lfilter = Just fltr}) = eval fltr
-evalLayer _ = return True
+evalLayer _ = return $ Just True

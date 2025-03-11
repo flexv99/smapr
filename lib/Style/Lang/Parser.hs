@@ -10,6 +10,7 @@ module Style.Lang.Parser (
 )
 where
 
+import Control.Monad (join)
 import qualified Data.Aeson as A
 import qualified Data.Text.Lazy as T
 import Data.Vector (toList)
@@ -229,6 +230,7 @@ polyExprP =
       , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
       , FromColor . ColorE <$> pColor
+      , try $ FromArray . ArrE <$> pArray
       ]
       <|> betweenSquareBrackets
         ( do
@@ -270,6 +272,16 @@ polyOpParser Case = do
       arg2 <- polyExprP
       _ <- char ',' >> space
       return (arg1, arg2)
+polyOpParser Step = do
+  step <- numExprP
+  _ <- char ',' >> space
+  StepE step <$> pairsP `sepBy` (char ',' >> space)
+  where
+    pairsP :: Parser (SExpr SData, SNum)
+    pairsP = do
+      v <- polyExprP
+      stop <- optional (char ',' >> space >> pNum)
+      return (v, join stop)
 polyOpParser (PNum t) = FromNum <$> numOpParser t
 polyOpParser (PArray t) = FromArray <$> arrayOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t

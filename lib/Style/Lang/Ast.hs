@@ -106,6 +106,8 @@ data SExpr a where
   MatchE :: SExpr SData -> [(SExpr SData, SExpr SData)] -> SExpr SData -> SExpr SData
   -- | case
   CaseE :: [(SExpr SBool, SExpr SData)] -> SExpr SData -> SExpr SData
+  -- | step
+  StepE :: SExpr SNum -> [(SExpr SData, SNum)] -> SExpr SData
 
 deriving instance Show (SExpr a)
 
