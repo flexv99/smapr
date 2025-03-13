@@ -34,7 +34,8 @@ data StringToken
   deriving (Eq, Show)
 
 data BoolToken
-  = Equality
+  = Neg
+  | Equality
   | Greater
   | GreaterEq
   | Less

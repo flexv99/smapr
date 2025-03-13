@@ -29,8 +29,6 @@ import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Renderer.Geometry
-import Style.ExpressionsWrapper
-import Style.IsoExpressions
 import Style.Layers.Wrapper
 import Style.Parser
 import Util

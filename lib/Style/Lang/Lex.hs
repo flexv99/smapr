@@ -109,11 +109,17 @@ pInt :: Parser Int
 pInt = lexeme L.decimal
 
 pArray :: Parser [SData]
-pArray = betweenSquareBrackets $ do
-  firstElem <- pAtom
-  _ <- char ',' >> space
-  restElems <- parserForType firstElem `sepBy` (char ',' >> space)
-  return (firstElem : restElems)
+pArray = do
+  try oneElemArr <|> betweenSquareBrackets
+    ( do
+        firstElem <- pAtom
+        _ <- optional (char ',' >> space)
+        restElems <- parserForType firstElem `sepBy` (char ',' >> space)
+        return (firstElem : restElems)) <?> "array"
+    where
+    oneElemArr = betweenSquareBrackets $ do
+      val <- pAtom
+      return [val]
 
 parserForType :: SData -> Parser SData
 parserForType t = case t of
@@ -228,7 +234,8 @@ stringSymbol =
 boolSymbol :: Parser BoolToken
 boolSymbol =
   choice
-    [ Negated Equality <$ string "!="
+  [ Negated Equality <$ string "!="
+    , try $ Neg <$ string "!"
     , Equality <$ string "=="
     , LessEq <$ string "<="
     , Less <$ char '<'
