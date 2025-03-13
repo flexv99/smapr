@@ -163,6 +163,7 @@ eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
 eval (FromBool b) = monoOp DBool b
 eval (FromColor c) = monoOp DColor c
+eval (FromArray a) = monoOp DArray a
 eval (ArrE l) = return l
 eval (ColorE c) = return c
 eval (InterpolateColorE t i pts) = do
@@ -190,7 +191,7 @@ eval (InterpolateColorE t i pts) = do
     processTuple :: (SNum, SColor) -> Maybe (Double, SColor)
     processTuple (Just x, c) = Just (toRealFloat x, c)
     processTuple _ = Nothing
-eval _ = error "not yet implemented"
+eval x = error ("not yet implemented" ++ show x)
 
 --------------------------------------------------------------------------------
 
