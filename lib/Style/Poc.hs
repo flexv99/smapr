@@ -108,7 +108,7 @@ renderStyleSpec = do
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
   t <- getFromUrl url
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
@@ -121,7 +121,11 @@ drawTour tour = tourPoints <> D.strokeP tourPath
     dot = D.circle 0.05 D.# D.fc D.black
 
 featureToDiagramC :: Feature -> D.Diagram D.B
-featureToDiagramC (Feature _ _ (Just LINESTRING) g) = foldl1 D.atop $ map (drawTour . lineToPoints) (decodeC' g :: [LineG])
+featureToDiagramC (Feature _ _ (Just LINESTRING) g) =
+  foldl1 D.atop $
+    map
+      (drawTour . lineToPoints)
+      (decodeC' g :: [LineG])
 featureToDiagramC _ = D.strutX 0
 
 lineToPoints :: LineG -> [D.P2 Double]
@@ -131,7 +135,14 @@ decodeC' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decodeC' g = decode $ map fromIntegral $ toList g
 
 renderContourLayer :: T.Text -> Tile -> D.Diagram D.B
-renderContourLayer l t = D.reflectY . foldl1 D.atop . map featureToDiagramC . head . map toList . (map features <$> toList) $ getLayers l t
+renderContourLayer l t =
+  D.reflectY
+    . foldl1 D.atop
+    . map featureToDiagramC
+    . head
+    . map toList
+    . (map features <$> toList)
+    $ getLayers l t
 
 testContour :: IO ()
 testContour = do
@@ -143,3 +154,7 @@ testContour = do
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg (d <> dg)
+
+
+  
+ --- :break Renderer.Geometry.renderTile.eachLayer
