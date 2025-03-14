@@ -231,7 +231,6 @@ polyExprP =
       , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
       , FromColor . ColorE <$> pColor
-      , try $ FromArray . ArrE <$> pArray
       ]
       <|> betweenSquareBrackets
         ( do
@@ -239,8 +238,7 @@ polyExprP =
             _ <- optional (char ',' >> space)
             polyOpParser op
         )
-      <|> try
-        (FromArray . ArrE <$> pArray) -- last chance
+      <|> (FromArray . ArrE <$> pArray) -- last chance
 
 polyOpParser :: PolyToken -> Parser (SExpr SData)
 polyOpParser Get = FgetE <$> stringExprP
@@ -251,10 +249,11 @@ polyOpParser At = do
 polyOpParser Match = do
   v <- polyExprP
   _ <- char ',' >> space
-  cases' <- polyExprP `sepBy` (char ',' >> space)
+  cases' <- caseP `sepBy` (char ',' >> space)
   let (cases, fallback) = tuplify cases'
   return $ MatchE v cases fallback
   where
+    caseP = polyExprP <|> (FromArray . ArrE <$> pArray)
     tuplify :: [a] -> ([(a, a)], a)
     tuplify xs
       | odd (length xs) = (pairUp initXs, last xs)
