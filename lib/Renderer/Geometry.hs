@@ -57,7 +57,7 @@ renderTile tile layer' = do
   D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
   where
     toBeDrawn = runReader (evalLayer layer')
-    eachLayer ctx = if (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
+    eachLayer ctx = if fromMaybe True (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
     layers' =
       maybe
         S.empty

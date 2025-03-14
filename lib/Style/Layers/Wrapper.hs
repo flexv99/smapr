@@ -7,12 +7,12 @@
 
 module Style.Layers.Wrapper where
 
-import Data.Maybe (fromMaybe)
 import Control.Lens
 import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
+import Data.Maybe (fromMaybe)
 import qualified Data.Text.Lazy as T
 import Style.ExpressionsContext
 import Style.Lang.Ast
@@ -62,6 +62,6 @@ instance A.FromJSON SLayer where
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
-evalLayer :: SLayer -> Reader ExpressionContext Bool
-evalLayer (SLayer{_lfilter = Just fltr}) = fmap (\x -> fromMaybe False x) (eval fltr)
-evalLayer _ = return True
+evalLayer :: SLayer -> Reader ExpressionContext SBool
+evalLayer (SLayer{_lfilter = Just fltr}) = eval fltr
+evalLayer _ = return $ Just True

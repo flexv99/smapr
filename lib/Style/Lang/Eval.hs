@@ -102,7 +102,13 @@ eval (BoolCastE b) = unwrapBool <$> eval b
     unwrapBool (DBool b) = b
     unwrapBool _ = Nothing
 eval (Negation b) = monoOp (not <$>) b
-eval (EqE a1 a2) = binaryOp (\a b -> Just $ a == b) a1 a2
+eval (EqE a1 a2) = binaryOp sEq a1 a2
+  where
+    sEq :: SData -> SData -> SBool
+    sEq (DString s1) (DString s2) =
+      ((==) . T.toCaseFold <$> s1)
+        <*> (T.toCaseFold <$> s2)
+    sEq a1 a2 = Just $ a1 == a2
 eval (OrdE t a1 a2) = case a1 of
   (Left n) -> binaryOp (sOrd t) n (unwrapLeft a2)
   (Right s) -> binaryOp (sOrd t) s (unwrapRight a2)

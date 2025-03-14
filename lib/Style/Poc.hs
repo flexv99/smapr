@@ -100,7 +100,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
@@ -155,6 +155,4 @@ testContour = do
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg (d <> dg)
 
-
-  
- --- :break Renderer.Geometry.renderTile.eachLayer
+--- :break Renderer.Geometry.renderTile.eachLayer
