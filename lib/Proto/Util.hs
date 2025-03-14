@@ -58,7 +58,7 @@ featureProperties'' ctx =
     $ map
       ( \(x, y) ->
           let (i, j) = (fromIntegral x, fromIntegral y)
-           in (T.pack (fromMaybe "" (key !? j)), fromMaybe (DNum Nothing) (value !? j))
+           in (T.pack (fromMaybe "" (key !? i)), fromMaybe (DNum Nothing) (value !? j))
       )
     $ tuplify
     $ toList
