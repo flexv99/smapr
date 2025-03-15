@@ -12,10 +12,13 @@ import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
+import Data.Maybe (fromMaybe)
 import qualified Data.Text.Lazy as T
 import Style.ExpressionsContext
-import Style.ExpressionsWrapper
-import Style.IsoExpressions
+import Style.Lang.Ast
+import Style.Lang.Eval
+import Style.Lang.Parser
+import Style.Lang.Types
 import Style.Layers.Background
 import Style.Layers.Fill
 import Style.Layers.Line
@@ -24,12 +27,12 @@ import Text.Megaparsec
 data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)
 
 data SLayer = SLayer
-  { _id :: T.Text,
-    _pType :: T.Text,
-    _source :: Maybe T.Text,
-    _sourceLayer :: Maybe T.Text,
-    _lfilter :: Maybe (IsoExpr Bool),
-    _paint :: Maybe Paint
+  { _id :: T.Text
+  , _pType :: T.Text
+  , _source :: Maybe T.Text
+  , _sourceLayer :: Maybe T.Text
+  , _lfilter :: Maybe (SExpr SBool)
+  , _paint :: Maybe Paint
   }
 
 makeLenses ''SLayer
@@ -47,7 +50,7 @@ instance A.FromJSON SLayer where
     let p' = sequenceA $ paintP type' <$> p
     SLayer id' type' source' sourceLayer' filter' <$> p'
     where
-      fexpr :: Maybe A.Value -> A.Parser (Maybe (IsoExpr Bool))
+      fexpr :: Maybe A.Value -> A.Parser (Maybe (SExpr SBool))
       fexpr Nothing = pure Nothing
       fexpr (Just v) = case parse boolExprP "" (A.encodeToLazyText v) of
         Left err -> fail $ errorBundlePretty err
@@ -59,6 +62,6 @@ instance A.FromJSON SLayer where
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
-evalLayer :: SLayer -> Reader ExpressionContext Bool
-evalLayer (SLayer {_lfilter = Just fltr}) = eval fltr
-evalLayer _ = return True
+evalLayer :: SLayer -> Reader ExpressionContext SBool
+evalLayer (SLayer{_lfilter = Just fltr}) = eval fltr
+evalLayer _ = return $ Just True

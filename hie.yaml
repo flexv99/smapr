@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    component: "lib:smapr"
+
+format:
+  provider: fourmolu

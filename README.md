@@ -18,4 +18,8 @@ maptiler_api {
 }
 
 test_dest_path = "absolute path"
+
+test_tile_path = "..."
+
+json_test_path = "..."
 ```

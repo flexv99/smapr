@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Decoder.Polygons
-  ( decPolygon,
-    isInner,
-    helperDecSPolygon,
-    PolygonG (..),
-    SPolygon (..),
-    MPolygon,
-    Point,
-    GeoAction (..),
-  )
+module Decoder.Polygons (
+  decPolygon,
+  isInner,
+  helperDecSPolygon,
+  PolygonG (..),
+  SPolygon (..),
+  MPolygon,
+  Point,
+  GeoAction (..),
+)
 where
 
 import Control.Lens hiding (uncons)
@@ -23,8 +23,8 @@ decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
     singleDecoder l =
       GeoAction
-        { _command = decodeCommand (head l),
-          _parameters = tuplify $ map decodeParam (tail l)
+        { _command = decodeCommand (head l)
+        , _parameters = tuplify $ map decodeParam (tail l)
         }
 
 absolutePolygonG :: SPolygon -> SPolygon
@@ -44,8 +44,8 @@ relativeMoveTo = f []
         else p : f (p : acc) ps
     newMoveTo p c =
       GeoAction
-        { _command = view (pMoveTo . command) p,
-          _parameters = zipWith sumTuple (view (pMoveTo . parameters) p) [sumMoveToAndLineTo c]
+        { _command = view (pMoveTo . command) p
+        , _parameters = zipWith sumTuple (view (pMoveTo . parameters) p) [sumMoveToAndLineTo c]
         }
 
 -- refactor: is extractPoints even needed??
@@ -58,13 +58,13 @@ sumMoveToAndLineTo polygons =
 helperDecSPolygon :: [Int] -> [SPolygon]
 helperDecSPolygon = map absolutePolygonG . relativeMoveTo . (map actionToPolygonG . decodePolygonCommands)
   where
-    actionToPolygonG g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
+    actionToPolygonG g = SPolygon{_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
 
 decPolygon :: [Int] -> [PolygonG]
 decPolygon = delegator . map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
   where
     actionToPolygon :: [GeoAction] -> SPolygon
-    actionToPolygon g = SPolygon {_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
+    actionToPolygon g = SPolygon{_pMoveTo = head g, _pLineTo = g !! 1, _pClosePath = last g}
     delegator [x] = [SinglePolygon x]
     delegator xs =
       mapMaybe
@@ -89,9 +89,9 @@ decPolygon = delegator . map absolutePolygonG . relativeMoveTo . (map actionToPo
 polygonParams :: SPolygon -> [Point]
 polygonParams (SPolygon pMoveTo' pLineTo' pClosePath') =
   concat
-    [ pMoveTo' ^. parameters,
-      pLineTo' ^. parameters,
-      pClosePath' ^. parameters
+    [ pMoveTo' ^. parameters
+    , pLineTo' ^. parameters
+    , pClosePath' ^. parameters
     ]
 
 shoelace :: [Point] -> Double

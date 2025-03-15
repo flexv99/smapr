@@ -1,13 +1,12 @@
-module Decoder.Geometry
-  ( featureToGeo,
-    decodeSeq,
-    PolygonG (..),
-    LineG (..),
-    MapGeometry (..),
-  )
+module Decoder.Geometry (
+  featureToGeo,
+  decodeSeq,
+  PolygonG (..),
+  LineG (..),
+  MapGeometry (..),
+)
 where
 
-import Control.Monad.Reader
 import Data.Foldable
 import qualified Data.Sequence as S
 import Decoder.Lines
@@ -15,7 +14,6 @@ import Decoder.Polygons
 import GHC.Word
 import Proto.Vector_tile.Tile.Feature
 import Proto.Vector_tile.Tile.GeomType
-import Style.ExpressionsContext
 
 class MapGeometry a where
   decode :: [Int] -> [a]

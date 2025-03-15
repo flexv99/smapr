@@ -7,11 +7,10 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.Reader
 import Data.Foldable
+import Data.Maybe (fromMaybe)
 import qualified Data.Sequence as S
 import Decoder.Geometry
-import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
-import GHC.Word
 import Proto.Util
 import Proto.Vector_tile.Tile
 import Proto.Vector_tile.Tile.Feature
@@ -32,11 +31,11 @@ on this type we can then apply our line appearence properties
 moveTo will determine where the origin is set
 -}
 
-featureToDiagram ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  Maybe Paint ->
-  Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
+featureToDiagram
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => Maybe Paint
+  -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
   linePath <- decode' :: Reader ExpressionContext [LineG]
   liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
@@ -48,22 +47,22 @@ featureToDiagram _ = return $ D.strutX 0
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
 decode' = ask >>= \ctx -> return $ decodeSeq (geometry (ctx ^. feature))
 
-renderTile ::
-  forall {b}.
-  (D.Renderable (D.Path D.V2 Double) b) =>
-  Tile ->
-  SLayer ->
-  D.QDiagram b D.V2 Double D.Any
-renderTile tile layer = do
+renderTile
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => Tile
+  -> SLayer
+  -> D.QDiagram b D.V2 Double D.Any
+renderTile tile layer' = do
   D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
   where
-    toBeDrawn = runReader (evalLayer layer)
-    eachLayer ctx = if toBeDrawn ctx then runReader (featureToDiagram (layer ^. paint)) ctx else D.strutX 0
+    toBeDrawn = runReader (evalLayer layer')
+    eachLayer ctx = if fromMaybe True (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
     layers' =
       maybe
         S.empty
         (`getLayers` tile)
-        (layer ^. sourceLayer)
+        (layer' ^. sourceLayer)
 
 -- TODO fix zoom
 constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
