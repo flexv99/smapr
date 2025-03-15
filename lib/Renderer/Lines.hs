@@ -9,13 +9,16 @@ where
 
 import Control.Lens
 import Control.Monad.Reader
+import Data.Colour
+import Data.Maybe (fromMaybe)
+import Data.Scientific (toRealFloat)
 import Decoder.Geometry
 import Decoder.Lines
 import qualified Diagrams.Prelude as D
 import Style.ExpressionsContext
-import Style.IsoExpressions
+import Style.Lang.Eval
+import Style.Lang.Parser
 import Style.Layers.Line
-import Style.Parser
 
 lineToPoints :: LineG -> [D.P2 Double]
 lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
@@ -27,8 +30,10 @@ drawLine
   -> [D.Point D.V2 Double]
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawLine style tour = do
-  color <- eval (style ^. lineColor)
-  stroke <- liftM numToDouble (eval (style ^. lineWidth))
+  mColor <- eval (style ^. lineColor)
+  let color = fromMaybe (black `withOpacity` 1.0) mColor
+  mStroke <- eval (style ^. lineWidth)
+  let stroke = maybe 1.0 toRealFloat mStroke
   return $
     D.moveTo
       (head tour)

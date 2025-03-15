@@ -13,13 +13,16 @@ where
 import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
+import Data.Maybe (fromMaybe, maybe)
+import Data.Scientific (toRealFloat)
 import Decoder.Polygons
 import qualified Diagrams.Prelude as D hiding (difference)
 import qualified Diagrams.TwoD.Path.Boolean as D
 import Style.ExpressionsContext
-import Style.IsoExpressions
+import Style.Lang.Eval
+import Style.Lang.Parser
+import Style.Lang.Util
 import Style.Layers.Fill
-import Style.Parser
 
 polygonToPoints :: SPolygon -> [D.P2 Double]
 polygonToPoints (SPolygon moveTo lineTo closeP) = _parameters moveTo ++ _parameters lineTo ++ _parameters closeP
@@ -31,8 +34,10 @@ drawPolygon
   -> [PolygonG]
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawPolygon style tour = do
-  color <- fmap pureColor (eval (style ^. fillColor))
-  opacity <- fmap numToDouble (eval (style ^. fillOpacity))
+  mColor <- eval (style ^. fillColor)
+  let color = maybe black pureColor mColor
+  mOpacity <- eval (style ^. fillOpacity)
+  let opacity = maybe 1.0 toRealFloat mOpacity
   return $
     mconcat $
       map

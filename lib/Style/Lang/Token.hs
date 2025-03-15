@@ -1,8 +1,7 @@
 module Style.Lang.Token where
 
 data ColorToken
-  = THex3
-  | THex6
+  = THex
   | TRgb
   | TRgba
   | THsl

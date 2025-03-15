@@ -18,8 +18,10 @@ import Style.Lang.Ast
 import Style.Lang.Lex
 import Style.Lang.Token
 import Style.Lang.Types
+import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
 
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
@@ -193,7 +195,7 @@ arrayOpParser (APoly a) = ArrayCastE <$> polyOpParser a
 --------------------------------------------------------------------------------
 colorExprP :: Parser (SExpr SColor)
 colorExprP =
-  (ColorE <$> pColor)
+  (try $ ColorE <$> pColor)
     <|> betweenSquareBrackets
       ( do
           op <- betweenDoubleQuotes colorSymbol
@@ -202,10 +204,6 @@ colorExprP =
       )
 
 colorOpParser :: ColorToken -> Parser (SExpr SColor)
-colorOpParser TRgba = undefined
-colorOpParser TRgb = undefined
-colorOpParser THsla = undefined
-colorOpParser THsl = undefined
 colorOpParser CInterpolate = do
   interType <- interpolationTypeP
   _ <- char ',' >> space
@@ -218,6 +216,7 @@ colorOpParser CInterpolate = do
       _ <- char ',' >> space
       color <- pColor
       return (num1, color)
+colorOpParser t = ColorE . Just <$> pFColor t -- actually this should newer get called
 
 --------------------------------------------------------------------------------
 -- POLYMORPHIC Functions

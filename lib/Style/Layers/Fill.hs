@@ -6,18 +6,19 @@ module Style.Layers.Fill where
 import Control.Lens
 import qualified Data.Aeson as A
 import Data.Colour
-import Style.ExpressionsWrapper
+import Style.Lang.Ast
+import Style.Lang.Parser
+import Style.Lang.Types
 import Style.Layers.Util
-import Style.Parser
 
 data FillS = FillS
   { _fillSortKey :: Maybe Int
   , _visibility :: Visibility -- defaults to visible
-  , _fillAntialias :: IsoExpr Bool -- defauts to true
-  , _fillOpacity :: IsoExpr INum -- defaults to 1, need to support inrepolate expressions
-  , _fillColor :: IsoExpr Color -- defaults to #000000, disabled by fill-pattern
-  , _fillOutlineColor :: Maybe (IsoExpr Color) -- disabled by fill-pattern
-  , _fillTranslate :: Maybe SType -- defaults to [0, 0], need to support interpolate expressions
+  , _fillAntialias :: SExpr SBool -- defauts to true
+  , _fillOpacity :: SExpr SNum -- defaults to 1, need to support inrepolate expressions
+  , _fillColor :: SExpr SColor -- defaults to #000000, disabled by fill-pattern
+  , _fillOutlineColor :: Maybe (SExpr SColor) -- disabled by fill-pattern
+  , _fillTranslate :: Maybe SData -- defaults to [0, 0], need to support interpolate expressions
   , _fillTranslateAnchor :: TranslateAnchor
   -- , fill-pattern
   }
@@ -30,9 +31,9 @@ instance A.FromJSON FillS where
     FillS
       <$> t A..:? "fill-sort-key"
       <*> t A..:? "visibility" A..!= Visible
-      <*> (t A..:? "fill-antialias" >>= bexpr) A..!= BoolE True
-      <*> (t A..:? "fill-opacity" >>= expr) A..!= NumE 1
-      <*> (t A..:? "fill-color" >>= color) A..!= ColorE (black `withOpacity` 1)
+      <*> (t A..:? "fill-antialias" >>= bexpr) A..!= BoolE (Just True)
+      <*> (t A..:? "fill-opacity" >>= expr) A..!= NumE (Just 1)
+      <*> (t A..:? "fill-color" >>= color) A..!= ColorE (Just (black `withOpacity` 1))
       <*> (t A..:? "fill-outline-color" >>= color)
       <*> t A..:? "fill-translate"
       <*> t A..:? "fill-translate-anchor" A..!= Map

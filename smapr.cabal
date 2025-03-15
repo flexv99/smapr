@@ -37,9 +37,6 @@ library
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
-                    , Style.Parser
-                    , Style.IsoExpressions
-                    , Style.ExpressionsWrapper
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill

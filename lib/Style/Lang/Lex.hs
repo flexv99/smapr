@@ -18,9 +18,11 @@ module Style.Lang.Lex (
   pBool,
   pColor,
   pArray,
+  pFColor,
 )
 where
 
+import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Void
 import Style.Lang.Token
@@ -85,7 +87,7 @@ pNum =
 
 pColor :: Parser SColor
 pColor = nullableP $ do
-  pHexColor <|> (pFColor =<< colorSymbol) <?> "color"
+  try pHexColor <|> betweenDoubleQuotes (pFColor =<< colorSymbol) <?> "color"
 
 pAtom :: Parser SData
 pAtom =
@@ -164,21 +166,21 @@ pFColor TRgba = pRgba
       _ <- char ',' >> space
       b <- fromIntegral <$> pInt
       _ <- char ',' >> space
-      rgbToColor r g b <$> lexeme L.decimal
+      rgbToColor r g b . toRealFloat <$> lexeme L.scientific
 pFColor THsla = pHsla
   where
     pHsla = betweenBrackets $ do
-      h <- pDouble
+      h <- toRealFloat <$> lexeme L.scientific
       _ <- char ',' >> space
       s <- pPercentage
       _ <- char ',' >> space
       l <- pPercentage
       _ <- char ',' >> space
-      hslToColor h s l <$> pDouble
+      hslToColor h s l . toRealFloat <$> lexeme L.scientific
 pFColor THsl = pHsl
   where
     pHsl = betweenBrackets $ do
-      h <- lexeme L.decimal
+      h <- toRealFloat <$> lexeme L.scientific
       _ <- char ',' >> space
       s <- pPercentage
       _ <- char ',' >> space

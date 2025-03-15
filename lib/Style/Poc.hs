@@ -9,12 +9,10 @@ module Style.Poc where
 
 import ApiClient
 import Control.Lens
-import Control.Monad
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
-import Data.Maybe
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
 import Decoder.Geometry
@@ -30,25 +28,10 @@ import Proto.Vector_tile.Tile.GeomType
 import Proto.Vector_tile.Tile.Layer
 import Renderer.Geometry
 import Style.Layers.Wrapper
-import Style.Parser
 import Util
 
 -- The goal of this proof of concept is to correctly parse the style of this water way
 -- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
-
-data Width = Width
-  { base :: Maybe SType
-  , stops :: Maybe SType
-  }
-  deriving (Show, Eq, Generic)
-
--- Helper for use in combination with .:? to provide default values for optional JSON object fields.
-
-instance A.FromJSON Width where
-  parseJSON = A.withObject "Width" $ \obj ->
-    Width
-      <$> obj A..:? "base"
-      <*> obj A..:? "stops"
 
 data SWrap = SWrap
   { version :: Int
@@ -100,7 +83,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_migrated.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
@@ -108,7 +91,7 @@ renderStyleSpec = do
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
   t <- getFromUrl url
-  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg
