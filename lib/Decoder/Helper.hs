@@ -5,7 +5,6 @@ module Decoder.Helper where
 
 import Control.Lens
 import Control.Monad
-import qualified Data.Aeson as A
 import Data.Bits
 import qualified Diagrams.Prelude as D
 import GHC.Float
@@ -15,16 +14,16 @@ type Point = D.P2 Double
 data CommandA = MoveTo | LineTo | ClosePath deriving (Show, Eq, Enum, Bounded)
 
 data Command = Command
-  { _cmd :: CommandA,
-    _count :: Int
+  { _cmd :: CommandA
+  , _count :: Int
   }
   deriving (Show, Eq)
 
 makeLenses ''Command
 
 data GeoAction = GeoAction
-  { _command :: Command,
-    _parameters :: [Point]
+  { _command :: Command
+  , _parameters :: [Point]
   }
   deriving (Show, Eq)
 
@@ -43,8 +42,8 @@ toCommandA _ = ClosePath -- [111]
 decodeCommand :: Int -> Command
 decodeCommand c =
   Command
-    { _cmd = cType,
-      _count = paramC
+    { _cmd = cType
+    , _count = paramC
     }
   where
     cType = toCommandA (c .&. 0x7)
@@ -102,9 +101,9 @@ shoelaceStep p1 p2 = step' (D.unp2 p1) (D.unp2 p2)
 
 -- A single polygon
 data SPolygon = SPolygon
-  { _pMoveTo :: GeoAction,
-    _pLineTo :: GeoAction,
-    _pClosePath :: GeoAction
+  { _pMoveTo :: GeoAction
+  , _pLineTo :: GeoAction
+  , _pClosePath :: GeoAction
   }
   deriving (Show, Eq)
 
@@ -121,8 +120,8 @@ data PolygonG = SinglePolygon SPolygon | MultiPolygon MPolygon deriving (Show)
 makeLenses ''PolygonG
 
 data LineG = LineG
-  { _lMoveTo :: GeoAction,
-    _lLineTo :: GeoAction
+  { _lMoveTo :: GeoAction
+  , _lLineTo :: GeoAction
   }
   deriving (Show, Eq)
 

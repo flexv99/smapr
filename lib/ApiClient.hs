@@ -17,9 +17,9 @@ import Text.ProtocolBuffers (messageGet)
 import Util
 
 data Coord = Coord
-  { lat :: Double,
-    lon :: Double,
-    rZoom :: Double
+  { lat :: Double
+  , lon :: Double
+  , rZoom :: Double
   }
   deriving (Show)
 

@@ -37,17 +37,21 @@ library
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
-                    , Style.Parser
-                    , Style.IsoExpressions
-                    , Style.ExpressionsWrapper
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill
                     , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util
-                    , Style.Test.Entity
-                    , Style.Test.TestExpressionParser
+                    , Style.Lang.Ast
+                    , Style.Lang.Types
+                    , Style.Lang.Lex
+                    , Style.Lang.Parser
+                    , Style.Lang.Token
+                    , Style.Lang.Util
+                    , Style.Lang.Check
+                    , Style.Lang.Eval
+                    , Style.Test.Unit
                     , Util
                     , ApiClient
 

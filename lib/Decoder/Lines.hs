@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Decoder.Lines
-  ( decLine,
-    LineG (..),
-    Point,
-    GeoAction (..),
-  )
+module Decoder.Lines (
+  decLine,
+  LineG (..),
+  Point,
+  GeoAction (..),
+)
 where
 
 import Control.Lens
@@ -17,8 +17,8 @@ decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
   where
     singleDecoder l =
       GeoAction
-        { _command = decodeCommand (head l),
-          _parameters = tuplify $ map decodeParam (tail l)
+        { _command = decodeCommand (head l)
+        , _parameters = tuplify $ map decodeParam (tail l)
         }
 
 absoluteLineG :: LineG -> LineG
@@ -37,8 +37,8 @@ relativeMoveTo = f []
         else p : f (p : acc) ps
     newMoveTo p c =
       GeoAction
-        { _command = view (lMoveTo . command) p,
-          _parameters = zipWith sumTuple (view (lMoveTo . parameters) p) [sumMoveToAndLineTo c]
+        { _command = view (lMoveTo . command) p
+        , _parameters = zipWith sumTuple (view (lMoveTo . parameters) p) [sumMoveToAndLineTo c]
         }
 
 sumMoveToAndLineTo :: [LineG] -> Point
@@ -50,4 +50,4 @@ decLine :: [Int] -> [LineG]
 decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
   where
     actionToLineG :: [GeoAction] -> LineG
-    actionToLineG g = LineG {_lMoveTo = head g, _lLineTo = last g}
+    actionToLineG g = LineG{_lMoveTo = head g, _lLineTo = last g}
