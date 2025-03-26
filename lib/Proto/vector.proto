@@ -1,6 +1,6 @@
 // Protocol Version 1
 
-package vector_tile;
+package vector;
 
 option optimize_for = LITE_RUNTIME;
 
