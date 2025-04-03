@@ -70,7 +70,8 @@ library
     build-depends:    base >=4.7 && <5
                     , protocol-buffers
                     , protocol-buffers-descriptor
-                    , wreq
+                    , http-client
+                    , http-client-tls
                     , lens
                     , mtl
                     , megaparsec

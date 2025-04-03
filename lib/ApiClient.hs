@@ -9,7 +9,8 @@ import Data.ByteString.Lazy.Internal
 import Data.Foldable
 import GHC.Float
 import GHC.Word
-import Network.Wreq
+import Network.HTTP.Client (Response, httpLbs, newManager, parseRequest, responseBody)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Proto.Vector_tile.Tile (Tile (..))
 import Proto.Vector_tile.Tile.Feature (Feature (..))
 import Proto.Vector_tile.Tile.Layer (Layer (..))
@@ -57,25 +58,29 @@ transformRawTile raw = case messageGet raw of
 getTileUnserialized :: Coord -> IO (Response ByteString)
 getTileUnserialized c = do
   conf <- smaprConfig
-  get (tilerequestUrl (localApi conf) c)
+  manager <- newManager tlsManagerSettings
+  request <- parseRequest $ tilerequestUrl (localApi conf) c
+  httpLbs request manager
 
 getMTTileUnserialized :: Coord -> IO (Response ByteString)
 getMTTileUnserialized c = do
   conf <- smaprConfig
-  get (mTTileUrl (mtApi conf) c)
+  manager <- newManager tlsManagerSettings
+  request <- parseRequest (mTTileUrl (mtApi conf) c)
+  httpLbs request manager
 
 getTile :: Coord -> IO (Maybe Tile)
 getTile c =
   getTileUnserialized c
-    >>= (\t -> return (transformRawTile (t ^. responseBody)))
+    >>= (return . transformRawTile . responseBody)
 
 getMTTile :: Coord -> IO (Maybe Tile)
 getMTTile c =
   getMTTileUnserialized c
-    >>= (\t -> return (transformRawTile (t ^. responseBody)))
+    >>= (return . transformRawTile . responseBody)
 
-getFromUrl :: String -> IO (Maybe Tile)
-getFromUrl url = get url >>= (\t -> return (transformRawTile (t ^. responseBody)))
+-- getFromUrl :: String -> IO (Maybe Tile)
+-- getFromUrl url = httpLbs url >>= (\t -> return (transformRawTile (t ^. responseBody)))
 
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t =
