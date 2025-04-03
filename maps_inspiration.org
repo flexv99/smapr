@@ -1,0 +1,6 @@
+* TODO [[https://www.swisstopo.admin.ch/en/height-model-swissalti3d][Switzerland elevation data]]
+* TODO [[https://gdal.org/en/latest/programs/gdal_contour.html#gdal-contour][elevation extractor from rasters]]
+* TODO [[https://github.com/syncpoint/terrain-rgb][terrain-rgb]]
+* TODO [[https://openmaptiles.org/schema/][Vector tile schema for osm layers]]
+* TODO [[https://medium.com/@ty2/how-to-calculate-number-of-tiles-in-a-bounding-box-for-openstreetmaps-4bf8c3b767ac][Calculate number of tiles required for a bounding box]]
+* TODO [[https://en.wikibooks.org/wiki/Haskell/GADT][GADTs wiki]]

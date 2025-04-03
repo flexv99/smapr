@@ -19,6 +19,9 @@ maintainer:         flex99@posteo.net
 build-type: Custom
 extra-source-files: lib/Proto/vector.proto
 
+common warnings
+    ghc-options: -Wall
+
 custom-setup
     setup-depends: base, Cabal, proto-lens-setup
     build-tool-depends: proto-lens-protoc:proto-lens-protoc
