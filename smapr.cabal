@@ -78,7 +78,6 @@ library
                     , generic-deriving
                     , bytestring
                     , utf8-string
-                    , diagrams
                     , diagrams-contrib
                     , diagrams-lib
                     , diagrams-svg
