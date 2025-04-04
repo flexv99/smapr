@@ -38,14 +38,15 @@ eval (InterpolateNumE t e a) =
       (fmap fromFloatDigits . (<*>) (sInterpolateNr t . toRealFloat <$> r))
       (revealTuple a)
   where
-    revealTuple :: [(SExpr SNum, SNum)] -> Reader ExpressionContext (Maybe [(Double, Double)])
+    revealTuple :: [(SExpr SNum, SExpr SNum)] -> Reader ExpressionContext (Maybe [(Double, Double)])
     revealTuple tuples = do
       results <- traverse processTuple tuples
       return $ sequence results
-    processTuple :: (SExpr SNum, SNum) -> Reader ExpressionContext (Maybe (Double, Double))
+    processTuple :: (SExpr SNum, SExpr SNum) -> Reader ExpressionContext (Maybe (Double, Double))
     processTuple (f, s) = do
       maybeX <- eval f
-      return $ mTuple (toRealFloat <$> maybeX, toRealFloat <$> s)
+      maybeY <- eval s
+      return $ mTuple (toRealFloat <$> maybeX, toRealFloat <$> maybeY)
     mTuple :: (Maybe a, Maybe a) -> Maybe (a, a)
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
@@ -237,7 +238,7 @@ findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labe
 interpolationFactor :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, b)] -> (a, Int)
 interpolationFactor t v pts = (pMatch t v, index)
   where
-    pMatch Linear v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
+    pMatch (Linear _) v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
     pMatch (Exponential e) v' = exponentialInterpolation v' (expo e) (labels !! index) (labels !! (index + 1))
       where
         expo (Just x) = toRealFloat x

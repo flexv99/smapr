@@ -32,7 +32,7 @@ data SExpr a where
   InterpolateNumE
     :: InterpolationType
     -> SExpr SNum
-    -> [(SExpr SNum, SNum)]
+    -> [(SExpr SNum, SExpr SNum)]
     -> SExpr SNum
   -- | Zoom
   FzoomE :: SExpr SNum
@@ -112,7 +112,7 @@ data SExpr a where
 deriving instance Show (SExpr a)
 
 data InterpolationType
-  = Linear
+  = Linear SNum
   | Exponential SNum
   | CubicBezier SNum SNum SNum SNum
   deriving (Show, Eq)

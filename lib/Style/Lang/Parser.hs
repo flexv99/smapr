@@ -22,6 +22,7 @@ import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Text.Megaparsec.Debug
 
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
@@ -73,7 +74,7 @@ numOpParser NInterpolate = do
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      num2 <- pNum
+      num2 <- numExprP
       return (num1, num2)
 numOpParser Zoom = return FzoomE
 numOpParser IndexOf = do
@@ -245,7 +246,7 @@ polyOpParser At = do
   idx <- numExprP
   _ <- char ',' >> space
   AtE idx <$> traversableP
-polyOpParser Match = do
+polyOpParser Match = dbg "match" $ do
   v <- polyExprP
   _ <- char ',' >> space
   cases' <- caseP `sepBy` (char ',' >> space)
@@ -297,7 +298,10 @@ interpolationTypeP = betweenSquareBrackets $ do
   where
     linear = do
       _ <- betweenDoubleQuotes $ string "linear"
-      return Linear
+      num <- optional . try $ do
+        _ <- char ',' >> space
+        pNum
+      return $ Linear (join num)
     exponential = do
       _ <- betweenDoubleQuotes $ string "exponential"
       _ <- char ',' >> space
