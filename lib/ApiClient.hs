@@ -79,9 +79,6 @@ getMTTile c =
   getMTTileUnserialized c
     >>= (return . transformRawTile . responseBody)
 
--- getFromUrl :: String -> IO (Maybe Tile)
--- getFromUrl url = httpLbs url >>= (\t -> return (transformRawTile (t ^. responseBody)))
-
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t =
   map (toList . geometry) $

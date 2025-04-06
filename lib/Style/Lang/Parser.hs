@@ -196,10 +196,10 @@ arrayOpParser (APoly a) = ArrayCastE <$> polyOpParser a
 --------------------------------------------------------------------------------
 colorExprP :: Parser (SExpr SColor)
 colorExprP =
-  (try $ ColorE <$> pColor)
+  try (ColorE <$> pColor)
     <|> betweenSquareBrackets
       ( do
-          op <- betweenDoubleQuotes colorSymbol
+          op <- betweenDoubleQuotes (colorSymbol <|> CPoly <$> polySymbol)
           _ <- optional (char ',' >> space)
           colorOpParser op
       )
@@ -215,8 +215,9 @@ colorOpParser CInterpolate = do
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      color <- pColor
+      color <- colorExprP
       return (num1, color)
+colorOpParser (CPoly c) = ColorCastE <$> polyOpParser c
 colorOpParser t = ColorE . Just <$> pFColor t -- actually this should newer get called
 
 --------------------------------------------------------------------------------
@@ -228,9 +229,9 @@ polyExprP =
   try $
     choice
       [ FromNum . NumE <$> pNum
-      , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
-      , FromColor . ColorE <$> pColor
+      , try $ FromColor . ColorE <$> pColor
+      , FromString . StringE <$> pString
       ]
       <|> betweenSquareBrackets
         ( do

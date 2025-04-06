@@ -80,8 +80,9 @@ data SExpr a where
   InterpolateColorE
     :: InterpolationType
     -> SExpr SNum
-    -> [(SExpr SNum, SColor)]
+    -> [(SExpr SNum, SExpr SColor)]
     -> SExpr SColor
+  ColorCastE :: SExpr SData -> SExpr SColor
   -- | list literal
   ArrE :: [SData] -> SExpr [SData]
   -- array assert expr
