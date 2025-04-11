@@ -240,10 +240,23 @@ findStopsLessThanOrEqualTo labels value = max 0 (length (takeWhile (<= value) la
 
 -- TODO fix lowe bounds as well
 interpolationFactor :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, b)] -> (a, Int)
-interpolationFactor t v pts = if index >= (length labels - 1) then (last labels, index) else (pMatch t v, index)
+interpolationFactor t v pts
+  | index >= (length labels - 1) = (last labels, index)
+  | v <= head labels = (head labels, 0)
+  | otherwise = (pMatch t v, index)
   where
-    pMatch (Linear _) v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
-    pMatch (Exponential e) v' = exponentialInterpolation v' (expo e) (labels !! index) (labels !! (index + 1))
+    pMatch (Linear _) v' =
+      exponentialInterpolation
+        v'
+        1
+        (labels !! index)
+        (labels !! (index + 1))
+    pMatch (Exponential e) v' =
+      exponentialInterpolation
+        v'
+        (expo e)
+        (labels !! index)
+        (labels !! (index + 1))
       where
         expo (Just x) = toRealFloat x
         expo Nothing = error "not a number"
