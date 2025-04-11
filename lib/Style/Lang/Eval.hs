@@ -179,11 +179,14 @@ eval (InterpolateColorE t i pts) = do
   let res = (interpolationFactor t . toRealFloat <$> i') <*> revT
   let index = snd <$> res
   let output = map snd <$> revT
-  return $
-    interpolateColor
-      (at index output)
-      (at (fmap (+ 1) index) output)
-      (fromFloatDigits . fst <$> res)
+  if fromMaybe True ((>=) <$> index <*> ((-) 1 . length <$> output))
+    then return $ at index output
+    else
+      return $
+        interpolateColor
+          (at index output)
+          (at (fmap (+ 1) index) output)
+          (fromFloatDigits . fst <$> res)
   where
     at :: Maybe Int -> Maybe [SColor] -> SColor
     at index o = join $ (\x -> fmap (x !!) index) =<< o
@@ -223,26 +226,21 @@ getEval :: T.Text -> Reader ExpressionContext SData
 getEval k = ask >>= \ctx -> return (featureProperties'' ctx MP.! k)
 
 -- | interpolate
--- maybe move from associated list to map?
 -- https://cmears.id.au/articles/linear-interpolation.html
--- test: https://github.com/maplibre/maplibre-style-spec/blob/main/test/integration/expression/tests/interpolate/linear/test.json
 sInterpolateNr :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, a)] -> a
 sInterpolateNr t i pts =
   let (t', index) = interpolationFactor t i pts
       output = map snd pts
-   in interpolateNr (output !! index) (output !! (index + 1)) t'
+   in if index >= (length output - 1)
+        then output !! index
+        else interpolateNr (output !! index) (output !! (index + 1)) t'
 
--- sInterpolateColor :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, SColor)] -> SColor
--- sInterpolateColor t i pts =
---   let (t', index) = interpolationFactor t i pts
---       output = map snd pts
---    in interpolateColor (output !! index) (output !! (index + 1)) (fromFloatDigits t')
+findStopsLessThanOrEqualTo :: (Num a, Ord a) => [a] -> a -> Int
+findStopsLessThanOrEqualTo labels value = max 0 (length (takeWhile (<= value) labels) - 1)
 
-findStopsLessThenOrEqualTo :: (Num a, Ord a) => [a] -> a -> Int
-findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labels)
-
+-- TODO fix lowe bounds as well
 interpolationFactor :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, b)] -> (a, Int)
-interpolationFactor t v pts = (pMatch t v, index)
+interpolationFactor t v pts = if index >= (length labels - 1) then (last labels, index) else (pMatch t v, index)
   where
     pMatch (Linear _) v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
     pMatch (Exponential e) v' = exponentialInterpolation v' (expo e) (labels !! index) (labels !! (index + 1))
@@ -251,7 +249,7 @@ interpolationFactor t v pts = (pMatch t v, index)
         expo Nothing = error "not a number"
     pMatch _ _ = error "cubic bezier not yet supported"
     labels = map fst pts
-    index = findStopsLessThenOrEqualTo labels v
+    index = findStopsLessThanOrEqualTo labels v
 
 exponentialInterpolation :: (RealFloat a) => a -> a -> a -> a -> a
 exponentialInterpolation input base lower upper

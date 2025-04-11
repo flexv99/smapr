@@ -82,6 +82,7 @@ data SExpr a where
     -> SExpr SNum
     -> [(SExpr SNum, SExpr SColor)]
     -> SExpr SColor
+  -- | cast SData to SColor
   ColorCastE :: SExpr SData -> SExpr SColor
   -- | list literal
   ArrE :: [SData] -> SExpr [SData]
