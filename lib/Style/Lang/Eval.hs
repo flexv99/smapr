@@ -102,6 +102,11 @@ eval (BoolCastE b) = unwrapBool <$> eval b
   where
     unwrapBool (DBool b) = b
     unwrapBool _ = Nothing
+eval (BooleanE n) = multiOp (listToMaybe . mapMaybe boolVal) n
+  where
+    boolVal :: SData -> SBool
+    boolVal (DBool (Just x)) = Just x
+    boolVal _ = Nothing
 eval (Negation b) = monoOp (not <$>) b
 eval (EqE a1 a2) = binaryOp sEq a1 a2
   where
@@ -132,6 +137,7 @@ eval (HasE s) = eval s >>= featureHas
       ctx <- ask
       return (fmap (\x -> MP.member x (featureProperties'' ctx)) key)
 eval (AllE b) = multiOp (fmap and . sequence) b
+eval (AnyE b) = multiOp (fmap or . sequence) b
 eval (FgetE k) = eval k >>= featureGet
   where
     featureGet :: SString -> Reader ExpressionContext SData
