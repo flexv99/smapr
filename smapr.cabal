@@ -57,13 +57,6 @@ library
 
     -- Modules included in this library but not exported.
     other-modules: Decoder.Helper
-    -- Auto generated modules: proto stuff
-    autogen-modules:  Proto.Vector_tile
-                    , Proto.Vector_tile.Tile
-                    , Proto.Vector_tile.Tile.Feature
-                    , Proto.Vector_tile.Tile.GeomType
-                    , Proto.Vector_tile.Tile.Layer
-                    , Proto.Vector_tile.Tile.Value
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
