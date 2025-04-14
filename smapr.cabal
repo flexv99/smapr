@@ -70,8 +70,9 @@ library
     build-depends:    base >=4.7 && <5
                     , proto-lens
                     , proto-lens-runtime
-                    -- TODO use low level http-client instead of wreq
-                    , wreq 
+                    , http-client
+                    , http-client-tls
+                    , http-types
                     , microlens
                     , mtl
                     , megaparsec

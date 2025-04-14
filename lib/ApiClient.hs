@@ -1,19 +1,18 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ApiClient where
 
-import Control.Lens ((^.))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import Data.ByteString.Lazy.Internal
-import Data.Foldable
+import Data.Functor ((<&>))
+import Data.ProtoLens
 import GHC.Float
 import GHC.Word
-import Network.Wreq
-import Proto.Vector_tile.Tile (Tile (..))
-import Proto.Vector_tile.Tile.Feature (Feature (..))
-import Proto.Vector_tile.Tile.Layer (Layer (..))
-import Text.ProtocolBuffers (messageGet)
+import Network.HTTP.Client hiding (path)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Proto.Vector
+import Proto.Vector_Fields
 import Util
 
 data Coord = Coord
@@ -46,46 +45,42 @@ mTTileUrl n c = nBaseUrl n ++ show (double2Int (rZoom c)) ++ "/" ++ x ++ "/" ++ 
     y = show (lat2tileY (lat c) (rZoom c) :: Int)
 
 testCoord :: Coord
-testCoord = Coord 46.619221 11.893892 14 -- 46.615521 11.893506 14
+testCoord = Coord 46.615521 11.893506 14
 
-transformRawTile :: ByteString -> Maybe Tile
-transformRawTile raw = case messageGet raw of
-  Left _ -> Nothing
-  Right (tile, _) -> Just tile
+transformRawTile :: BL.ByteString -> Either String Tile
+transformRawTile raw = decodeMessage $ B.toStrict raw
 
 -- client
-getTileUnserialized :: Coord -> IO (Response ByteString)
+getTileUnserialized :: Coord -> IO (Response BL.ByteString)
 getTileUnserialized c = do
   conf <- smaprConfig
-  get (tilerequestUrl (localApi conf) c)
+  manager <- newManager tlsManagerSettings
+  request <- parseRequest (tilerequestUrl (localApi conf) c)
+  httpLbs request manager
 
-getMTTileUnserialized :: Coord -> IO (Response ByteString)
+getMTTileUnserialized :: Coord -> IO (Response BL.ByteString)
 getMTTileUnserialized c = do
   conf <- smaprConfig
-  get (mTTileUrl (mtApi conf) c)
+  manager <- newManager tlsManagerSettings
+  request <- parseRequest (mTTileUrl (mtApi conf) c)
+  httpLbs request manager
 
-getTile :: Coord -> IO (Maybe Tile)
+getTile :: Coord -> IO (Either String Tile)
 getTile c =
-  getTileUnserialized c
-    >>= (\t -> return (transformRawTile (t ^. responseBody)))
+  getTileUnserialized c <&> (transformRawTile . responseBody)
 
-getMTTile :: Coord -> IO (Maybe Tile)
+getMTTile :: Coord -> IO (Either String Tile)
 getMTTile c =
-  getMTTileUnserialized c
-    >>= (\t -> return (transformRawTile (t ^. responseBody)))
+  getMTTileUnserialized c <&> (transformRawTile . responseBody)
 
-getFromUrl :: String -> IO (Maybe Tile)
-getFromUrl url = get url >>= (\t -> return (transformRawTile (t ^. responseBody)))
+getFromUrl :: String -> IO (Either String Tile)
+getFromUrl url = do
+  conf <- smaprConfig
+  manager <- newManager tlsManagerSettings
+  request <- parseRequest url
+  httpLbs request manager <&> (transformRawTile . responseBody)
 
-tileFeatures :: Tile -> [[Word32]]
-tileFeatures t =
-  map (toList . geometry) $
-    head $
-      map (toList . features) $
-        toList $
-          layers t
-
-fakerTile :: IO (Maybe Tile)
+fakerTile :: IO (Either String Tile)
 fakerTile = do
   conf <- smaprConfig
   let fp = testTilePath conf :: FilePath
