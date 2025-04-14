@@ -7,6 +7,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Lazy.Internal
 import Data.Foldable
+import Data.Functor ((<&>))
 import GHC.Float
 import GHC.Word
 import Network.HTTP.Client (Response, httpLbs, newManager, parseRequest, responseBody)
@@ -71,13 +72,12 @@ getMTTileUnserialized c = do
 
 getTile :: Coord -> IO (Maybe Tile)
 getTile c =
-  getTileUnserialized c
-    >>= (return . transformRawTile . responseBody)
+  getTileUnserialized c <&> (transformRawTile . responseBody)
 
 getMTTile :: Coord -> IO (Maybe Tile)
 getMTTile c =
   getMTTileUnserialized c
-    >>= (return . transformRawTile . responseBody)
+    <&> (transformRawTile . responseBody)
 
 tileFeatures :: Tile -> [[Word32]]
 tileFeatures t =

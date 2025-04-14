@@ -69,5 +69,5 @@ constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
 constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
   where
     create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 17) (features l')
+    create l' = fmap (\f -> ExpressionContext f l' 22) (features l')
 constructCtx S.Empty = S.empty
