@@ -12,11 +12,12 @@ module Decoder.Polygons (
 )
 where
 
-import Control.Lens hiding (uncons)
 import Data.List
 import qualified Data.List.Split as LS
 import Data.Maybe
 import Decoder.Helper
+import Lens.Micro
+import Lens.Micro.Extras
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)

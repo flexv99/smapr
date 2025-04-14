@@ -3,7 +3,6 @@
 module Proto.Util where
 
 import ApiClient
-import Control.Lens hiding (zoom)
 import Data.ByteString.Lazy.Char8 (unpack)
 import Data.Foldable
 import qualified Data.Map as MP
@@ -18,8 +17,6 @@ import Proto.Vector_tile.Tile.Layer
 import Proto.Vector_tile.Tile.Value
 import Style.ExpressionsContext
 import Style.Lang.Types
-import Text.ProtocolBuffers.Basic (uToString)
-import qualified Text.ProtocolBuffers.Header as P'
 import Prelude hiding (id)
 
 geometryTypeToString :: Feature -> Maybe T.Text

@@ -1,8 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Style.ExpressionsContext where
 
-import Control.Lens
 import Proto.Vector
 import Proto.Vector_Fields
 
@@ -19,8 +16,6 @@ data ExpressionContext = ExpressionContext
   , _ctxZoom :: Double
   }
   deriving (Show, Eq)
-
-makeLenses ''ExpressionContext
 
 featureGeometryType :: ExpressionContext -> Maybe Tile'GeomType
 featureGeometryType ctx = undefined -- type' ^. (ctx ^. feature)

@@ -3,11 +3,11 @@
 
 module Decoder.Helper where
 
-import Control.Lens
 import Control.Monad
 import Data.Bits
 import qualified Diagrams.Prelude as D
 import GHC.Float
+import Lens.Micro.TH
 
 type Point = D.P2 Double
 
