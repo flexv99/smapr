@@ -3,6 +3,7 @@
 
 module Util (
   smaprConfig,
+  smaprConfigFromPath,
   testPath,
   dateTimeStr,
   writeSvg,
@@ -72,13 +73,16 @@ makeSconf conf = do
       <*> testDestinationPath'
       <*> jsonTestPath'
 
-smaprConfig :: IO Sconf
-smaprConfig = do
-  loadedConf <- C.load [C.Required "smapr.cfg"]
+smaprConfigFromPath :: FilePath -> IO Sconf
+smaprConfigFromPath p = do
+  loadedConf <- C.load [C.Required p]
   sConf <- makeSconf loadedConf
   case sConf of
     Nothing -> error "invalid config file"
     Just conf -> return conf
+
+smaprConfig :: IO Sconf
+smaprConfig = smaprConfigFromPath "smapr.cfg"
 
 testPath :: String -> IO FilePath
 testPath context = smaprConfig >>= \conf -> return (testDestinationPath conf ++ context ++ ".svg" :: FilePath)
