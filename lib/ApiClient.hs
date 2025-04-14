@@ -9,6 +9,7 @@ import Data.Functor ((<&>))
 import Data.ProtoLens
 import GHC.Float
 import GHC.Word
+import Lens.Micro
 import Network.HTTP.Client hiding (path)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Proto.Vector
@@ -86,3 +87,7 @@ fakerTile = do
   let fp = testTilePath conf :: FilePath
   rawTile <- BL.readFile fp
   return $ transformRawTile rawTile
+
+-- tmp
+geometryTest :: Tile -> Tile'GeomType
+geometryTest t = (head $ (head $ t ^. layers) ^. features) ^. type'
