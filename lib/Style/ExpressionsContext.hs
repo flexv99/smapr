@@ -1,7 +1,11 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Style.ExpressionsContext where
 
 import Proto.Vector
 import Proto.Vector_Fields
+import Lens.Micro.TH
+import Lens.Micro
 
 -- perhabs make it a:
 -- properties
@@ -17,5 +21,7 @@ data ExpressionContext = ExpressionContext
   }
   deriving (Show, Eq)
 
-featureGeometryType :: ExpressionContext -> Maybe Tile'GeomType
-featureGeometryType ctx = undefined -- type' ^. (ctx ^. feature)
+makeLenses ''ExpressionContext
+
+featureGeometryType :: ExpressionContext -> Tile'GeomType
+featureGeometryType ctx = (ctx ^. feature) ^. type'

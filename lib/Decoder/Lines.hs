@@ -8,7 +8,8 @@ module Decoder.Lines (
 )
 where
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.Extras
 import Data.List
 import Decoder.Helper
 
