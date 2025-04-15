@@ -7,7 +7,6 @@
 
 module Style.Test.Unit where
 
-import Control.Lens
 import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
@@ -22,9 +21,10 @@ import Data.Scientific
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer hiding (ext'field)
-import Proto.Vector_tile.Tile.Value
+import Lens.Micro
+import Lens.Micro.TH
+import Proto.Vector
+import Proto.Vector_Fields
 import Style.ExpressionsContext
 import Style.Lang.Ast
 import Style.Lang.Eval
@@ -32,7 +32,6 @@ import Style.Lang.Lex
 import Style.Lang.Parser
 import Style.Lang.Types
 import Text.Megaparsec
-import qualified Text.ProtocolBuffers.Header as P'
 import Util
 
 data ResultType = RNumber | RBoolean | RArray | RString | RColor deriving (Show)
@@ -105,14 +104,14 @@ instance A.FromJSON ExpressionTestEntity where
         Left err -> fail $ errorBundlePretty err
         Right res -> pure $ Just res
 
-sDataToValue :: SData -> Value
-sDataToValue (DString s) = (P'.defaultValue :: Value){string_value = (fromEither . P'.toUtf8 . T.encodeUtf8) =<< s}
+sDataToValue :: SData -> Tile'Value
+sDataToValue (DString s) = (P'.defaultValue :: Tile'Value){string_value = (fromEither . P'.toUtf8 . T.encodeUtf8) =<< s}
   where
     fromEither (Right a) = Just a
     fromEither _ = Nothing
-sDataToValue (DNum d) = (P'.defaultValue :: Value){double_value = toRealFloat <$> d}
-sDataToValue (DBool b) = (P'.defaultValue :: Value){bool_value = b}
-sDataToValue (DArray d) = P'.defaultValue :: Value -- cannot store arrays to value
+sDataToValue (DNum d) = (P'.defaultValue :: Tile'Value){double_value = toRealFloat <$> d}
+sDataToValue (DBool b) = (P'.defaultValue :: Tile'Value){bool_value = b}
+sDataToValue (DArray d) = P'.defaultValue :: Tile'Value -- cannot store arrays to value
 sDataToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> ExpressionContext

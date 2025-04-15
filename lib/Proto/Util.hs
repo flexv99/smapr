@@ -37,14 +37,14 @@ featureProperties'' ctx =
     $ map
       ( \(x, y) ->
           let (i, j) = (fromIntegral x, fromIntegral y)
-           in (T.pack (fromMaybe "" (key !? i)), fromMaybe (DNum Nothing) (value !? j))
+           in (fromMaybe "" (key !? i), fromMaybe (DNum Nothing) (value !? j))
       )
     $ tuplify
     $ toList
-    $ (ctx ^. feature) ^. tags
+      (ctx ^. (feature . tags))
   where
-    key = map (\s -> unpack s) $ (ctx ^. layer) ^. vec'keys
-    value = extractMappers' ((ctx ^. layer) ^. values)
+    key = V.map T.fromStrict $ ctx ^. (layer . vec'keys)
+    value = extractMappers' (ctx ^. (layer . values))
     xs !? n
       | n < 0 = Nothing
       | otherwise =
@@ -62,7 +62,7 @@ extractMappers' = concatMap (filter filterValue . extractMapper)
   where
     extractMapper :: Tile'Value -> [SData]
     extractMapper v =
-      [ DString $ (\s -> T.pack $ unpack s) <$> (v ^. maybe'stringValue)
+      [ DString $ T.fromStrict <$> (v ^. maybe'stringValue)
       , DNum $ fromFloatDigits <$> (v ^. maybe'floatValue)
       , DNum $ fromFloatDigits <$> (v ^. maybe'doubleValue)
       , DNum $ fromIntegral <$> (v ^. maybe'intValue)
@@ -76,24 +76,8 @@ extractMappers' = concatMap (filter filterValue . extractMapper)
     filterValue (DBool Nothing) = False
     filterValue _ = True
 
-getLayers :: T.Text -> Tile -> V.Vector Tile'Layer
+getLayers :: T.Text -> Tile -> [Tile'Layer]
 getLayers lName t =
-  S.filter (\x -> (name x) == T.unpack lName) $
-    layers t
-
-filterLayerByName :: T.Text -> Tile -> [[Word32]]
-filterLayerByName lName t =
-  map (toList . geometry) $
-    head $
-      map (toList . features) $
-        toList $
-          getLayers lName t
-
-waterLayer :: IO (Maybe Tile'Layer)
-waterLayer = fakerTile <&> fmap (\l -> getLayers "waterway" l `S.index` 0)
-
-testLayerAndFeature :: IO (Maybe ExpressionContext)
-testLayerAndFeature = do
-  l <- waterLayer
-  let f = fmap (`S.index` 0) (features <$> l)
-  return $ ExpressionContext <$> f <*> l <*> Just 14
+  filter
+    (\x -> T.fromStrict (x ^. name) == lName)
+    $ toList (t ^. layers)

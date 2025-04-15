@@ -3,7 +3,6 @@
 
 module Renderer.Geometry where
 
-import Control.Lens
 import Control.Monad
 import Control.Monad.Reader
 import Data.Foldable
@@ -11,10 +10,8 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Sequence as S
 import Decoder.Geometry
 import qualified Diagrams.Prelude as D
+import Lens.Micro
 import Proto.Util
-import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer
 import Renderer.Lines
 import Renderer.Polygons
 import Style.ExpressionsContext
@@ -38,7 +35,7 @@ featureToDiagram
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
   linePath <- decode' :: Reader ExpressionContext [LineG]
-  liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
+  mconcat <$> mapM (drawLine l . lineToPoints) linePath
 featureToDiagram (Just (FillPaint f)) = do
   polygonPath <- decode' :: Reader ExpressionContext [PolygonG]
   drawPolygon f polygonPath

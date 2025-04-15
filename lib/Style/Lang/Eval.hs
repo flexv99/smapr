@@ -2,7 +2,6 @@
 
 module Style.Lang.Eval (eval) where
 
-import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
 import Data.List
@@ -10,6 +9,7 @@ import qualified Data.Map as MP
 import Data.Maybe
 import Data.Scientific
 import qualified Data.Text.Lazy as T
+import Lens.Micro
 import Proto.Util
 import Style.ExpressionsContext
 import Style.Lang.Ast
@@ -92,7 +92,7 @@ eval (AtE i (Right r)) = textAt <$> eval r <*> eval i
   where
     textAt :: SString -> SNum -> SData
     textAt t i = DString $ T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
-eval FgeometryE = ask >>= \ctx -> return $ geometryTypeToString (ctx ^. feature)
+eval FgeometryE = ask >>= \ctx -> return $ Just $ geometryTypeToString (ctx ^. feature)
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
