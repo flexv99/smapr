@@ -17,10 +17,12 @@ import qualified Data.ByteString.Lazy.Char8 as BC
 import Data.Either
 import qualified Data.Map as MP
 import Data.Maybe
+import Data.ProtoLens
 import Data.Scientific
-import qualified Data.Sequence as S
+import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VU
 import Lens.Micro
 import Lens.Micro.TH
 import Proto.Vector
@@ -105,13 +107,10 @@ instance A.FromJSON ExpressionTestEntity where
         Right res -> pure $ Just res
 
 sDataToValue :: SData -> Tile'Value
-sDataToValue (DString s) = (P'.defaultValue :: Tile'Value){string_value = (fromEither . P'.toUtf8 . T.encodeUtf8) =<< s}
-  where
-    fromEither (Right a) = Just a
-    fromEither _ = Nothing
-sDataToValue (DNum d) = (P'.defaultValue :: Tile'Value){double_value = toRealFloat <$> d}
-sDataToValue (DBool b) = (P'.defaultValue :: Tile'Value){bool_value = b}
-sDataToValue (DArray d) = P'.defaultValue :: Tile'Value -- cannot store arrays to value
+sDataToValue (DString s) = (defMessage :: Tile'Value) & maybe'stringValue .~ (T.toStrict <$> s)
+sDataToValue (DNum d) = (defMessage :: Tile'Value) & maybe'doubleValue .~ (toRealFloat <$> d)
+sDataToValue (DBool b) = (defMessage :: Tile'Value) & maybe'boolValue .~ b
+sDataToValue (DArray d) = defMessage :: Tile'Value -- cannot store arrays to value
 sDataToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> ExpressionContext
@@ -119,12 +118,26 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
   where
     props = MP.lookup "properties" p
     nrProps = maybe 0 (length . MP.keys) props
-    k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
-    v' = S.fromList . map sDataToValue . MP.elems <$> props
-    t' = S.fromList $ map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
-    dFeature = (P'.defaultValue :: Feature){tags = t'}
-    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
-    defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
+    k' = map (T.toStrict . T.pack) . MP.keys <$> props
+    v' = map sDataToValue . MP.elems <$> props
+    t' = map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    dFeature = defMessage & tags .~ t'
+    createLayer =
+      ( \y ->
+          fmap
+            ( \x ->
+                defMessage
+                  & keys
+                  .~ x
+                  & values
+                  .~ y
+                  & features
+                  .~ [dFeature]
+            )
+            k'
+      )
+        =<< v'
+    defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = defMessage, _feature = defMessage}
 
 runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
 runTestWithResult = do
@@ -134,8 +147,8 @@ runTestWithResult = do
     testWithContexts t =
       fmap
         (\r -> map (runReader r <$>) (tContexts t))
-        (eval <$> view expression t)
-    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+        (eval <$> t ^. expression)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
 
 runTest :: (MonadError String m, MonadIO m) => m [Maybe Bool]
 runTest = do
@@ -146,8 +159,8 @@ runTest = do
     testWithContexts t =
       fmap
         (\r -> map (runReader r <$>) (tContexts t))
-        (eval <$> view expression t)
-    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+        (eval <$> t ^. expression)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
     expectedRes t = t ^. (expected . outputs)
 
 readTest :: IO (Either String ExpressionTestEntity)
