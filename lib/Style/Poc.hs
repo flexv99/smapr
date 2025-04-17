@@ -65,14 +65,15 @@ split' layers = (l', f')
     l' = reverseList $ filter (\x -> x ^. pType == "line") layers
     f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
+-- TODO add correct background
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
-  -- D.bg
-  --   (sRGB24 232 229 216)
-  ( renderLayers'
-      (fst splitted)
-      `D.atop` renderLayers' (snd splitted)
-  )
+  D.bg
+    (sRGB24 232 229 216)
+    ( renderLayers'
+        (fst splitted)
+        `D.atop` renderLayers' (snd splitted)
+    )
   where
     renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
     bgP = head (filter (\x -> x ^. pType == "background") l) ^. paint
