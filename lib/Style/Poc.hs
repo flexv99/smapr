@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
 import Data.Functor ((<&>))
+import Data.Maybe (fromMaybe)
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
 import Decoder.Geometry
@@ -25,6 +26,8 @@ import Lens.Micro
 import Proto.Util
 import Proto.Vector
 import Renderer.Geometry
+import Style.Lang.Util
+import Style.Layers.Background
 import Style.Layers.Wrapper
 import Util
 
@@ -64,15 +67,17 @@ split' layers = (l', f')
 
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
-  D.bg
-    (sRGB24 232 229 216)
-    ( renderLayers'
-        (fst splitted)
-        `D.atop` renderLayers' (snd splitted)
-    )
+  -- D.bg
+  --   (sRGB24 232 229 216)
+  ( renderLayers'
+      (fst splitted)
+      `D.atop` renderLayers' (snd splitted)
+  )
   where
     renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
-    bg = head $ filter (\x -> x ^. pType == "background") l
+    bgP = head (filter (\x -> x ^. pType == "background") l) ^. paint
+    bg (BackgroundPaint b) = b ^. backgroundColor
+    bg _ = error "should not happen"
     splitted = split' l
 
 pLayer :: IO (Either String SWrap)
@@ -81,7 +86,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
@@ -89,7 +94,7 @@ renderStyleSpec = do
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   t <- getMTTile coord
-  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

@@ -1,5 +1,4 @@
 module Decoder.Geometry (
-  featureToGeo,
   decodeVec,
   PolygonG (..),
   LineG (..),
@@ -23,13 +22,6 @@ instance MapGeometry PolygonG where
 
 instance MapGeometry LineG where
   decode = decLine
-
-featureToGeo :: (MapGeometry a, Show a) => Tile'Feature -> [a]
-featureToGeo f = undefined
-
--- featureToGeo (Feature _ _ (Just POLYGON) g) = decode $ map fromIntegral $ toList g
--- featureToGeo (Tile'Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g
--- featureToGeo f = decode (map fromIntegral $ toList $ geometry f)
 
 decodeVec :: (MapGeometry a) => V.Vector Word32 -> [a]
 decodeVec = decode . V.toList . V.map fromIntegral
