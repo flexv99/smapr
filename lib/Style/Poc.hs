@@ -62,8 +62,8 @@ split' layers = (l', f')
   where
     reverseList :: [a] -> [a]
     reverseList = foldl (flip (:)) []
-    l' = reverseList $ filter (\x -> x ^. pType == "line") layers
-    f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
+    l' = filter (\x -> x ^. pType == "line") layers
+    f' = filter (\x -> x ^. pType == "fill") layers
 
 -- TODO add correct background
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
