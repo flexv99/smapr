@@ -1,2 +1,2 @@
 [submodule "test/json_test"]
-	url = https://github.com/maplibre/maplibre-style-spec/tree/main/test/integration/expression/tests
+        url = https://github.com/maplibre/maplibre-style-spec/tree/main/test/integration/expression/tests
