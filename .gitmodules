@@ -1,0 +1,3 @@
+[submodule "test/json_test"]
+	path = test/json_test
+	url = git@gitlab.com:flexv99/smapr_json_test.git
