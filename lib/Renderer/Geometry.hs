@@ -12,6 +12,8 @@ import Decoder.Geometry
 import qualified Diagrams.Prelude as D
 import Lens.Micro
 import Proto.Util
+import Proto.Vector
+import Proto.Vector_Fields
 import Renderer.Lines
 import Renderer.Polygons
 import Style.ExpressionsContext
@@ -42,7 +44,7 @@ featureToDiagram (Just (FillPaint f)) = do
 featureToDiagram _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
-decode' = ask >>= \ctx -> return $ decodeSeq (geometry (ctx ^. feature))
+decode' = ask >>= \ctx -> return $ decodeSeq (ctx ^. (feature . geometry))
 
 renderTile
   :: forall {b}
@@ -57,14 +59,14 @@ renderTile tile layer' = do
     eachLayer ctx = if fromMaybe True (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
     layers' =
       maybe
-        S.empty
+        []
         (`getLayers` tile)
         (layer' ^. sourceLayer)
 
 -- TODO fix zoom
-constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
-constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
+constructCtx :: [Tile'Layer] -> [ExpressionContext]
+constructCtx (l : xs) = create l ++ constructCtx xs
   where
-    create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 17) (features l')
-constructCtx S.Empty = S.empty
+    create :: Tile'Layer -> [ExpressionContext]
+    create l' = map (\f -> ExpressionContext f l' 17) (l' ^. features)
+constructCtx _ = []

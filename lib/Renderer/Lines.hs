@@ -7,7 +7,6 @@ module Renderer.Lines (
 )
 where
 
-import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
 import Data.Maybe (fromMaybe)
@@ -15,6 +14,7 @@ import Data.Scientific (toRealFloat)
 import Decoder.Geometry
 import Decoder.Lines
 import qualified Diagrams.Prelude as D
+import Lens.Micro
 import Style.ExpressionsContext
 import Style.Lang.Eval
 import Style.Lang.Parser

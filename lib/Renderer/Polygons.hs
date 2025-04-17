@@ -10,7 +10,6 @@ module Renderer.Polygons (
 )
 where
 
-import Control.Lens
 import Control.Monad.Reader
 import Data.Colour
 import Data.Maybe (fromMaybe, maybe)
@@ -18,6 +17,7 @@ import Data.Scientific (toRealFloat)
 import Decoder.Polygons
 import qualified Diagrams.Prelude as D hiding (difference)
 import qualified Diagrams.TwoD.Path.Boolean as D
+import Lens.Micro
 import Style.ExpressionsContext
 import Style.Lang.Eval
 import Style.Lang.Parser

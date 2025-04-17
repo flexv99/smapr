@@ -8,7 +8,6 @@
 module Style.Poc where
 
 import ApiClient
-import Control.Lens
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
@@ -21,11 +20,9 @@ import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
 import GHC.Word
+import Lens.Micro
 import Proto.Util
-import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.GeomType
-import Proto.Vector_tile.Tile.Layer
+import Proto.Vector
 import Renderer.Geometry
 import Style.Layers.Wrapper
 import Util
@@ -41,11 +38,11 @@ data SWrap = SWrap
   deriving (Show, Generic)
 
 instance A.FromJSON SWrap where
-        parseJSON = A.withObject "Base" $ \o ->
-                SWrap
-                        <$> o A..: "version"
-                        <*> o A..: "name"
-                        <*> o A..: "layers"
+  parseJSON = A.withObject "Base" $ \o ->
+    SWrap
+      <$> o A..: "version"
+      <*> o A..: "name"
+      <*> o A..: "layers"
 
 renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
 renderStyles sts' t =
@@ -58,24 +55,24 @@ renderStyles' sts' t = renderTile t sts'
 
 split' :: [SLayer] -> ([SLayer], [SLayer])
 split' layers = (l', f')
-    where
-        reverseList :: [a] -> [a]
-        reverseList = foldl (flip (:)) []
-        l' = reverseList $ filter (\x -> x ^. pType == "line") layers
-        f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
+  where
+    reverseList :: [a] -> [a]
+    reverseList = foldl (flip (:)) []
+    l' = reverseList $ filter (\x -> x ^. pType == "line") layers
+    f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
-        D.bg
-                (sRGB24 232 229 216)
-                ( renderLayers'
-                        (fst splitted)
-                        `D.atop` renderLayers' (snd splitted)
-                )
-    where
-        renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
-        bg = head $ filter (\x -> x ^. pType == "background") l
-        splitted = split' l
+  D.bg
+    (sRGB24 232 229 216)
+    ( renderLayers'
+        (fst splitted)
+        `D.atop` renderLayers' (snd splitted)
+    )
+  where
+    renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
+    bg = head $ filter (\x -> x ^. pType == "background") l
+    splitted = split' l
 
 pLayer :: IO (Either String SWrap)
 pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
@@ -83,33 +80,33 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_migrated.json"
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg dg
+  either putStrLn writeSvg dg
 
 renderStyleSpecWithUrl :: String -> IO ()
 renderStyleSpecWithUrl url = do
   t <- getFromUrl url
   stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg dg
+  either putStrLn writeSvg dg
 
 drawTour :: [D.P2 Double] -> D.Diagram D.B
 drawTour tour = tourPoints <> D.strokeP tourPath
-    where
-        tourPath = D.fromVertices tour
-        tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
-        dot = D.circle 0.05 D.# D.fc D.black
+  where
+    tourPath = D.fromVertices tour
+    tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
+    dot = D.circle 0.05 D.# D.fc D.black
 
-featureToDiagramC :: Feature -> D.Diagram D.B
-featureToDiagramC (Feature _ _ (Just LINESTRING) g) =
-  foldl1 D.atop $
-    map
-      (drawTour . lineToPoints)
-      (decodeC' g :: [LineG])
-featureToDiagramC _ = D.strutX 0
+-- featureToDiagramC :: Tile'Feature -> D.Diagram D.B
+-- featureToDiagramC (Tile'Feature _ _ (Just LINESTRING) g) =
+--   foldl1 D.atop $
+--     map
+--       (drawTour . lineToPoints)
+--       (decodeC' g :: [LineG])
+-- featureToDiagramC _ = D.strutX 0
 
 lineToPoints :: LineG -> [D.P2 Double]
 lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
@@ -117,25 +114,25 @@ lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineT
 decodeC' :: (MapGeometry a) => S.Seq Word32 -> [a]
 decodeC' g = decode $ map fromIntegral $ toList g
 
-renderContourLayer :: T.Text -> Tile -> D.Diagram D.B
-renderContourLayer l t =
-  D.reflectY
-    . foldl1 D.atop
-    . map featureToDiagramC
-    . head
-    . map toList
-    . (map features <$> toList)
-    $ getLayers l t
+-- renderContourLayer :: T.Text -> Tile -> D.Diagram D.B
+-- renderContourLayer l t =
+--   D.reflectY
+--     . foldl1 D.atop
+--     . map featureToDiagram
+--     . head
+--     . map toList
+--     . (map features <$> toList)
+--     $ getLayers l t
 
-testContour :: IO ()
-testContour = do
-  t <- fakerTile
-  stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
-  tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
-  let tile = transformRawTile tc
-  let d = renderContourLayer "contour" <$> tile
-  let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  maybe (putStrLn "Noting") writeSvg (d <> dg)
+-- testContour :: IO ()
+-- testContour = do
+--   t <- fakerTile
+--   stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
+--   tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
+--   let tile = transformRawTile tc
+--   let d = renderContourLayer "contour" <$> tile
+--   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
+--   let dg = buildFinalDiagram' <$> layy <*> t
+--   maybe (putStrLn "Noting") writeSvg (d <> dg)
 
 --- :break Renderer.Geometry.renderTile.eachLayer

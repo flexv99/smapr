@@ -33,5 +33,5 @@ featureToGeo f = undefined
 -- featureToGeo (Tile'Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g
 -- featureToGeo f = decode (map fromIntegral $ toList $ geometry f)
 
-decodeSeq :: (MapGeometry a) => S.Seq Word32 -> [a]
-decodeSeq g = decode $ map fromIntegral $ toList g
+decodeSeq :: (MapGeometry a) => [Word32] -> [a]
+decodeSeq g = decode $ map fromIntegral g

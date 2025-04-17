@@ -7,13 +7,14 @@
 
 module Style.Layers.Wrapper where
 
-import Control.Lens
 import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
 import qualified Data.Aeson.Types as A
 import Data.Maybe (fromMaybe)
 import qualified Data.Text.Lazy as T
+import Lens.Micro
+import Lens.Micro.TH
 import Style.ExpressionsContext
 import Style.Lang.Ast
 import Style.Lang.Eval
