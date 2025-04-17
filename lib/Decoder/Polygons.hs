@@ -83,7 +83,7 @@ decPolygon :: [Int] -> [PolygonG]
 decPolygon = delegator . map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
   where
     actionToPolygon :: [GeoAction] -> SPolygon
-    actionToPolygon [x] = SPolygon{_pMoveTo = x}
+    actionToPolygon [x] = SPolygon{_pMoveTo = x, _pLineTo = x, _pClosePath = x}
     actionToPolygon g =
       SPolygon
         { _pMoveTo = head g
