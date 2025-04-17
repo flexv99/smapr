@@ -22,6 +22,7 @@ import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Text.Megaparsec.Debug
 
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
@@ -73,7 +74,7 @@ numOpParser NInterpolate = do
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      num2 <- pNum
+      num2 <- numExprP
       return (num1, num2)
 numOpParser Zoom = return FzoomE
 numOpParser IndexOf = do
@@ -195,10 +196,10 @@ arrayOpParser (APoly a) = ArrayCastE <$> polyOpParser a
 --------------------------------------------------------------------------------
 colorExprP :: Parser (SExpr SColor)
 colorExprP =
-  (try $ ColorE <$> pColor)
+  try (ColorE <$> pColor)
     <|> betweenSquareBrackets
       ( do
-          op <- betweenDoubleQuotes colorSymbol
+          op <- betweenDoubleQuotes (colorSymbol <|> CPoly <$> polySymbol)
           _ <- optional (char ',' >> space)
           colorOpParser op
       )
@@ -214,8 +215,9 @@ colorOpParser CInterpolate = do
     inOutPairs = do
       num1 <- numExprP
       _ <- char ',' >> space
-      color <- pColor
+      color <- colorExprP
       return (num1, color)
+colorOpParser (CPoly c) = ColorCastE <$> polyOpParser c
 colorOpParser t = ColorE . Just <$> pFColor t -- actually this should newer get called
 
 --------------------------------------------------------------------------------
@@ -227,9 +229,9 @@ polyExprP =
   try $
     choice
       [ FromNum . NumE <$> pNum
-      , FromString . StringE <$> pString
       , FromBool . BoolE <$> pBool
-      , FromColor . ColorE <$> pColor
+      , try $ FromColor . ColorE <$> pColor
+      , FromString . StringE <$> pString
       ]
       <|> betweenSquareBrackets
         ( do
@@ -245,7 +247,7 @@ polyOpParser At = do
   idx <- numExprP
   _ <- char ',' >> space
   AtE idx <$> traversableP
-polyOpParser Match = do
+polyOpParser Match = dbg "match" $ do
   v <- polyExprP
   _ <- char ',' >> space
   cases' <- caseP `sepBy` (char ',' >> space)
@@ -297,7 +299,10 @@ interpolationTypeP = betweenSquareBrackets $ do
   where
     linear = do
       _ <- betweenDoubleQuotes $ string "linear"
-      return Linear
+      num <- optional . try $ do
+        _ <- char ',' >> space
+        pNum
+      return $ Linear (join num)
     exponential = do
       _ <- betweenDoubleQuotes $ string "exponential"
       _ <- char ',' >> space

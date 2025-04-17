@@ -38,14 +38,15 @@ eval (InterpolateNumE t e a) =
       (fmap fromFloatDigits . (<*>) (sInterpolateNr t . toRealFloat <$> r))
       (revealTuple a)
   where
-    revealTuple :: [(SExpr SNum, SNum)] -> Reader ExpressionContext (Maybe [(Double, Double)])
+    revealTuple :: [(SExpr SNum, SExpr SNum)] -> Reader ExpressionContext (Maybe [(Double, Double)])
     revealTuple tuples = do
       results <- traverse processTuple tuples
       return $ sequence results
-    processTuple :: (SExpr SNum, SNum) -> Reader ExpressionContext (Maybe (Double, Double))
+    processTuple :: (SExpr SNum, SExpr SNum) -> Reader ExpressionContext (Maybe (Double, Double))
     processTuple (f, s) = do
       maybeX <- eval f
-      return $ mTuple (toRealFloat <$> maybeX, toRealFloat <$> s)
+      maybeY <- eval s
+      return $ mTuple (toRealFloat <$> maybeX, toRealFloat <$> maybeY)
     mTuple :: (Maybe a, Maybe a) -> Maybe (a, a)
     mTuple (Just a, Just b) = Just (a, b)
     mTuple _ = Nothing
@@ -177,26 +178,32 @@ eval (InterpolateColorE t i pts) = do
   revT <- revealTuple pts
   let res = (interpolationFactor t . toRealFloat <$> i') <*> revT
   let index = snd <$> res
-  let output = map snd pts
+  let output = map snd <$> revT
   return $
     interpolateColor
       (at index output)
       (at (fmap (+ 1) index) output)
       (fromFloatDigits . fst <$> res)
   where
-    at :: Maybe Int -> [SColor] -> SColor
-    at index outputs = (outputs !!) =<< index
-    revealTuple :: [(SExpr SNum, SColor)] -> Reader ExpressionContext (Maybe [(Double, SColor)])
+    at :: Maybe Int -> Maybe [SColor] -> SColor
+    at index o = join $ (\x -> fmap (x !!) index) =<< o
+    revealTuple :: [(SExpr SNum, SExpr SColor)] -> Reader ExpressionContext (Maybe [(Double, SColor)])
     revealTuple tuples = do
       results <- traverse tupleStep tuples
       return $ sequence results
-    tupleStep :: (SExpr SNum, SColor) -> Reader ExpressionContext (Maybe (Double, SColor))
+    tupleStep :: (SExpr SNum, SExpr SColor) -> Reader ExpressionContext (Maybe (Double, SColor))
     tupleStep (x, y) = do
       maybeX <- eval x
-      return $ processTuple (maybeX, y)
+      maybeY <- eval y
+      return $ processTuple (maybeX, maybeY)
     processTuple :: (SNum, SColor) -> Maybe (Double, SColor)
     processTuple (Just x, c) = Just (toRealFloat x, c)
     processTuple _ = Nothing
+eval (ColorCastE c) = unwrapC <$> eval c
+  where
+    unwrapC :: SData -> SColor
+    unwrapC (DColor c) = c
+    unwrapC _ = Nothing
 eval x = error ("not yet implemented" ++ show x)
 
 --------------------------------------------------------------------------------
@@ -237,7 +244,7 @@ findStopsLessThenOrEqualTo labels value = fromMaybe 0 (findIndex (<= value) labe
 interpolationFactor :: (Num a, RealFloat a) => InterpolationType -> a -> [(a, b)] -> (a, Int)
 interpolationFactor t v pts = (pMatch t v, index)
   where
-    pMatch Linear v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
+    pMatch (Linear _) v' = exponentialInterpolation v' 1 (labels !! index) (labels !! (index + 1))
     pMatch (Exponential e) v' = exponentialInterpolation v' (expo e) (labels !! index) (labels !! (index + 1))
       where
         expo (Just x) = toRealFloat x

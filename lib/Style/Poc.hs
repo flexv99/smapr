@@ -85,9 +85,9 @@ renderStyleSpec = do
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
 
-renderStyleSpecWithUrl :: String -> IO ()
-renderStyleSpecWithUrl url = do
-  t <- getFromUrl url
+renderWithCoords :: Coord -> IO ()
+renderWithCoords coord = do
+  t <- getMTTile coord
   stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
