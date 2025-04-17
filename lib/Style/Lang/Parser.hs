@@ -22,7 +22,6 @@ import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
-import Text.Megaparsec.Debug
 
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
@@ -170,7 +169,12 @@ boolOpParser In =
 boolOpParser All =
   AllE
     <$> boolExprP `sepBy` (char ',' >> space)
+boolOpParser Any =
+  AnyE <$> boolExprP `sepBy` (char ',' >> space)
 boolOpParser Has = HasE <$> stringExprP
+boolOpParser Boolean =
+  BooleanE
+    <$> (try polyExprP `sepBy1` (char ',' >> space))
 boolOpParser (BPoly t) = BoolCastE <$> polyOpParser t
 
 --------------------------------------------------------------------------------
@@ -247,7 +251,7 @@ polyOpParser At = do
   idx <- numExprP
   _ <- char ',' >> space
   AtE idx <$> traversableP
-polyOpParser Match = dbg "match" $ do
+polyOpParser Match = do
   v <- polyExprP
   _ <- char ',' >> space
   cases' <- caseP `sepBy` (char ',' >> space)

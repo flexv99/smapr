@@ -42,7 +42,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 snakeCaseChar :: Parser Char
-snakeCaseChar = alphaNumChar <|> char '_' <|> char '-'
+snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’'
 
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
@@ -241,6 +241,7 @@ boolSymbol =
   choice
     [ Negated Equality <$ string "!="
     , try $ Neg <$ string "!"
+    , Boolean <$ string "boolean"
     , Equality <$ string "=="
     , LessEq <$ string "<="
     , Less <$ char '<'
@@ -249,6 +250,7 @@ boolSymbol =
     , In <$ string "in"
     , Has <$ string "has"
     , All <$ string "all"
+    , Any <$ string "any"
     ]
     <|> BPoly
     <$> polyReciever

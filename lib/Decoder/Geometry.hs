@@ -1,15 +1,13 @@
 module Decoder.Geometry (
   featureToGeo,
-  decodeSeq,
+  decodeVec,
   PolygonG (..),
   LineG (..),
   MapGeometry (..),
 )
 where
 
-import Data.Foldable
-import Data.ProtoLens.Prism
-import qualified Data.Sequence as S
+import qualified Data.Vector.Unboxed as V
 import Decoder.Lines
 import Decoder.Polygons
 import GHC.Word
@@ -33,5 +31,5 @@ featureToGeo f = undefined
 -- featureToGeo (Tile'Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g
 -- featureToGeo f = decode (map fromIntegral $ toList $ geometry f)
 
-decodeSeq :: (MapGeometry a) => [Word32] -> [a]
-decodeSeq g = decode $ map fromIntegral g
+decodeVec :: (MapGeometry a) => V.Vector Word32 -> [a]
+decodeVec = decode . V.toList . V.map fromIntegral

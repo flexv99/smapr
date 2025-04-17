@@ -62,6 +62,8 @@ data SExpr a where
   Negation :: SExpr SBool -> SExpr SBool
   -- | cast SData to SBool
   BoolCastE :: SExpr SData -> SExpr SBool
+  -- | try cast multiple SData to SBool
+  BooleanE :: [SExpr SData] -> SExpr SBool
   -- | equality
   EqE :: SExpr SData -> SExpr SData -> SExpr SBool
   -- | < <= >=
@@ -74,6 +76,8 @@ data SExpr a where
 
   -- | all
   AllE :: [SExpr SBool] -> SExpr SBool
+  -- | any
+  AnyE :: [SExpr SBool] -> SExpr SBool
   -- | color literal
   ColorE :: SColor -> SExpr SColor
   -- | color interpolation
@@ -82,6 +86,7 @@ data SExpr a where
     -> SExpr SNum
     -> [(SExpr SNum, SExpr SColor)]
     -> SExpr SColor
+  -- | cast SData to SColor
   ColorCastE :: SExpr SData -> SExpr SColor
   -- | list literal
   ArrE :: [SData] -> SExpr [SData]

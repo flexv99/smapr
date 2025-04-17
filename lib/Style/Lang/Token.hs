@@ -33,7 +33,8 @@ data StringToken
   deriving (Eq, Show)
 
 data BoolToken
-  = Neg
+  = Boolean
+  | Neg
   | Equality
   | Greater
   | GreaterEq
@@ -42,6 +43,7 @@ data BoolToken
   | In
   | Has
   | All
+  | Any
   | Negated BoolToken
   | BPoly PolyToken
   deriving (Eq, Show)

@@ -12,6 +12,7 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
+import Data.Functor ((<&>))
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
 import Decoder.Geometry
@@ -75,7 +76,7 @@ buildFinalDiagram' l t =
     splitted = split' l
 
 pLayer :: IO (Either String SWrap)
-pLayer = B.readFile "/home/flex99/tmp/osm.json" >>= return . A.eitherDecode
+pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 
 renderStyleSpec :: IO ()
 renderStyleSpec = do
@@ -88,7 +89,7 @@ renderStyleSpec = do
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   t <- getMTTile coord
-  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

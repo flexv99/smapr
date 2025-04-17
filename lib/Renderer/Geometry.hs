@@ -44,7 +44,7 @@ featureToDiagram (Just (FillPaint f)) = do
 featureToDiagram _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
-decode' = ask >>= \ctx -> return $ decodeSeq (ctx ^. (feature . geometry))
+decode' = ask >>= \ctx -> return $ decodeVec (ctx ^. (feature . vec'geometry))
 
 renderTile
   :: forall {b}
@@ -56,7 +56,10 @@ renderTile tile layer' = do
   D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
   where
     toBeDrawn = runReader (evalLayer layer')
-    eachLayer ctx = if fromMaybe True (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
+    eachLayer ctx =
+      if fromMaybe True (toBeDrawn ctx)
+        then runReader (featureToDiagram (layer' ^. paint)) ctx
+        else D.strutX 0
     layers' =
       maybe
         []

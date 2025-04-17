@@ -2,10 +2,10 @@
 
 module Style.ExpressionsContext where
 
+import Lens.Micro
+import Lens.Micro.TH
 import Proto.Vector
 import Proto.Vector_Fields
-import Lens.Micro.TH
-import Lens.Micro
 
 -- perhabs make it a:
 -- properties
@@ -24,4 +24,4 @@ data ExpressionContext = ExpressionContext
 makeLenses ''ExpressionContext
 
 featureGeometryType :: ExpressionContext -> Tile'GeomType
-featureGeometryType ctx = (ctx ^. feature) ^. type'
+featureGeometryType ctx = ctx ^. (feature . type')
