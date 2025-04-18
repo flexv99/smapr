@@ -28,6 +28,7 @@ instance A.FromJSON SData where
   parseJSON (A.Bool b) = pure $ DBool $ Just b
   parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
   parseJSON (A.Array a) = DArray <$> traverse A.parseJSON (toList a)
+  parseJSON A.Null = pure $ DString Nothing
   parseJSON a =
     A.withText
       "SData"

@@ -54,16 +54,13 @@ renderStyles sts' t =
       pt = (_paint =<< stile)
    in renderTile t <$> stile
 
-renderStyles' :: SLayer -> Tile -> D.Diagram D.B
-renderStyles' sts' t = renderTile t sts'
-
 split' :: [SLayer] -> ([SLayer], [SLayer])
 split' layers = (l', f')
   where
     reverseList :: [a] -> [a]
     reverseList = foldl (flip (:)) []
-    l' = filter (\x -> x ^. pType == "line") layers
-    f' = filter (\x -> x ^. pType == "fill") layers
+    l' = reverseList $ filter (\x -> x ^. pType == "line") layers
+    f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
 -- TODO add correct background
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
@@ -75,7 +72,7 @@ buildFinalDiagram' l t =
         `D.atop` renderLayers' (snd splitted)
     )
   where
-    renderLayers' ls = mconcat (map (`renderStyles'` t) ls)
+    renderLayers' ls = mconcat (map (renderTile t) ls)
     bgP = head (filter (\x -> x ^. pType == "background") l) ^. paint
     bg (BackgroundPaint b) = b ^. backgroundColor
     bg _ = error "should not happen"
@@ -87,7 +84,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/flex99/tmp/streets.json"
+  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
