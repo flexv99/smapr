@@ -7,6 +7,7 @@ import Data.ByteString.Lazy.Char8 (unpack)
 import Data.Foldable
 import qualified Data.Map as MP
 import Data.Maybe
+import Data.ProtoLens
 import Data.Scientific
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
@@ -20,7 +21,7 @@ import Style.Lang.Types
 import Prelude hiding (id)
 
 geometryTypeToString :: Tile'Feature -> T.Text
-geometryTypeToString f = T.pack $ show $ f ^. type'
+geometryTypeToString f = T.pack $ showEnum $ f ^. type'
 
 featureIdToString :: Tile'Feature -> T.Text
 featureIdToString f = T.pack $ show $ f ^. id
@@ -81,3 +82,6 @@ getLayers lName t =
   filter
     (\x -> T.fromStrict (x ^. name) == lName)
     $ toList (t ^. layers)
+
+filterLayers :: T.Text -> Tile -> Tile
+filterLayers lName t = defMessage & layers .~ getLayers lName t
