@@ -10,9 +10,6 @@ import qualified Data.Vector.Unboxed as V
 import Decoder.Lines
 import Decoder.Polygons
 import GHC.Word
-import Lens.Micro
-import Proto.Vector
-import Proto.Vector_Fields
 
 class MapGeometry a where
   decode :: [Int] -> [a]
