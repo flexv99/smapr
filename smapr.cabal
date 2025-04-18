@@ -67,12 +67,9 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base >=4.7 && <5
+    build-depends:    base == 4.17.*
                     , proto-lens
                     , proto-lens-runtime
-                    , http-client
-                    , http-client-tls
-                    , http-types
                     , microlens
                     , microlens-th
                     , mtl
@@ -81,8 +78,9 @@ library
                     , bytestring
                     , utf8-string
                     , diagrams-contrib
-                    , diagrams-lib
                     , diagrams-svg
+                    , diagrams-lib
+                    , svg-builder
                     , time
                     , text
                     , configurator
@@ -103,7 +101,7 @@ Test-Suite smapr-testsuite
   Main-is:              STest.hs
   ghc-options:          -Wall
   hs-source-dirs:       test
-  Build-depends:        base >=4.7 && <5
+  build-depends:        base >=4.7 && <5
                       , hspec ==2.*
                       , smapr
                       , megaparsec

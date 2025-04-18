@@ -6,7 +6,6 @@ module Util (
   smaprConfigFromPath,
   testPath,
   dateTimeStr,
-  writeSvg,
   Sconf (..),
   LocalApi (..),
   MTApi (..),
@@ -17,7 +16,6 @@ import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as C
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.Format (defaultTimeLocale, formatTime)
-import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics (Generic)
 
@@ -92,10 +90,10 @@ dateTimeStr =
   getCurrentTime
     >>= \currentTime -> return $ formatTime defaultTimeLocale "%Y-%m-%d_%H:%M:%S" currentTime
 
-writeSvg :: D.Diagram D.B -> IO ()
-writeSvg d = do
-  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
-  dateStr <- dateTimeStr
-  path <- testPath dateStr
-  putStrLn path
-  D.renderSVG path sz d
+-- writeSvg :: D.Diagram D.B -> IO ()
+-- writeSvg d = do
+--   let sz = D.mkSizeSpec2D (Just 512) (Just 512)
+--   dateStr <- dateTimeStr
+--   path <- testPath dateStr
+--   putStrLn path
+--   D.renderSVG path sz d

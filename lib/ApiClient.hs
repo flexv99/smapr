@@ -10,8 +10,6 @@ import Data.ProtoLens
 import GHC.Float
 import GHC.Word
 import Lens.Micro
-import Network.HTTP.Client hiding (path)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Proto.Vector
 import Proto.Vector_Fields
 import Util
@@ -51,43 +49,9 @@ testCoord = Coord 46.615521 11.893506 14
 transformRawTile :: BL.ByteString -> Either String Tile
 transformRawTile raw = decodeMessage $ B.toStrict raw
 
--- client
-getTileUnserialized :: Coord -> IO (Response BL.ByteString)
-getTileUnserialized c = do
-  conf <- smaprConfig
-  manager <- newManager tlsManagerSettings
-  request <- parseRequest (tilerequestUrl (localApi conf) c)
-  httpLbs request manager
-
-getMTTileUnserialized :: Coord -> IO (Response BL.ByteString)
-getMTTileUnserialized c = do
-  conf <- smaprConfig
-  manager <- newManager tlsManagerSettings
-  request <- parseRequest (mTTileUrl (mtApi conf) c)
-  httpLbs request manager
-
-getTile :: Coord -> IO (Either String Tile)
-getTile c =
-  getTileUnserialized c <&> (transformRawTile . responseBody)
-
-getMTTile :: Coord -> IO (Either String Tile)
-getMTTile c =
-  getMTTileUnserialized c <&> (transformRawTile . responseBody)
-
-getFromUrl :: String -> IO (Either String Tile)
-getFromUrl url = do
-  conf <- smaprConfig
-  manager <- newManager tlsManagerSettings
-  request <- parseRequest url
-  httpLbs request manager <&> (transformRawTile . responseBody)
-
 fakerTile :: IO (Either String Tile)
 fakerTile = do
   conf <- smaprConfig
   let fp = testTilePath conf :: FilePath
   rawTile <- BL.readFile fp
   return $ transformRawTile rawTile
-
--- tmp
-geometryTest :: Tile -> Tile'GeomType
-geometryTest t = (head $ (head $ t ^. layers) ^. features) ^. type'

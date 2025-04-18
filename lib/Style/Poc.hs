@@ -9,6 +9,7 @@ module Style.Poc where
 
 import ApiClient
 import qualified Data.Aeson as A
+import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
@@ -22,6 +23,7 @@ import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
 import GHC.Word
+import Graphics.Svg.Core
 import Lens.Micro
 import Proto.Util
 import Proto.Vector
@@ -48,7 +50,12 @@ instance A.FromJSON SWrap where
       <*> o A..: "name"
       <*> o A..: "layers"
 
-renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
+renderStyles
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => B.ByteString
+  -> Tile
+  -> Maybe (D.QDiagram b D.V2 Double D.Any)
 renderStyles sts' t =
   let stile = A.decode sts' :: Maybe SLayer
       pt = (_paint =<< stile)
@@ -63,7 +70,12 @@ split' layers = (l', f')
     f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
 
 -- TODO add correct background
-buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
+buildFinalDiagram'
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => [SLayer]
+  -> Tile
+  -> D.QDiagram b D.V2 Double D.Any
 buildFinalDiagram' l t =
   D.bg
     (sRGB24 232 229 216)
@@ -81,31 +93,43 @@ buildFinalDiagram' l t =
 pLayer :: IO (Either String SWrap)
 pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 
-renderStyleSpec :: IO ()
+renderStyleSpec :: IO B.ByteString
 renderStyleSpec = do
   t <- fakerTile
   stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  either putStrLn writeSvg dg
+  let dg = buildFinalDiagram' <$> layy <*> t :: Either String (D.Diagram D.B)
+  either
+    (return . B.fromStrict . pack)
+    ( return
+        . renderBS
+        . D.renderDia
+          D.SVG
+          (D.SVGOptions (D.mkWidth 512) Nothing "" [] True)
+    )
+    dg
 
-renderWithCoords :: Coord -> IO ()
-renderWithCoords coord = do
-  t <- getMTTile coord
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
-  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  either putStrLn writeSvg dg
+-- renderWithCoords :: Coord -> IO ()
+-- renderWithCoords coord = do
+--   t <- getMTTile coord
+--   stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+--   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+--   let dg = buildFinalDiagram' <$> layy <*> t
+--   either putStrLn writeSvg dg
 
-debugRenderer :: Coord -> IO ()
-debugRenderer c = do
-  t <- getMTTile c
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
-  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> (filterLayers "transportation" <$> t)
-  either putStrLn writeSvg dg
+-- debugRenderer :: Coord -> IO ()
+-- debugRenderer c = do
+--   t <- getMTTile c
+--   stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+--   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+--   let dg = buildFinalDiagram' <$> layy <*> (filterLayers "transportation" <$> t)
+--   either putStrLn writeSvg dg
 
-drawTour :: [D.P2 Double] -> D.Diagram D.B
+drawTour
+  :: forall {b}
+   . (D.Renderable (D.Path D.V2 Double) b)
+  => [D.P2 Double]
+  -> D.QDiagram b D.V2 Double D.Any
 drawTour tour = tourPoints <> D.strokeP tourPath
   where
     tourPath = D.fromVertices tour
