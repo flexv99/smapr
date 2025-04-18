@@ -18,16 +18,15 @@ import Style.Lang.Ast
 import Style.Lang.Lex
 import Style.Lang.Token
 import Style.Lang.Types
-import Style.Lang.Util
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer as L
 
 instance A.FromJSON SData where
   parseJSON (A.Number n) = pure $ DNum $ Just n
   parseJSON (A.Bool b) = pure $ DBool $ Just b
   parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
   parseJSON (A.Array a) = DArray <$> traverse A.parseJSON (toList a)
+  parseJSON A.Null = pure $ DString Nothing
   parseJSON a =
     A.withText
       "SData"

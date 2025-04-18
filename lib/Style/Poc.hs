@@ -48,12 +48,6 @@ instance A.FromJSON SWrap where
       <*> o A..: "name"
       <*> o A..: "layers"
 
-renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
-renderStyles sts' t =
-  let stile = A.decode sts' :: Maybe SLayer
-      pt = (_paint =<< stile)
-   in renderTile t <$> stile
-
 renderStyles' :: SLayer -> Tile -> D.Diagram D.B
 renderStyles' sts' t = renderTile t sts'
 
