@@ -97,6 +97,14 @@ renderWithCoords coord = do
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
 
+debugRenderer :: Coord -> IO ()
+debugRenderer c = do
+  t <- getMTTile c
+  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> (filterLayers "transportation" <$> t)
+  either putStrLn writeSvg dg
+
 drawTour :: [D.P2 Double] -> D.Diagram D.B
 drawTour tour = tourPoints <> D.strokeP tourPath
   where
