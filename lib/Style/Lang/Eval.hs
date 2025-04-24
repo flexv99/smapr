@@ -97,6 +97,14 @@ eval (AtE i (Right r)) = textAt <$> eval r <*> eval i
 eval FgeometryE = ask >>= \ctx -> return $ Just $ geometryTypeToString (ctx ^. feature)
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
+eval (TypeOfE e) = monoOp (\x -> Just $ sDataType x) e
+  where
+    sDataType :: SData -> T.Text
+    sDataType (DNum (Just _)) = "number"
+    sDataType (DString (Just _)) = "string"
+    sDataType (DBool (Just _)) = "boolean"
+    sDataType (DArray a) = "array<" <> (sDataType $ head a) <> ", " <> (T.pack $ show $ length a) <> ">"
+    sDataType x = T.pack $ show x
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
 eval (BoolE b) = return b
 eval (BoolCastE b) = unwrapBool <$> eval b
