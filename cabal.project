@@ -10,4 +10,6 @@ source-repository-package
   tag: 815c852b046612256fc0f5f7e8585ec4e55dd9b7
   subdir: proto-lens-runtime
 
+packages: /Users/felixvalentini/sources/ghc-paths
+
 packages: ./smapr.cabal
