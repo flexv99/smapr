@@ -118,6 +118,8 @@ stringOpParser Concat = do
   s1 <- stringExprP
   _ <- char ',' >> space
   ConcatE s1 <$> stringExprP
+stringOpParser TypeOf = do
+  TypeOfE <$> polyExprP
 stringOpParser (SPoly n) = StringCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------

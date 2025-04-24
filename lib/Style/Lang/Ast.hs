@@ -56,6 +56,8 @@ data SExpr a where
   ConcatE :: SExpr SString -> SExpr SString -> SExpr SString
   -- | Geometry type expression for a given feature
   FgeometryE :: SExpr SString
+  -- | TypeOf expression
+  TypeOfE :: SExpr SData -> SExpr SString
   -- | bool literal
   BoolE :: SBool -> SExpr SBool
   -- | bool negation
