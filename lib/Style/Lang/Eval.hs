@@ -2,6 +2,7 @@
 
 module Style.Lang.Eval (eval) where
 
+import Control.Monad (join)
 import Control.Monad.Reader
 import Data.Colour
 import Data.List
