@@ -18,6 +18,9 @@ import Renderer.Lines
 import Renderer.Polygons
 import Style.ExpressionsContext
 import Style.Layers.Wrapper
+import Style.Lang.Types
+import Style.Lang.Eval
+import Style.Layers.Background
 
 {-
 fromVertices returns an instance of TrailLike
@@ -66,10 +69,24 @@ renderTile tile layer' = do
         (`getLayers` tile)
         (layer' ^. sourceLayer)
 
+
+renderBg :: SLayer -> Tile -> SColor
+renderBg l t = join $ bg <$> bgP
+  where
+    ctx = constructCtx  layers'
+    bgP =  l ^. paint
+    bg (BackgroundPaint b) = runReader (eval $ b ^. backgroundColor) (head ctx)
+    layers' =
+      maybe
+        []
+        (`getLayers` t)
+        (l ^. sourceLayer)
+        
+
 -- TODO fix zoom
 constructCtx :: [Tile'Layer] -> [ExpressionContext]
 constructCtx (l : xs) = create l ++ constructCtx xs
   where
     create :: Tile'Layer -> [ExpressionContext]
-    create l' = map (\f -> ExpressionContext f l' 17) (l' ^. features)
+    create l' = map (\f -> ExpressionContext f l' 23) (l' ^. features)
 constructCtx _ = []

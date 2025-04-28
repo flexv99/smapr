@@ -35,12 +35,14 @@ library
                     , Decoder.Polygons
                     , Decoder.Points
                     , Renderer.Lines
+                    , Renderer.Points
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill
+                    , Style.Layers.Point
                     , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util

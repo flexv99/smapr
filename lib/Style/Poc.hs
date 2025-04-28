@@ -66,16 +66,15 @@ split' layers = (l', f')
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
   D.bg
-    (sRGB24 232 229 216)
-    ( renderLayers'
+    (background)
+    (renderLayers'
         (fst splitted)
         `D.atop` renderLayers' (snd splitted)
     )
   where
+    background = fromMaybe (sRGB24 232 229 216)
+      (pureColor <$> renderBg (head (filter (\x -> x ^. pType == "background") l)) t)
     renderLayers' ls = mconcat (map (renderTile t) ls)
-    bgP = head (filter (\x -> x ^. pType == "background") l) ^. paint
-    bg (BackgroundPaint b) = b ^. backgroundColor
-    bg _ = error "should not happen"
     splitted = split' l
 
 pLayer :: IO (Either String SWrap)
@@ -84,7 +83,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+  stile <- B.readFile "/Users/felixvalentini/tmp/dark.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
@@ -92,7 +91,7 @@ renderStyleSpec = do
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   t <- getMTTile coord
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+  stile <- B.readFile "/Users/felixvalentini/tmp/positron.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

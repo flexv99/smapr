@@ -23,9 +23,10 @@ import Style.Lang.Types
 import Style.Layers.Background
 import Style.Layers.Fill
 import Style.Layers.Line
+import Style.Layers.Point
 import Text.Megaparsec
 
-data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS deriving (Show)
+data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS | PointPaint PointS deriving (Show)
 
 data SLayer = SLayer
   { _id :: T.Text
@@ -61,6 +62,7 @@ instance A.FromJSON SLayer where
           "line" -> LinePaint <$> A.parseJSON (A.Object v)
           "fill" -> FillPaint <$> A.parseJSON (A.Object v)
           "background" -> BackgroundPaint <$> A.parseJSON (A.Object v)
+          "symbol" -> PointPaint <$> A.parseJSON (A.Object v)
           _ -> FillPaint <$> A.parseJSON (A.Object v) -- not sure about this case
 
 evalLayer :: SLayer -> Reader ExpressionContext SBool
