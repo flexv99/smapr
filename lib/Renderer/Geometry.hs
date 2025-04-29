@@ -5,9 +5,8 @@ module Renderer.Geometry where
 
 import Control.Monad
 import Control.Monad.Reader
-import Data.Foldable
+import Data.List (uncons)
 import Data.Maybe (fromMaybe)
-import qualified Data.Sequence as S
 import Decoder.Geometry
 import qualified Diagrams.Prelude as D
 import Lens.Micro
@@ -15,12 +14,13 @@ import Proto.Util
 import Proto.Vector
 import Proto.Vector_Fields
 import Renderer.Lines
+import Renderer.Points
 import Renderer.Polygons
 import Style.ExpressionsContext
-import Style.Layers.Wrapper
-import Style.Lang.Types
 import Style.Lang.Eval
+import Style.Lang.Types
 import Style.Layers.Background
+import Style.Layers.Wrapper
 
 {-
 fromVertices returns an instance of TrailLike
@@ -44,6 +44,9 @@ featureToDiagram (Just (LinePaint l)) = do
 featureToDiagram (Just (FillPaint f)) = do
   polygonPath <- decode' :: Reader ExpressionContext [PolygonG]
   drawPolygon f polygonPath
+featureToDiagram (Just (PointPaint p)) = do
+  pointsPath <- decode' :: Reader ExpressionContext [PointG]
+  mconcat <$> mapM (drawPoint p . pPointToPoints) pointsPath
 featureToDiagram _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
@@ -69,19 +72,18 @@ renderTile tile layer' = do
         (`getLayers` tile)
         (layer' ^. sourceLayer)
 
-
 renderBg :: SLayer -> Tile -> SColor
 renderBg l t = join $ bg <$> bgP
   where
-    ctx = constructCtx  layers'
-    bgP =  l ^. paint
-    bg (BackgroundPaint b) = runReader (eval $ b ^. backgroundColor) (head ctx)
+    ctx = constructCtx layers'
+    bgP = l ^. paint
+    bg (BackgroundPaint b) = join $ runReader (eval $ b ^. backgroundColor) . fst <$> (uncons ctx)
+    bg _ = error "not a background, shouldn't happen"
     layers' =
       maybe
         []
         (`getLayers` t)
         (l ^. sourceLayer)
-        
 
 -- TODO fix zoom
 constructCtx :: [Tile'Layer] -> [ExpressionContext]

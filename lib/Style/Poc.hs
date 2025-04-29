@@ -48,32 +48,29 @@ instance A.FromJSON SWrap where
       <*> o A..: "name"
       <*> o A..: "layers"
 
-renderStyles :: B.ByteString -> Tile -> Maybe (D.Diagram D.B)
-renderStyles sts' t =
-  let stile = A.decode sts' :: Maybe SLayer
-      pt = (_paint =<< stile)
-   in renderTile t <$> stile
-
-split' :: [SLayer] -> ([SLayer], [SLayer])
-split' layers = (l', f')
+split' :: [SLayer] -> ([SLayer], [SLayer], [SLayer])
+split' layers = (l', f', p')
   where
     reverseList :: [a] -> [a]
     reverseList = foldl (flip (:)) []
     l' = reverseList $ filter (\x -> x ^. pType == "line") layers
     f' = reverseList $ filter (\x -> x ^. pType == "fill") layers
+    p' = reverseList $ filter (\x -> x ^. pType == "symbol") layers
 
--- TODO add correct background
 buildFinalDiagram' :: [SLayer] -> Tile -> D.Diagram D.B
 buildFinalDiagram' l t =
   D.bg
     (background)
-    (renderLayers'
-        (fst splitted)
-        `D.atop` renderLayers' (snd splitted)
+    ( renderLayers'
+        (splitted ^. _1)
+        <> renderLayers' (splitted ^. _2)
+        <> renderLayers' (splitted ^. _3)
     )
   where
-    background = fromMaybe (sRGB24 232 229 216)
-      (pureColor <$> renderBg (head (filter (\x -> x ^. pType == "background") l)) t)
+    background =
+      fromMaybe
+        (sRGB24 232 229 216)
+        (pureColor <$> renderBg (head (filter (\x -> x ^. pType == "background") l)) t)
     renderLayers' ls = mconcat (map (renderTile t) ls)
     splitted = split' l
 
@@ -83,7 +80,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/tmp/dark.json"
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

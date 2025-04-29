@@ -26,7 +26,12 @@ import Style.Layers.Line
 import Style.Layers.Point
 import Text.Megaparsec
 
-data Paint = LinePaint LineS | FillPaint FillS | BackgroundPaint BackgroundS | PointPaint PointS deriving (Show)
+data Paint
+  = LinePaint LineS
+  | FillPaint FillS
+  | BackgroundPaint BackgroundS
+  | PointPaint PointS
+  deriving (Show)
 
 data SLayer = SLayer
   { _id :: T.Text
@@ -49,8 +54,8 @@ instance A.FromJSON SLayer where
     sourceLayer' <- obj A..:? "source-layer"
     filter' <- obj A..:? "filter" >>= fexpr
     p <- obj A..:? "paint"
-    let p' = sequenceA $ paintP type' <$> p
-    SLayer id' type' source' sourceLayer' filter' <$> p'
+    SLayer id' type' source' sourceLayer' filter'
+      <$> (sequenceA $ paintP type' <$> p)
     where
       fexpr :: Maybe A.Value -> A.Parser (Maybe (SExpr SBool))
       fexpr Nothing = pure Nothing

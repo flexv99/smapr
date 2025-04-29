@@ -19,7 +19,7 @@ import Lens.Micro
 import Style.ExpressionsContext
 import Style.Lang.Eval
 import Style.Lang.Parser
-import Style.Layers.Line
+import Style.Layers.Point
 
 pPointToPoints :: PointG -> [D.P2 Double]
 pPointToPoints (PointG p) = p ^. parameters
@@ -27,7 +27,7 @@ pPointToPoints (PointG p) = p ^. parameters
 drawPoint
   :: forall {b}
    . (D.Renderable (D.Path D.V2 Double) b)
-  => LineS
+  => PointS
   -> [D.P2 Double]
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawPoint style tour = do
@@ -35,4 +35,4 @@ drawPoint style tour = do
   -- let color = fromMaybe (black `withOpacity` 1.0) mColor
   -- mStroke <- eval (style ^. lineWidth)
   -- let stroke = maybe 1.0 toRealFloat mStroke
-  return $ D.moveTo (head tour) (D.circle 0.07)
+  return $ D.moveTo (head tour) (D.circle 0.02 D.# D.fc black)
