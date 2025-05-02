@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Decoder.Geometry (
   decodeVec,
   PolygonG (..),

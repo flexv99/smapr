@@ -90,5 +90,5 @@ constructCtx :: [Tile'Layer] -> [ExpressionContext]
 constructCtx (l : xs) = create l ++ constructCtx xs
   where
     create :: Tile'Layer -> [ExpressionContext]
-    create l' = map (\f -> ExpressionContext f l' 23) (l' ^. features)
+    create l' = map (\f -> ExpressionContext f l' 18) (l' ^. features)
 constructCtx _ = []

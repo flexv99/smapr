@@ -10,6 +10,7 @@ where
 import Control.Monad.Reader
 import Data.Colour
 import Data.Maybe (fromMaybe)
+import Data.Monoid
 import Data.Scientific (toRealFloat)
 import Decoder.Geometry
 import Decoder.Helper
@@ -22,7 +23,7 @@ import Style.Lang.Parser
 import Style.Layers.Point
 
 pPointToPoints :: PointG -> [D.P2 Double]
-pPointToPoints (PointG p) = p ^. parameters
+pPointToPoints p = p ^. parameters
 
 drawPoint
   :: forall {b}
@@ -35,4 +36,4 @@ drawPoint style tour = do
   -- let color = fromMaybe (black `withOpacity` 1.0) mColor
   -- mStroke <- eval (style ^. lineWidth)
   -- let stroke = maybe 1.0 toRealFloat mStroke
-  return $ D.moveTo (head tour) (D.circle 0.02 D.# D.fc black)
+  return $ mconcat $ map (\t -> D.moveTo t (D.circle 0.5 D.# D.fc black)) tour

@@ -127,9 +127,4 @@ data LineG = LineG
 
 makeLenses ''LineG
 
-data PointG = PointG
-  { _pMoveT :: GeoAction
-  }
-  deriving (Show, Eq)
-
-makeLenses ''PointG
+type PointG = GeoAction
