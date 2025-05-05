@@ -8,18 +8,18 @@ module Decoder.Lines (
 )
 where
 
-import Lens.Micro
-import Lens.Micro.Extras
 import Data.List
 import Decoder.Helper
+import Lens.Micro
+import Lens.Micro.Extras
 
 decodeLineCommands :: [Int] -> [[GeoAction]]
 decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
   where
-    singleDecoder l =
+    singleDecoder (l : ls) =
       GeoAction
-        { _command = decodeCommand (head l)
-        , _parameters = tuplify $ map decodeParam (tail l)
+        { _command = decodeCommand l
+        , _parameters = tuplify $ map decodeParam ls
         }
 
 absoluteLineG :: LineG -> LineG
