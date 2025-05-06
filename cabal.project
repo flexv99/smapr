@@ -1,13 +1,4 @@
-source-repository-package
-  type: git
-  location: https://github.com/google/proto-lens.git
-  tag: 815c852b046612256fc0f5f7e8585ec4e55dd9b7
-  subdir: proto-lens
-
-source-repository-package
-  type: git
-  location: https://github.com/google/proto-lens.git
-  tag: 815c852b046612256fc0f5f7e8585ec4e55dd9b7
-  subdir: proto-lens-runtime
+program-locations
+  ghc-pkg: /Users/flex99/.ghc-wasm/wasm32-wasi-ghc/bin/wasm32-wasi-ghc-pkg
 
 packages: ./smapr.cabal
