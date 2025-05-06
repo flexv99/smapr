@@ -1,4 +1,6 @@
 program-locations
   ghc-pkg: /Users/flex99/.ghc-wasm/wasm32-wasi-ghc/bin/wasm32-wasi-ghc-pkg
 
+packages: /Users/felixvalentini/sources/ghc-paths
+
 packages: ./smapr.cabal
