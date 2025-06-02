@@ -2,7 +2,7 @@
 
 module Style.Lang.Eval (eval) where
 
-import Control.Lens
+import Control.Monad (join)
 import Control.Monad.Reader
 import Control.Monad (join)
 import Data.Colour
@@ -11,6 +11,7 @@ import qualified Data.Map as MP
 import Data.Maybe
 import Data.Scientific
 import qualified Data.Text.Lazy as T
+import Lens.Micro
 import Proto.Util
 import Style.ExpressionsContext
 import Style.Lang.Ast
@@ -94,9 +95,17 @@ eval (AtE i (Right r)) = textAt <$> eval r <*> eval i
   where
     textAt :: SString -> SNum -> SData
     textAt t i = DString $ T.singleton <$> (T.index <$> t <*> (floor . toRealFloat <$> i))
-eval FgeometryE = ask >>= \ctx -> return $ geometryTypeToString (ctx ^. feature)
+eval FgeometryE = ask >>= \ctx -> return $ Just $ geometryTypeToString (ctx ^. feature)
 eval (UpcaseE s) = monoOp (T.toUpper <$>) s
 eval (DowncaseE s) = monoOp (T.toLower <$>) s
+eval (TypeOfE e) = monoOp (\x -> Just $ sDataType x) e
+  where
+    sDataType :: SData -> T.Text
+    sDataType (DNum (Just _)) = "number"
+    sDataType (DString (Just _)) = "string"
+    sDataType (DBool (Just _)) = "boolean"
+    sDataType (DArray a) = "array<" <> (sDataType $ head a) <> ", " <> (T.pack $ show $ length a) <> ">"
+    sDataType x = T.pack $ show x
 eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
 eval (BoolE b) = return b
 eval (BoolCastE b) = unwrapBool <$> eval b

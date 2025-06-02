@@ -3,9 +3,10 @@
 
 module Style.Layers.Fill where
 
-import Control.Lens
 import qualified Data.Aeson as A
 import Data.Colour
+import Lens.Micro
+import Lens.Micro.TH
 import Style.Lang.Ast
 import Style.Lang.Parser
 import Style.Lang.Types

@@ -29,6 +29,7 @@ data StringToken
   | Upcase
   | Downcase
   | Concat
+  | TypeOf
   | SPoly PolyToken
   deriving (Eq, Show)
 

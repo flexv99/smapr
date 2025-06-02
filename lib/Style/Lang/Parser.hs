@@ -1,13 +1,13 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Style.Lang.Parser (
-  numExprP,
-  stringExprP,
-  boolExprP,
-  colorExprP,
-  arrayExprP,
-  polyExprP,
-)
+module Style.Lang.Parser
+  ( numExprP,
+    stringExprP,
+    boolExprP,
+    colorExprP,
+    arrayExprP,
+    polyExprP,
+  )
 where
 
 import Control.Monad (join)
@@ -27,6 +27,7 @@ instance A.FromJSON SData where
   parseJSON (A.String s) = pure $ DString $ Just $ T.fromStrict s
   parseJSON (A.Array a) = DArray <$> traverse A.parseJSON (toList a)
   parseJSON A.Null = pure $ DString Nothing
+  parseJSON (A.Object _) = pure $ DString Nothing
   parseJSON a =
     A.withText
       "SData"
@@ -116,6 +117,8 @@ stringOpParser Concat = do
   s1 <- stringExprP
   _ <- char ',' >> space
   ConcatE s1 <$> stringExprP
+stringOpParser TypeOf = do
+  TypeOfE <$> polyExprP
 stringOpParser (SPoly n) = StringCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -231,10 +234,10 @@ polyExprP :: Parser (SExpr SData)
 polyExprP =
   try $
     choice
-      [ FromNum . NumE <$> pNum
-      , FromBool . BoolE <$> pBool
-      , try $ FromColor . ColorE <$> pColor
-      , FromString . StringE <$> pString
+      [ FromNum . NumE <$> pNum,
+        FromBool . BoolE <$> pBool,
+        try $ FromColor . ColorE <$> pColor,
+        FromString . StringE <$> pString
       ]
       <|> betweenSquareBrackets
         ( do

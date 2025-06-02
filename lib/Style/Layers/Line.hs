@@ -5,11 +5,12 @@
 
 module Style.Layers.Line where
 
-import Control.Lens
 import qualified Data.Aeson as A
 import Data.Colour
 import Data.Text (toLower)
 import qualified Diagrams.Attributes as D
+import Lens.Micro
+import Lens.Micro.TH
 import Style.Lang.Ast
 import Style.Lang.Parser
 import Style.Lang.Types

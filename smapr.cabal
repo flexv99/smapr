@@ -16,30 +16,33 @@ version:            0.1.0.0
 author:             flex99
 maintainer:         flex99@posteo.net
 
--- A copyright notice.
--- copyright:
--- category:
-extra-source-files: CHANGELOG.md
+build-type: Custom
+extra-source-files: lib/Proto/vector.proto
+
+common warnings
+    ghc-options: -Wall
+
+custom-setup
+    setup-depends: base, Cabal, proto-lens-setup
+    build-tool-depends: proto-lens-protoc:proto-lens-protoc
 
 library
-    exposed-modules:  Proto.Vector_tile
-                    , Proto.Util
-                    , Proto.Vector_tile.Tile
-                    , Proto.Vector_tile.Tile.Feature
-                    , Proto.Vector_tile.Tile.GeomType
-                    , Proto.Vector_tile.Tile.Layer
-                    , Proto.Vector_tile.Tile.Value
+    exposed-modules:  Proto.Util
+                    , Proto.Vector
+                    , Proto.Vector_Fields
                     , Decoder.Geometry
                     , Decoder.Lines
                     , Decoder.Polygons
                     , Decoder.Points
                     , Renderer.Lines
+                    , Renderer.Points
                     , Renderer.Polygons
                     , Renderer.Geometry
                     , Style.Poc
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill
+                    , Style.Layers.Point
                     , Style.Layers.Background
                     , Style.Layers.Wrapper
                     , Style.Layers.Util
@@ -56,16 +59,24 @@ library
                     , ApiClient
 
     -- Modules included in this library but not exported.
-    other-modules: Decoder.Helper
+    other-modules:    Decoder.Helper
+                    
+    -- Auto generated modules: proto stuff
+    autogen-modules:  Proto.Vector
+                    , Proto.Vector_Fields
+
+    build-tool-depends: proto-lens-protoc:proto-lens-protoc
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base >=4.7 && <5
-                    , protocol-buffers
-                    , protocol-buffers-descriptor
+                    , proto-lens
+                    , proto-lens-runtime
                     , http-client
                     , http-client-tls
-                    , lens
+                    , http-types
+                    , microlens
+                    , microlens-th
                     , mtl
                     , megaparsec
                     , generic-deriving

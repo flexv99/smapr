@@ -3,30 +3,28 @@
 module Proto.Util where
 
 import ApiClient
-import Control.Lens hiding (zoom)
 import Data.ByteString.Lazy.Char8 (unpack)
 import Data.Foldable
 import qualified Data.Map as MP
 import Data.Maybe
+import Data.ProtoLens
 import Data.Scientific
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
+import qualified Data.Vector as V
 import GHC.Word
-import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer
-import Proto.Vector_tile.Tile.Value
+import Lens.Micro
+import Proto.Vector
+import Proto.Vector_Fields
 import Style.ExpressionsContext
 import Style.Lang.Types
-import Text.ProtocolBuffers.Basic (uToString)
-import qualified Text.ProtocolBuffers.Header as P'
 import Prelude hiding (id)
 
-geometryTypeToString :: Feature -> Maybe T.Text
-geometryTypeToString f = T.pack . show <$> type' f
+geometryTypeToString :: Tile'Feature -> T.Text
+geometryTypeToString f = T.pack $ showEnum $ f ^. type'
 
-featureIdToString :: Feature -> Maybe T.Text
-featureIdToString f = T.pack . show <$> id f
+featureIdToString :: Tile'Feature -> T.Text
+featureIdToString f = T.pack $ show $ f ^. id
 
 tuplify :: [a] -> [(a, a)]
 tuplify [] = []
@@ -40,14 +38,14 @@ featureProperties'' ctx =
     $ map
       ( \(x, y) ->
           let (i, j) = (fromIntegral x, fromIntegral y)
-           in (T.pack (fromMaybe "" (key !? i)), fromMaybe (DNum Nothing) (value !? j))
+           in (fromMaybe "" (key !? i), fromMaybe (DNum Nothing) (value !? j))
       )
     $ tuplify
     $ toList
-    $ tags (ctx ^. feature)
+      (ctx ^. (feature . tags))
   where
-    key = map (\(P'.Utf8 s) -> unpack s) $ toList $ keys (ctx ^. layer)
-    value = extractMappers' $ toList $ values (ctx ^. layer)
+    key = V.map T.fromStrict $ ctx ^. (layer . vec'keys)
+    value = extractMappers' (ctx ^. (layer . values))
     xs !? n
       | n < 0 = Nothing
       | otherwise =
@@ -60,18 +58,18 @@ featureProperties'' ctx =
             xs
             n
 
-extractMappers' :: [Value] -> [SData]
+extractMappers' :: [Tile'Value] -> [SData]
 extractMappers' = concatMap (filter filterValue . extractMapper)
   where
-    extractMapper :: Value -> [SData]
+    extractMapper :: Tile'Value -> [SData]
     extractMapper v =
-      [ DString $ (\(P'.Utf8 s) -> T.pack $ unpack s) <$> string_value v
-      , DNum $ fromFloatDigits <$> float_value v
-      , DNum $ fromFloatDigits <$> double_value v
-      , DNum $ fromIntegral <$> int_value v
-      , DNum $ fromIntegral <$> uint_value v
-      , DNum $ fromIntegral <$> sint_value v
-      , DBool $ bool_value v
+      [ DString $ T.fromStrict <$> (v ^. maybe'stringValue)
+      , DNum $ fromFloatDigits <$> (v ^. maybe'floatValue)
+      , DNum $ fromFloatDigits <$> (v ^. maybe'doubleValue)
+      , DNum $ fromIntegral <$> (v ^. maybe'intValue)
+      , DNum $ fromIntegral <$> (v ^. maybe'uintValue)
+      , DNum $ fromIntegral <$> (v ^. maybe'sintValue)
+      , DBool $ v ^. maybe'boolValue
       ]
     filterValue :: SData -> Bool
     filterValue (DString Nothing) = False
@@ -79,24 +77,11 @@ extractMappers' = concatMap (filter filterValue . extractMapper)
     filterValue (DBool Nothing) = False
     filterValue _ = True
 
-getLayers :: T.Text -> Tile -> S.Seq Layer
+getLayers :: T.Text -> Tile -> [Tile'Layer]
 getLayers lName t =
-  S.filter (\x -> uToString (name x) == T.unpack lName) $
-    layers t
+  filter
+    (\x -> T.fromStrict (x ^. name) == lName)
+    $ toList (t ^. layers)
 
-filterLayerByName :: T.Text -> Tile -> [[Word32]]
-filterLayerByName lName t =
-  map (toList . geometry) $
-    head $
-      map (toList . features) $
-        toList $
-          getLayers lName t
-
-waterLayer :: IO (Maybe Layer)
-waterLayer = fakerTile <&> fmap (\l -> getLayers "waterway" l `S.index` 0)
-
-testLayerAndFeature :: IO (Maybe ExpressionContext)
-testLayerAndFeature = do
-  l <- waterLayer
-  let f = fmap (`S.index` 0) (features <$> l)
-  return $ ExpressionContext <$> f <*> l <*> Just 14
+filterLayers :: T.Text -> Tile -> Tile
+filterLayers lName t = defMessage & layers .~ getLayers lName t

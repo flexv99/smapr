@@ -3,21 +3,24 @@
 
 module Renderer.Geometry where
 
-import Control.Lens
 import Control.Monad
 import Control.Monad.Reader
-import Data.Foldable
+import Data.List (uncons)
 import Data.Maybe (fromMaybe)
-import qualified Data.Sequence as S
 import Decoder.Geometry
 import qualified Diagrams.Prelude as D
+import qualified Diagrams.TwoD.Text as D
+import Lens.Micro
 import Proto.Util
-import Proto.Vector_tile.Tile
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer
+import Proto.Vector
+import Proto.Vector_Fields
 import Renderer.Lines
+import Renderer.Points
 import Renderer.Polygons
 import Style.ExpressionsContext
+import Style.Lang.Eval
+import Style.Lang.Types
+import Style.Layers.Background
 import Style.Layers.Wrapper
 
 {-
@@ -32,42 +35,61 @@ moveTo will determine where the origin is set
 -}
 
 featureToDiagram
-  :: forall {b}
-   . (D.Renderable (D.Path D.V2 Double) b)
+  :: ( D.Renderable (D.Path D.V2 Double) b
+     , D.Renderable (D.Text Double) b
+     )
   => Maybe Paint
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
   linePath <- decode' :: Reader ExpressionContext [LineG]
-  liftM mconcat (mapM (drawLine l . lineToPoints) linePath)
+  mconcat <$> mapM (drawLine l . lineToPoints) linePath
 featureToDiagram (Just (FillPaint f)) = do
   polygonPath <- decode' :: Reader ExpressionContext [PolygonG]
   drawPolygon f polygonPath
+featureToDiagram (Just (PointPaint p)) = do
+  pointsPath <- decode' :: Reader ExpressionContext [PointG]
+  mconcat <$> mapM (drawPoint p . pPointToPoints) pointsPath
 featureToDiagram _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
-decode' = ask >>= \ctx -> return $ decodeSeq (geometry (ctx ^. feature))
+decode' = ask >>= \ctx -> return $ decodeVec (ctx ^. (feature . vec'geometry))
 
 renderTile
-  :: forall {b}
-   . (D.Renderable (D.Path D.V2 Double) b)
-  => Tile
-  -> SLayer
-  -> D.QDiagram b D.V2 Double D.Any
+  :: ( D.Renderable (D.Path D.V2 Double) b
+     , D.Renderable (D.Text Double) b
+     )
+  => Tile -> SLayer -> D.QDiagram b D.V2 Double D.Any
 renderTile tile layer' = do
-  D.reflectY $ mconcat $ map eachLayer (toList $ constructCtx layers')
+  D.reflectY $ mconcat $ map eachLayer (constructCtx layers')
   where
     toBeDrawn = runReader (evalLayer layer')
-    eachLayer ctx = if fromMaybe True (toBeDrawn ctx) then runReader (featureToDiagram (layer' ^. paint)) ctx else D.strutX 0
+    eachLayer ctx =
+      if fromMaybe True (toBeDrawn ctx)
+        then runReader (featureToDiagram (layer' ^. paint)) ctx
+        else D.strutX 0
     layers' =
       maybe
-        S.empty
+        []
         (`getLayers` tile)
         (layer' ^. sourceLayer)
 
--- TODO fix zoom
-constructCtx :: S.Seq Layer -> S.Seq ExpressionContext
-constructCtx (l S.:<| xs) = create l S.>< constructCtx xs
+renderBg :: SLayer -> Tile -> SColor
+renderBg l t = join $ bg <$> bgP
   where
-    create :: Layer -> S.Seq ExpressionContext
-    create l' = fmap (\f -> ExpressionContext f l' 22) (features l')
-constructCtx S.Empty = S.empty
+    ctx = constructCtx layers'
+    bgP = l ^. paint
+    bg (BackgroundPaint b) = join $ runReader (eval $ b ^. backgroundColor) . fst <$> (uncons ctx)
+    bg _ = error "not a background, shouldn't happen"
+    layers' =
+      maybe
+        []
+        (`getLayers` t)
+        (l ^. sourceLayer)
+
+-- TODO fix zoom
+constructCtx :: [Tile'Layer] -> [ExpressionContext]
+constructCtx (l : xs) = create l ++ constructCtx xs
+  where
+    create :: Tile'Layer -> [ExpressionContext]
+    create l' = map (\f -> ExpressionContext f l' 18) (l' ^. features)
+constructCtx _ = []

@@ -3,7 +3,6 @@
 module Decoder.Polygons (
   decPolygon,
   isInner,
-  helperDecSPolygon,
   PolygonG (..),
   SPolygon (..),
   MPolygon,
@@ -12,20 +11,22 @@ module Decoder.Polygons (
 )
 where
 
-import Control.Lens hiding (uncons)
 import Data.List
 import qualified Data.List.Split as LS
 import Data.Maybe
 import Decoder.Helper
+import Lens.Micro
+import Lens.Micro.Extras
 
 decodePolygonCommands :: [Int] -> [[GeoAction]]
 decodePolygonCommands r = splitAtMove $ map singleDecoder (splitCommands r)
   where
-    singleDecoder l =
+    singleDecoder (l : ls) =
       GeoAction
-        { _command = decodeCommand (head l)
-        , _parameters = tuplify $ map decodeParam (tail l)
+        { _command = decodeCommand l
+        , _parameters = tuplify $ map decodeParam ls
         }
+    singleDecoder [] = error "should not happen"
 
 absolutePolygonG :: SPolygon -> SPolygon
 absolutePolygonG p =
@@ -33,7 +34,7 @@ absolutePolygonG p =
     set (pLineTo . parameters) progSumLineTo p
   where
     sumMoveTo = foldl1 sumTuple (view (pMoveTo . parameters) p)
-    progSumLineTo = tail $ scanl sumTuple sumMoveTo (view (pLineTo . parameters) p)
+    progSumLineTo = drop 1 $ scanl sumTuple sumMoveTo (view (pLineTo . parameters) p)
     closePath = last $ view (pMoveTo . parameters) p
 
 relativeMoveTo :: [SPolygon] -> [SPolygon]
@@ -65,24 +66,11 @@ sumMoveToAndLineTo polygons =
           polygons
    in foldl' sumTuple coordsOrigin allPoints
 
-helperDecSPolygon :: [Int] -> [SPolygon]
-helperDecSPolygon =
-  map absolutePolygonG
-    . relativeMoveTo
-    . (map actionToPolygonG . decodePolygonCommands)
-  where
-    actionToPolygonG g =
-      SPolygon
-        { _pMoveTo = head g
-        , _pLineTo = g !! 1
-        , _pClosePath = last g
-        }
-
 decPolygon :: [Int] -> [PolygonG]
 decPolygon = delegator . map absolutePolygonG . relativeMoveTo . (map actionToPolygon . decodePolygonCommands)
   where
     actionToPolygon :: [GeoAction] -> SPolygon
-    actionToPolygon [x] = SPolygon{_pMoveTo = x}
+    actionToPolygon [x] = SPolygon{_pMoveTo = x, _pLineTo = x, _pClosePath = x}
     actionToPolygon g =
       SPolygon
         { _pMoveTo = head g
@@ -119,12 +107,13 @@ polygonParams (SPolygon pMoveTo' pLineTo' pClosePath') =
     ]
 
 shoelace :: [Point] -> Double
-shoelace p = sh' p / 2
+shoelace (p : ps) = sh' (p : ps) / 2
   where
     sh' [] = 0.0
     sh' [x] = shoelaceStep x fst'
     sh' (x : x' : xs) = shoelaceStep x x' + sh' (x' : xs)
-    fst' = head p
+    fst' = p
+shoelace [] = error "empty"
 
 isInner :: SPolygon -> Bool
 isInner = (< 0) . shoelace . polygonParams

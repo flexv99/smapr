@@ -2,10 +2,10 @@
 
 module Style.ExpressionsContext where
 
-import Control.Lens
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.GeomType
-import Proto.Vector_tile.Tile.Layer
+import Lens.Micro
+import Lens.Micro.TH
+import Proto.Vector
+import Proto.Vector_Fields
 
 -- perhabs make it a:
 -- properties
@@ -15,13 +15,13 @@ import Proto.Vector_tile.Tile.Layer
 -- kind of object
 
 data ExpressionContext = ExpressionContext
-  { _feature :: Feature
-  , _layer :: Layer
+  { _feature :: Tile'Feature
+  , _layer :: Tile'Layer
   , _ctxZoom :: Double
   }
   deriving (Show, Eq)
 
 makeLenses ''ExpressionContext
 
-featureGeometryType :: ExpressionContext -> Maybe GeomType
-featureGeometryType ctx = type' (ctx ^. feature)
+featureGeometryType :: ExpressionContext -> Tile'GeomType
+featureGeometryType ctx = ctx ^. (feature . type')

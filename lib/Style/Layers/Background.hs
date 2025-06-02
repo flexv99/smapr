@@ -3,9 +3,9 @@
 
 module Style.Layers.Background where
 
-import Control.Lens
 import qualified Data.Aeson as A
 import Data.Colour
+import Lens.Micro.TH
 import Style.Lang.Ast
 import Style.Lang.Parser
 import Style.Lang.Types

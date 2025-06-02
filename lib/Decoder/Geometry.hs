@@ -1,19 +1,19 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Decoder.Geometry (
-  featureToGeo,
-  decodeSeq,
+  decodeVec,
   PolygonG (..),
   LineG (..),
+  PointG (..),
   MapGeometry (..),
 )
 where
 
-import Data.Foldable
-import qualified Data.Sequence as S
+import qualified Data.Vector.Unboxed as V
 import Decoder.Lines
+import Decoder.Points
 import Decoder.Polygons
 import GHC.Word
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.GeomType
 
 class MapGeometry a where
   decode :: [Int] -> [a]
@@ -24,10 +24,8 @@ instance MapGeometry PolygonG where
 instance MapGeometry LineG where
   decode = decLine
 
-featureToGeo :: (MapGeometry a, Show a) => Feature -> [a]
-featureToGeo (Feature _ _ (Just POLYGON) g) = decode $ map fromIntegral $ toList g
-featureToGeo (Feature _ _ (Just LINESTRING) g) = decode $ map fromIntegral $ toList g
-featureToGeo f = decode (map fromIntegral $ toList $ geometry f)
+instance MapGeometry PointG where
+  decode = decPoint
 
-decodeSeq :: (MapGeometry a) => S.Seq Word32 -> [a]
-decodeSeq g = decode $ map fromIntegral $ toList g
+decodeVec :: (MapGeometry a) => V.Vector Word32 -> [a]
+decodeVec = decode . V.toList . V.map fromIntegral

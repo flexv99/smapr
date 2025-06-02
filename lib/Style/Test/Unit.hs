@@ -7,7 +7,6 @@
 
 module Style.Test.Unit where
 
-import Control.Lens
 import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
@@ -18,13 +17,16 @@ import qualified Data.ByteString.Lazy.Char8 as BC
 import Data.Either
 import qualified Data.Map as MP
 import Data.Maybe
+import Data.ProtoLens
 import Data.Scientific
-import qualified Data.Sequence as S
+import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.Vector as V
-import Proto.Vector_tile.Tile.Feature
-import Proto.Vector_tile.Tile.Layer hiding (ext'field)
-import Proto.Vector_tile.Tile.Value
+import qualified Data.Vector.Unboxed as VU
+import Lens.Micro
+import Lens.Micro.TH
+import Proto.Vector
+import Proto.Vector_Fields
 import Style.ExpressionsContext
 import Style.Lang.Ast
 import Style.Lang.Eval
@@ -32,7 +34,6 @@ import Style.Lang.Lex
 import Style.Lang.Parser
 import Style.Lang.Types
 import Text.Megaparsec
-import qualified Text.ProtocolBuffers.Header as P'
 import Util
 
 data ResultType = RNumber | RBoolean | RArray | RString | RColor deriving (Show)
@@ -105,14 +106,11 @@ instance A.FromJSON ExpressionTestEntity where
         Left err -> fail $ errorBundlePretty err
         Right res -> pure $ Just res
 
-sDataToValue :: SData -> Value
-sDataToValue (DString s) = (P'.defaultValue :: Value){string_value = (fromEither . P'.toUtf8 . T.encodeUtf8) =<< s}
-  where
-    fromEither (Right a) = Just a
-    fromEither _ = Nothing
-sDataToValue (DNum d) = (P'.defaultValue :: Value){double_value = toRealFloat <$> d}
-sDataToValue (DBool b) = (P'.defaultValue :: Value){bool_value = b}
-sDataToValue (DArray d) = P'.defaultValue :: Value -- cannot store arrays to value
+sDataToValue :: SData -> Tile'Value
+sDataToValue (DString s) = (defMessage :: Tile'Value) & maybe'stringValue .~ (T.toStrict <$> s)
+sDataToValue (DNum d) = (defMessage :: Tile'Value) & maybe'doubleValue .~ (toRealFloat <$> d)
+sDataToValue (DBool b) = (defMessage :: Tile'Value) & maybe'boolValue .~ b
+sDataToValue (DArray d) = defMessage :: Tile'Value -- cannot store arrays to value
 sDataToValue _ = error "unsupported type"
 
 testCTXs :: Properties -> ExpressionContext
@@ -120,12 +118,26 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
   where
     props = MP.lookup "properties" p
     nrProps = maybe 0 (length . MP.keys) props
-    k' = S.fromList . rights . map (P'.toUtf8 . BC.pack) . MP.keys <$> props
-    v' = S.fromList . map sDataToValue . MP.elems <$> props
-    t' = S.fromList $ map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
-    dFeature = (P'.defaultValue :: Feature){tags = t'}
-    createLayer = (\y -> fmap (\x -> (P'.defaultValue :: Layer){keys = x, values = y, features = S.singleton dFeature}) k') =<< v'
-    defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = P'.defaultValue, _feature = P'.defaultValue}
+    k' = map (T.toStrict . T.pack) . MP.keys <$> props
+    v' = map sDataToValue . MP.elems <$> props
+    t' = map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    dFeature = defMessage & tags .~ t'
+    createLayer =
+      ( \y ->
+          fmap
+            ( \x ->
+                defMessage
+                  & keys
+                  .~ x
+                  & values
+                  .~ y
+                  & features
+                  .~ [dFeature]
+            )
+            k'
+      )
+        =<< v'
+    defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = defMessage, _feature = defMessage}
 
 runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
 runTestWithResult = do
@@ -135,8 +147,8 @@ runTestWithResult = do
     testWithContexts t =
       fmap
         (\r -> map (runReader r <$>) (tContexts t))
-        (eval <$> view expression t)
-    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+        (eval <$> t ^. expression)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
 
 runTest :: (MonadError String m, MonadIO m) => m [Maybe Bool]
 runTest = do
@@ -147,8 +159,8 @@ runTest = do
     testWithContexts t =
       fmap
         (\r -> map (runReader r <$>) (tContexts t))
-        (eval <$> view expression t)
-    tContexts t = map (testCTXs <$>) ((!! 1) <$> view inputs t)
+        (eval <$> t ^. expression)
+    tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
     expectedRes t = t ^. (expected . outputs)
 
 readTest :: IO (Either String ExpressionTestEntity)
