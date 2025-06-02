@@ -78,7 +78,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   maybe (putStrLn "Noting") writeSvg dg

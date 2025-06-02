@@ -4,6 +4,7 @@ module Style.Lang.Eval (eval) where
 
 import Control.Lens
 import Control.Monad.Reader
+import Control.Monad (join)
 import Data.Colour
 import Data.List
 import qualified Data.Map as MP
