@@ -69,11 +69,11 @@ decodeParam p = int2Double $ (p `shiftR` 1) `xor` (-(p .&. 1))
 
 splitCommands :: [Int] -> [[Int]]
 splitCommands [] = []
-splitCommands c =
-  let (taken, rest) = splitAt toBeSplitted c
+splitCommands (c : cs) =
+  let (taken, rest) = splitAt toBeSplitted (c : cs)
    in if null taken then [] else taken : splitCommands rest
   where
-    toBeSplitted = parametersCount (decodeCommand $ head c) + 1
+    toBeSplitted = parametersCount (decodeCommand c) + 1
 
 tuplify :: [a] -> [D.P2 a]
 tuplify [] = []

@@ -12,7 +12,6 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
 import Data.Foldable
-import Data.Functor ((<&>))
 import Data.Maybe (fromMaybe)
 import qualified Data.Sequence as S
 import qualified Data.Text.Lazy as T
@@ -27,7 +26,6 @@ import Proto.Util
 import Proto.Vector
 import Renderer.Geometry
 import Style.Lang.Util
-import Style.Layers.Background
 import Style.Layers.Wrapper
 import Util
 
@@ -88,7 +86,7 @@ renderStyleSpec = do
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   t <- getMTTile coord
-  stile <- B.readFile "/Users/felixvalentini/tmp/positron.json"
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

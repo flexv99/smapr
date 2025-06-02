@@ -9,6 +9,7 @@ import Data.List (uncons)
 import Data.Maybe (fromMaybe)
 import Decoder.Geometry
 import qualified Diagrams.Prelude as D
+import qualified Diagrams.TwoD.Text as D
 import Lens.Micro
 import Proto.Util
 import Proto.Vector
@@ -34,8 +35,9 @@ moveTo will determine where the origin is set
 -}
 
 featureToDiagram
-  :: forall {b}
-   . (D.Renderable (D.Path D.V2 Double) b)
+  :: ( D.Renderable (D.Path D.V2 Double) b
+     , D.Renderable (D.Text Double) b
+     )
   => Maybe Paint
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 featureToDiagram (Just (LinePaint l)) = do
@@ -53,11 +55,10 @@ decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
 decode' = ask >>= \ctx -> return $ decodeVec (ctx ^. (feature . vec'geometry))
 
 renderTile
-  :: forall {b}
-   . (D.Renderable (D.Path D.V2 Double) b)
-  => Tile
-  -> SLayer
-  -> D.QDiagram b D.V2 Double D.Any
+  :: ( D.Renderable (D.Path D.V2 Double) b
+     , D.Renderable (D.Text Double) b
+     )
+  => Tile -> SLayer -> D.QDiagram b D.V2 Double D.Any
 renderTile tile layer' = do
   D.reflectY $ mconcat $ map eachLayer (constructCtx layers')
   where

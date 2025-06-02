@@ -8,7 +8,6 @@ module Decoder.Lines (
 )
 where
 
-import Data.List
 import Decoder.Helper
 import Lens.Micro
 import Lens.Micro.Extras
@@ -21,12 +20,13 @@ decodeLineCommands = splitAtMove . map singleDecoder . splitCommands
         { _command = decodeCommand l
         , _parameters = tuplify $ map decodeParam ls
         }
+    singleDecoder _ = error "should newer happen"
 
 absoluteLineG :: LineG -> LineG
 absoluteLineG p = set (lLineTo . parameters) progSumLineTo p
   where
     sumMoveTo = foldl1 sumTuple $ view (lMoveTo . parameters) p
-    progSumLineTo = tail $ scanl sumTuple sumMoveTo $ view (lLineTo . parameters) p
+    progSumLineTo = drop 1 $ scanl sumTuple sumMoveTo $ view (lLineTo . parameters) p
 
 relativeMoveTo :: [LineG] -> [LineG]
 relativeMoveTo = f []
@@ -51,4 +51,5 @@ decLine :: [Int] -> [LineG]
 decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
   where
     actionToLineG :: [GeoAction] -> LineG
-    actionToLineG g = LineG{_lMoveTo = head g, _lLineTo = last g}
+    actionToLineG (g : gs) = LineG{_lMoveTo = g, _lLineTo = last gs}
+    actionToLineG _ = error "should newer happen"

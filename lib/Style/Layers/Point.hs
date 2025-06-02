@@ -36,6 +36,7 @@ data PointS = PointS
   , _symbolSortKey :: Maybe (SExpr SNum)
   , _symbolZOrder :: SymbolZOrder -- DEF: Auto
   , _iconAllowOverlap :: SExpr SBool -- DEF: false
+  , _textField :: SExpr SString
   }
   deriving (Show)
 
@@ -50,6 +51,7 @@ instance A.FromJSON PointS where
       <*> (t A..:? "symbol-sort-key" >>= expr)
       <*> t A..:? "symbol-z-order" A..!= Auto
       <*> (t A..:? "icon-allow-overlap" >>= bexpr) A..!= BoolE (Just False)
+      <*> (t A..:? "text-field" >>= sexpr) A..!= StringE (Just "")
 
 {-
 
@@ -69,7 +71,7 @@ icon-anchor
 icon-pitch-alignment
 text-pitch-alignment
 text-rotation-alignment
-text-field
+
 text-font
 text-size
 text-max-width

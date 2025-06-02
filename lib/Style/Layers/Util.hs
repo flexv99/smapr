@@ -48,3 +48,9 @@ color Nothing = pure Nothing
 color (Just v) = case parse colorExprP "" (A.encodeToLazyText v) of
   Left err -> fail $ errorBundlePretty err
   Right res -> pure $ Just res
+
+sexpr :: Maybe A.Value -> A.Parser (Maybe (SExpr SString))
+sexpr Nothing = pure Nothing
+sexpr (Just v) = case parse stringExprP "" (A.encodeToLazyText v) of
+  Left err -> fail $ errorBundlePretty err
+  Right res -> pure $ Just res

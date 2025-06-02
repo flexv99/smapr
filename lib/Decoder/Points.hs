@@ -1,12 +1,10 @@
 module Decoder.Points (
-  PointG (..),
+  PointG,
   decPoint,
 ) where
 
-import Data.List (foldl')
 import Decoder.Helper
 import Lens.Micro
-import Lens.Micro.Extras
 
 relativeMoveTo :: [PointG] -> [PointG]
 relativeMoveTo = f []

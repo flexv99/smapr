@@ -20,7 +20,7 @@ icon-anchor
 icon-pitch-alignment
 text-pitch-alignment
 text-rotation-alignment
-text-field
+
 text-font
 text-size
 text-max-width
