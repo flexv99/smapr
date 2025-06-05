@@ -42,11 +42,10 @@ drawPoint style tour = do
     mconcat $
       map
         ( \tr ->
-            D.circle 1
-              D.# D.fc black
-              D.# D.moveTo tr
-              <> case T.unpack <$> text of
-                Just t -> D.text "text" D.# D.fontSize (D.local 0.5) D.# D.moveTo tr
-                Nothing -> mempty
+            case T.unpack <$> text of
+              Just t -> if not $ null t then ptD tr t else mempty
+              Nothing -> mempty
         )
         tour
+  where
+    ptD r t = D.circle 1 D.# D.fc black D.# D.moveTo r <> (D.text t D.# D.fontSize (D.local 0.5) D.# D.moveTo r)

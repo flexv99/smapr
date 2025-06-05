@@ -3,6 +3,7 @@
 
 module ApiClient where
 
+import Control.Monad (mapM, sequence)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Functor ((<&>))
@@ -20,6 +21,15 @@ data Coord = Coord
   { lat :: Double
   , lon :: Double
   , rZoom :: Double
+  }
+  deriving (Show)
+
+data FiveTiles = FiveTiles
+  { center :: Tile -- (x, y)
+  , top :: Tile -- (x, y - 1)
+  , bottom :: Tile -- (x, y + 1)
+  , left :: Tile -- (x - 1, y)
+  , right :: Tile -- (x + 1, y)
   }
   deriving (Show)
 
@@ -76,7 +86,6 @@ getMTTile c =
 
 getFromUrl :: String -> IO (Either String Tile)
 getFromUrl url = do
-  conf <- smaprConfig
   manager <- newManager tlsManagerSettings
   request <- parseRequest url
   httpLbs request manager <&> (transformRawTile . responseBody)
@@ -88,6 +97,30 @@ fakerTile = do
   rawTile <- BL.readFile fp
   return $ transformRawTile rawTile
 
--- tmp
-geometryTest :: Tile -> Tile'GeomType
-geometryTest t = (head $ (head $ t ^. layers) ^. features) ^. type'
+getFiveTiles :: Coord -> IO (Either String [Tile])
+getFiveTiles c = do
+  conf <- smaprConfig
+  manager <- newManager tlsManagerSettings
+  let api = mtApi conf
+  let req = map (\p -> nBaseUrl api ++ p ++ "?key=" ++ apiKey api) (urls c)
+  sequence <$> (mapM (\url -> getFromUrl url) req)
+  where
+    urls :: Coord -> [String]
+    urls c =
+      map
+        (\(a, b) -> stringified (x + a) (y + b))
+        [ ((-1), (-1))
+        , (0, (-1))
+        , (1, (-1))
+        , ((-1), 0)
+        , (0, 0)
+        , (1, 0)
+        , ((-1), 1)
+        , (0, 1)
+        , (1, 1)
+        ]
+      where
+        x = lon2tileX (lon c) (rZoom c)
+        y = lat2tileY (lat c) (rZoom c)
+        stringified :: Int -> Int -> String
+        stringified x y = show (double2Int (rZoom c)) ++ "/" ++ show x ++ "/" ++ show y ++ ".pbf"

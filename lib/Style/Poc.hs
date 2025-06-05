@@ -61,8 +61,8 @@ buildFinalDiagram' l t =
     (background)
     ( renderLayers'
         (splitted ^. _1)
-        <> renderLayers' (splitted ^. _2)
         <> renderLayers' (splitted ^. _3)
+        <> renderLayers' (splitted ^. _2)
     )
   where
     background =
@@ -78,7 +78,7 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 renderStyleSpec :: IO ()
 renderStyleSpec = do
   t <- fakerTile
-  stile <- B.readFile "/Users/flex99/tmp/streets.json"
+  stile <- B.readFile "/Users/flex99/tmp/dark.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
@@ -90,6 +90,17 @@ renderWithCoords coord = do
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
+
+renderBIG :: Coord -> IO ()
+renderBIG coord = do
+  ts <- getFiveTiles coord
+  stile <- B.readFile "/Users/flex99/tmp/streets.json"
+  let layy = uwrap $ tlayers <$> (A.decode stile :: Maybe SWrap)
+  let dg = map (\t -> buildFinalDiagram' layy t) <$> ts
+  either putStrLn writeSvg (renderFromList <$> dg)
+  where
+    uwrap (Just x) = x
+    renderFromList (hl : hm : hr : ml : mm : mr : ll : lm : lr : []) = (hl D.||| hm D.||| hr) D.=== (ml D.||| mm D.||| mr) D.=== (ll D.||| lm D.||| lr)
 
 debugRenderer :: Coord -> IO ()
 debugRenderer c = do

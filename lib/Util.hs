@@ -94,7 +94,7 @@ dateTimeStr =
 
 writeSvg :: D.Diagram D.B -> IO ()
 writeSvg d = do
-  let sz = D.mkSizeSpec2D (Just 512) (Just 512)
+  let sz = D.mkSizeSpec2D (Just 1024) (Just 1024)
   dateStr <- dateTimeStr
   path <- testPath dateStr
   putStrLn path
