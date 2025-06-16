@@ -94,7 +94,7 @@ renderWithCoords coord = do
 renderBIG :: Coord -> IO ()
 renderBIG coord = do
   ts <- getFiveTiles coord
-  stile <- B.readFile "/Users/flex99/tmp/streets.json"
+  stile <- B.readFile "/Users/flex99/tmp/gta.json"
   let layy = uwrap $ tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = map (\t -> buildFinalDiagram' layy t) <$> ts
   either putStrLn writeSvg (renderFromList <$> dg)

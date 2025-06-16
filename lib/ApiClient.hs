@@ -24,15 +24,6 @@ data Coord = Coord
   }
   deriving (Show)
 
-data FiveTiles = FiveTiles
-  { center :: Tile -- (x, y)
-  , top :: Tile -- (x, y - 1)
-  , bottom :: Tile -- (x, y + 1)
-  , left :: Tile -- (x - 1, y)
-  , right :: Tile -- (x + 1, y)
-  }
-  deriving (Show)
-
 -- helpers
 lon2tileX :: (RealFrac a, Integral b, Floating a) => a -> a -> b
 lon2tileX lon' z = floor ((lon' + 180.0) / 360.0 * (2.0 ** z))
