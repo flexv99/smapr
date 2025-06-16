@@ -112,6 +112,8 @@ Test-Suite smapr-testsuite
                       , text
                       , aeson
                       , containers
+                      
   other-modules:        Decoder.DecoderSpec
                       , Parser.ParseSpec
+                      
   build-tool-depends: hspec-discover:hspec-discover
