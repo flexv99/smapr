@@ -229,6 +229,7 @@ stringSymbol =
     , Downcase <$ string "downcase"
     , Concat <$ string "concat"
     , TypeOf <$ string "typeof"
+    , ToString <$ string "to-string"
     ]
     <|> SPoly
     <$> polyReciever

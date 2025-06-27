@@ -40,6 +40,7 @@ data SLayer = SLayer
   , _sourceLayer :: Maybe T.Text
   , _lfilter :: Maybe (SExpr SBool)
   , _paint :: Maybe Paint
+  , _layout :: Maybe Paint
   }
 
 makeLenses ''SLayer
@@ -54,8 +55,10 @@ instance A.FromJSON SLayer where
     sourceLayer' <- obj A..:? "source-layer"
     filter' <- obj A..:? "filter" >>= fexpr
     p <- obj A..:? "paint"
+    lay <- obj A..:? "layout"
     SLayer id' type' source' sourceLayer' filter'
       <$> (sequenceA $ paintP type' <$> p)
+      <*> (sequenceA $ paintP type' <$> lay)
     where
       fexpr :: Maybe A.Value -> A.Parser (Maybe (SExpr SBool))
       fexpr Nothing = pure Nothing

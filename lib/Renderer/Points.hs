@@ -34,6 +34,7 @@ drawPoint
   => PointS -> [D.P2 Double] -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
 drawPoint style tour = do
   text <- eval (style ^. textField)
+  size <- eval (style ^. textSize)
   -- mColor <- eval (style ^. lineColor)
   -- let color = fromMaybe (D.black `D.withOpacity` 1.0) mColor
   -- mStroke <- eval (style ^. lineWidth)
@@ -43,9 +44,9 @@ drawPoint style tour = do
       map
         ( \tr ->
             case T.unpack <$> text of
-              Just t -> if not $ null t then ptD tr t else mempty
+              Just t -> if not $ null t then ptD tr t (toRealFloat <$> size) else mempty
               Nothing -> mempty
         )
         tour
   where
-    ptD r t = D.circle 1 D.# D.fc black D.# D.moveTo r <> (D.text t D.# D.fontSize (D.local 0.5) D.# D.moveTo r)
+    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r D.# D.reflectY

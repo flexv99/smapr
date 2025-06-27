@@ -39,17 +39,18 @@ featureToDiagram
      , D.Renderable (D.Text Double) b
      )
   => Maybe Paint
+  -> Maybe Paint
   -> Reader ExpressionContext (D.QDiagram b D.V2 Double D.Any)
-featureToDiagram (Just (LinePaint l)) = do
+featureToDiagram (Just (LinePaint l)) _ = do
   linePath <- decode' :: Reader ExpressionContext [LineG]
   mconcat <$> mapM (drawLine l . lineToPoints) linePath
-featureToDiagram (Just (FillPaint f)) = do
+featureToDiagram (Just (FillPaint f)) _ = do
   polygonPath <- decode' :: Reader ExpressionContext [PolygonG]
   drawPolygon f polygonPath
-featureToDiagram (Just (PointPaint p)) = do
+featureToDiagram (Just (PointPaint p)) (Just (PointPaint l)) = do
   pointsPath <- decode' :: Reader ExpressionContext [PointG]
-  mconcat <$> mapM (drawPoint p . pPointToPoints) pointsPath
-featureToDiagram _ = return $ D.strutX 0
+  mconcat <$> liftM2 (<>) (mapM (drawPoint p . pPointToPoints) pointsPath) (mapM (drawPoint l . pPointToPoints) pointsPath)
+featureToDiagram _ _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]
 decode' = ask >>= \ctx -> return $ decodeVec (ctx ^. (feature . vec'geometry))
@@ -65,7 +66,10 @@ renderTile tile layer' = do
     toBeDrawn = runReader (evalLayer layer')
     eachLayer ctx =
       if fromMaybe True (toBeDrawn ctx)
-        then runReader (featureToDiagram (layer' ^. paint)) ctx
+        then
+          runReader
+            (featureToDiagram (layer' ^. paint) (layer' ^. layout))
+            ctx
         else D.strutX 0
     layers' =
       maybe

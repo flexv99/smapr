@@ -30,13 +30,14 @@ instance A.FromJSON SymbolZOrder where
     _ -> pure Auto
 
 data PointS = PointS
-  { _symbolPlacement :: SymbolPlacement -- DEF: Point
+  { _symbolPlacement :: SExpr SString -- DEF: Point
   , _symbolSpacing :: SExpr SNum -- DEF: 250
   , _symbolAvoidEdges :: SExpr SBool -- DEF: false
   , _symbolSortKey :: Maybe (SExpr SNum)
   , _symbolZOrder :: SymbolZOrder -- DEF: Auto
   , _iconAllowOverlap :: SExpr SBool -- DEF: false
   , _textField :: SExpr SString
+  , _textSize :: SExpr SNum
   }
   deriving (Show)
 
@@ -45,13 +46,14 @@ makeLenses ''PointS
 instance A.FromJSON PointS where
   parseJSON = A.withObject "PointS" $ \t ->
     PointS
-      <$> t A..:? "symbol-placement" A..!= Point
+      <$> (t A..:? "symbol-placement" >>= sexpr) A..!= StringE (Just "point")
       <*> (t A..:? "symbol-spacing" >>= expr) A..!= NumE (Just 250)
       <*> (t A..:? "symbol-avoid-edges" >>= bexpr) A..!= BoolE (Just False)
       <*> (t A..:? "symbol-sort-key" >>= expr)
       <*> t A..:? "symbol-z-order" A..!= Auto
       <*> (t A..:? "icon-allow-overlap" >>= bexpr) A..!= BoolE (Just False)
       <*> (t A..:? "text-field" >>= sexpr) A..!= StringE (Just "")
+      <*> (t A..:? "text-size" >>= expr) A..!= NumE (Just 16)
 
 {-
 
@@ -73,7 +75,7 @@ text-pitch-alignment
 text-rotation-alignment
 
 text-font
-text-size
+
 text-max-width
 text-line-height
 text-letter-spacing

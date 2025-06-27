@@ -30,6 +30,7 @@ data StringToken
   | Downcase
   | Concat
   | TypeOf
+  | ToString
   | SPoly PolyToken
   deriving (Eq, Show)
 

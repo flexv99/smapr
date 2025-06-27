@@ -8,19 +8,17 @@
 module Style.Poc where
 
 import ApiClient
+import Control.Monad (join)
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import Data.Colour.SRGB
-import Data.Foldable
-import Data.Maybe (fromMaybe)
-import qualified Data.Sequence as S
+import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Text.Lazy as T
 import Decoder.Geometry
 import Decoder.Lines
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
-import GHC.Word
 import Lens.Micro
 import Proto.Util
 import Proto.Vector
@@ -60,16 +58,19 @@ buildFinalDiagram' l t =
   D.bg
     (background)
     ( renderLayers'
-        (splitted ^. _1)
-        <> renderLayers' (splitted ^. _3)
-        <> renderLayers' (splitted ^. _2)
+        (splitted ^. _3)
+        `D.atop` renderLayers' (splitted ^. _1)
+        `D.atop` renderLayers' (splitted ^. _2)
     )
   where
     background =
       fromMaybe
         (sRGB24 232 229 216)
-        (pureColor <$> renderBg (head (filter (\x -> x ^. pType == "background") l)) t)
+        ( pureColor
+            <$> join (fmap (\x -> renderBg x t) (firstLayerByType l))
+        )
     renderLayers' ls = mconcat (map (renderTile t) ls)
+    firstLayerByType = listToMaybe . filter (\x -> x ^. pType == "background")
     splitted = split' l
 
 pLayer :: IO (Either String SWrap)
@@ -77,16 +78,18 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 
 renderStyleSpec :: IO ()
 renderStyleSpec = do
-  t <- fakerTile
-  stile <- B.readFile "/Users/flex99/tmp/dark.json"
+  t <- fakerTile -- fakerFromP
+  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
+  where
+    fakerFromP = B.readFile "/Users/felixvalentini/tmp/montebelluna.pbf" >>= return . transformRawTile
 
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   t <- getMTTile coord
-  stile <- B.readFile "/Users/flex99/tmp/streets.json"
+  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
@@ -116,40 +119,3 @@ drawTour tour = tourPoints <> D.strokeP tourPath
     tourPath = D.fromVertices tour
     tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
     dot = D.circle 0.05 D.# D.fc D.black
-
--- featureToDiagramC :: Tile'Feature -> D.Diagram D.B
--- featureToDiagramC (Tile'Feature _ _ (Just LINESTRING) g) =
---   foldl1 D.atop $
---     map
---       (drawTour . lineToPoints)
---       (decodeC' g :: [LineG])
--- featureToDiagramC _ = D.strutX 0
-
-lineToPoints :: LineG -> [D.P2 Double]
-lineToPoints (LineG lMoveTo lLineTo) = _parameters lMoveTo ++ _parameters lLineTo
-
-decodeC' :: (MapGeometry a) => S.Seq Word32 -> [a]
-decodeC' g = decode $ map fromIntegral $ toList g
-
--- renderContourLayer :: T.Text -> Tile -> D.Diagram D.B
--- renderContourLayer l t =
---   D.reflectY
---     . foldl1 D.atop
---     . map featureToDiagram
---     . head
---     . map toList
---     . (map features <$> toList)
---     $ getLayers l t
-
--- testContour :: IO ()
--- testContour = do
---   t <- fakerTile
---   stile <- B.readFile "/home/flex99/dev/smapr/lib/Style/poc_style.json"
---   tc <- B.readFile "/home/flex99/tmp/contours_badia.pbf"
---   let tile = transformRawTile tc
---   let d = renderContourLayer "contour" <$> tile
---   let layy = tlayers <$> (A.decode stile :: Maybe SWrap)
---   let dg = buildFinalDiagram' <$> layy <*> t
---   maybe (putStrLn "Noting") writeSvg (d <> dg)
-
---- :break Renderer.Geometry.renderTile.eachLayer
