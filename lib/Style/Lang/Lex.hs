@@ -22,6 +22,7 @@ module Style.Lang.Lex (
 )
 where
 
+import Data.List (singleton)
 import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Void
@@ -42,7 +43,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 snakeCaseChar :: Parser Char
-snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’'
+snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’' <|> char ':' <|> newline
 
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
@@ -64,7 +65,7 @@ pString =
   nullableP
     ( T.pack
         <$> betweenDoubleQuotes
-          (lexeme (many snakeCaseChar))
+          ((lexeme (many snakeCaseChar)) <|> singleton <$> newline)
           <?> "string"
     )
 
