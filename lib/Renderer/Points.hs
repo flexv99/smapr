@@ -44,9 +44,12 @@ drawPoint style tour = do
       map
         ( \tr ->
             case T.unpack <$> text of
-              Just t -> if not $ null t then ptD tr t (toRealFloat <$> size) else mempty
+              Just t ->
+                if not $ null t
+                  then ptD tr t (toRealFloat <$> size)
+                  else mempty
               Nothing -> mempty
         )
         tour
   where
-    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r D.# D.reflectY
+    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r
