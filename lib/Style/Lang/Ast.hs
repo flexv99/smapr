@@ -53,7 +53,7 @@ data SExpr a where
   -- | to lower
   DowncaseE :: SExpr SString -> SExpr SString
   -- | string concatenation
-  ConcatE :: SExpr SString -> SExpr SString -> SExpr SString
+  ConcatE :: [SExpr SString] -> SExpr SString
   -- | Geometry type expression for a given feature
   FgeometryE :: SExpr SString
   -- | TypeOf expression

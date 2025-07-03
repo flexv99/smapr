@@ -19,10 +19,10 @@ module Style.Lang.Lex (
   pColor,
   pArray,
   pFColor,
+  escapednl,
 )
 where
 
-import Data.List (singleton)
 import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
 import Data.Void
@@ -43,7 +43,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 snakeCaseChar :: Parser Char
-snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’' <|> char ':' <|> newline
+snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’' <|> char ':'
 
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))
@@ -60,14 +60,19 @@ betweenDoubleQuotes = between (char '"' >> space) (char '"' >> space)
 nullableP :: Parser a -> Parser (Maybe a)
 nullableP p = Nothing <$ string "null" <|> Just <$> p
 
+escapednl :: Parser T.Text
+escapednl = (char '\"' *> string "\\n" <* (char '\"'))
+
 pString :: Parser SString
 pString =
   nullableP
-    ( T.pack
+    ( try escapednl <|> T.pack
         <$> betweenDoubleQuotes
-          ((lexeme (many snakeCaseChar)) <|> singleton <$> newline)
-          <?> "string"
+          ( lexeme
+              (many snakeCaseChar)
+          )
     )
+    <?> "string"
 
 pBool :: Parser SBool
 pBool =

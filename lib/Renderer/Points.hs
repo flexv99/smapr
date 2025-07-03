@@ -49,4 +49,4 @@ drawPoint style tour = do
         )
         tour
   where
-    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r D.# ( D.rotate (180 D.@@ D.deg) <> D.translateX 2 )
+    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r D.# (D.rotate (180 D.@@ D.deg) <> D.translateX 2)

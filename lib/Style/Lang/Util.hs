@@ -12,7 +12,6 @@ where
 import Data.Colour
 import Data.Colour.RGBSpace.HSL
 import Data.Colour.SRGB
-import Data.List
 import GHC.Word
 
 --------------------------------------------------------------------------------
@@ -31,7 +30,7 @@ rgbToColor r g b o = sRGB24 r g b `withOpacity` o
 
 expandShortHex :: String -> String
 expandShortHex hex
-  | length hex == 3 = concatMap (replicate 2 . head . singleton) hex
+  | length hex == 3 = concatMap (replicate 2) hex
   | otherwise = hex
 
 colorFromHexDigits :: (RealFloat a) => String -> AlphaColour a

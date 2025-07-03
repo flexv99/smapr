@@ -4,7 +4,6 @@ module Style.Lang.Eval (eval) where
 
 import Control.Monad (join)
 import Control.Monad.Reader
-import Control.Monad (join)
 import Data.Colour
 import Data.List
 import qualified Data.Map as MP
@@ -106,7 +105,7 @@ eval (TypeOfE e) = monoOp (\x -> Just $ sDataType x) e
     sDataType (DBool (Just _)) = "boolean"
     sDataType (DArray a) = "array<" <> (sDataType $ head a) <> ", " <> (T.pack $ show $ length a) <> ">"
     sDataType x = T.pack $ show x
-eval (ConcatE s1 s2) = binaryOp (<>) s1 s2
+eval (ConcatE s) = multiOp (foldl1 (<>)) s
 eval (BoolE b) = return b
 eval (BoolCastE b) = unwrapBool <$> eval b
   where

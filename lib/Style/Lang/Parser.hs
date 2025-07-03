@@ -104,10 +104,7 @@ stringOpParser :: StringToken -> Parser (SExpr SString)
 stringOpParser GeometryType = return FgeometryE
 stringOpParser Upcase = UpcaseE <$> stringExprP
 stringOpParser Downcase = DowncaseE <$> stringExprP
-stringOpParser Concat = do
-  s1 <- stringExprP
-  _ <- char ',' >> space
-  ConcatE s1 <$> stringExprP
+stringOpParser Concat = ConcatE <$> (try stringExprP `sepBy1` (char ',' >> space))
 stringOpParser TypeOf = TypeOfE <$> polyExprP
 stringOpParser ToString = StringCastE <$> polyExprP
 stringOpParser (SPoly n) = StringCastE <$> polyOpParser n
