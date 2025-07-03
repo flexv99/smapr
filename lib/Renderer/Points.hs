@@ -44,7 +44,10 @@ drawPoint style tour = do
       map
         ( \tr ->
             case T.unpack <$> text of
-              Just t -> if not $ null t then ptD tr t (toRealFloat <$> size) else mempty
+              Just t ->
+                if not $ null t
+                  then ptD tr t (toRealFloat <$> size)
+                  else mempty
               Nothing -> mempty
         )
         tour

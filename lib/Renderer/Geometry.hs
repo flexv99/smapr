@@ -61,7 +61,7 @@ renderTile
      )
   => Tile -> SLayer -> D.QDiagram b D.V2 Double D.Any
 renderTile tile layer' = do
-  D.reflectY $ mconcat $ map eachLayer (constructCtx layers')
+  mconcat $ map eachLayer (constructCtx layers') D.# D.reflectY
   where
     toBeDrawn = runReader (evalLayer layer')
     eachLayer ctx =
