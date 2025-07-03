@@ -21,6 +21,7 @@ data NumToken
   | Zoom
   | IndexOf
   | Length
+  | ToNumber
   | NPoly PolyToken
   deriving (Eq, Show)
 
@@ -61,6 +62,7 @@ data PolyToken
   | Match
   | Case
   | Step
+  | Coalesce
   | PNum NumToken
   | PString StringToken
   | PBool BoolToken

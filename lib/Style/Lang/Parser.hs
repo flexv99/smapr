@@ -84,6 +84,7 @@ numOpParser Length = do
     (Left l) -> return $ LengthOfListE l
     (Right s) -> return $ LengthOfStringE s
 numOpParser Number = NumberE <$> (try polyExprP `sepBy1` (char ',' >> space))
+numOpParser ToNumber = NumCastE <$> polyExprP
 numOpParser (NPoly n) = NumCastE <$> polyOpParser n
 
 --------------------------------------------------------------------------------
@@ -277,6 +278,7 @@ polyOpParser Step = do
       v <- polyExprP
       stop <- optional (char ',' >> space >> pNum)
       return (v, join stop)
+polyOpParser Coalesce = CoalesceE <$> (try polyExprP `sepBy1` (char ',' >> space))
 polyOpParser (PNum t) = FromNum <$> numOpParser t
 polyOpParser (PArray t) = FromArray <$> arrayOpParser t
 polyOpParser (PString t) = FromString <$> stringOpParser t

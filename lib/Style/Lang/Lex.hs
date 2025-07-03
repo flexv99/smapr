@@ -219,6 +219,7 @@ numSymbol =
     , Zoom <$ string "zoom"
     , IndexOf <$ string "index-of"
     , Length <$ string "length"
+    , ToNumber <$ string "to-number"
     ]
     <|> NPoly
     <$> polyReciever
@@ -282,6 +283,7 @@ polyReciever =
     , Match <$ string "match"
     , Case <$ string "case"
     , Step <$ string "step"
+    , Coalesce <$ string "coalesce"
     ]
 
 polySymbol :: Parser PolyToken

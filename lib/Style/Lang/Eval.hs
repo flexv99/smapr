@@ -180,6 +180,7 @@ eval (StepE i cs) = do
     reveal (f, s) = do
       f' <- eval f
       return (f', s)
+eval (CoalesceE cs) = multiOp (head) cs
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
