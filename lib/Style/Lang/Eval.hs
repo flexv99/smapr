@@ -180,7 +180,14 @@ eval (StepE i cs) = do
     reveal (f, s) = do
       f' <- eval f
       return (f', s)
-eval (CoalesceE cs) = multiOp (head) cs
+eval (CoalesceE cs) = multiOp (firstNotNull) cs
+  where
+    firstNotNull :: [SData] -> SData
+    firstNotNull ((DNum (Just n)) : xs) = DNum $ Just n
+    firstNotNull ((DString (Just s)) : xs) = DString $ Just s
+    firstNotNull ((DBool (Just b)) : xs) = DBool $ Just b
+    firstNotNull ((DColor (Just c)) : xs) = DColor $ Just c
+    firstNotNull x = firstNotNull x
 eval (SDataE d) = return d
 eval (FromNum n) = monoOp DNum n
 eval (FromString s) = monoOp DString s
