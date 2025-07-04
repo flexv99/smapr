@@ -51,5 +51,6 @@ decLine :: [Int] -> [LineG]
 decLine = map absoluteLineG . relativeMoveTo . (map actionToLineG . decodeLineCommands)
   where
     actionToLineG :: [GeoAction] -> LineG
+    actionToLineG (g : []) = LineG{_lMoveTo = g, _lLineTo = g}
     actionToLineG (g : gs) = LineG{_lMoveTo = g, _lLineTo = last gs}
     actionToLineG _ = error "should newer happen"

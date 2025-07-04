@@ -8,20 +8,15 @@ module Renderer.Points (
 where
 
 import Control.Monad.Reader
-import Data.Colour
 import Data.Maybe (fromMaybe)
-import Data.Monoid
 import Data.Scientific (toRealFloat)
 import qualified Data.Text.Lazy as T
-import Decoder.Geometry
 import Decoder.Helper
-import Decoder.Points
 import qualified Diagrams.Prelude as D
 import qualified Diagrams.TwoD.Text as D
 import Lens.Micro
 import Style.ExpressionsContext
 import Style.Lang.Eval
-import Style.Lang.Parser
 import Style.Layers.Point
 
 pPointToPoints :: PointG -> [D.P2 Double]
@@ -52,4 +47,8 @@ drawPoint style tour = do
         )
         tour
   where
-    ptD r t s = D.text t D.# D.fontSize (D.local (fromMaybe 16 s)) D.# D.moveTo r D.# (D.rotate (180 D.@@ D.deg) <> D.translateX 2)
+    ptD r t s =
+      D.text t
+        D.# D.fontSize (D.local (fromMaybe 16 s))
+        D.# D.moveTo r
+        D.# D.reflectAbout r (D.rotateBy (0.5) D.xDir)
