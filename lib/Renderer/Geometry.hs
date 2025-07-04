@@ -49,7 +49,7 @@ featureToDiagram (Just (FillPaint f)) _ = do
   drawPolygon f polygonPath
 featureToDiagram (Just (PointPaint p)) (Just (PointPaint l)) = do
   pointsPath <- decode' :: Reader ExpressionContext [PointG]
-  mconcat <$> liftM2 (<>) (mapM (drawPoint p . pPointToPoints) pointsPath) (mapM (drawPoint l . pPointToPoints) pointsPath)
+  mconcat <$> (mapM (drawPoint p l . pPointToPoints) pointsPath)
 featureToDiagram _ _ = return $ D.strutX 0
 
 decode' :: (MapGeometry a, Show a) => Reader ExpressionContext [a]

@@ -3,6 +3,7 @@
 module Style.Layers.Point where
 
 import qualified Data.Aeson as A
+import Data.Colour (black, withOpacity)
 import Data.Text (toLower)
 import Lens.Micro
 import Lens.Micro.TH
@@ -38,6 +39,8 @@ data PointS = PointS
   , _iconAllowOverlap :: SExpr SBool -- DEF: false
   , _textField :: SExpr SString
   , _textSize :: SExpr SNum
+  , _textRotate :: SExpr SNum
+  , _textColor :: SExpr SColor
   }
   deriving (Show)
 
@@ -54,6 +57,8 @@ instance A.FromJSON PointS where
       <*> (t A..:? "icon-allow-overlap" >>= bexpr) A..!= BoolE (Just False)
       <*> (t A..:? "text-field" >>= sexpr) A..!= StringE (Just "")
       <*> (t A..:? "text-size" >>= expr) A..!= NumE (Just 16)
+      <*> (t A..:? "text-rotate" >>= expr) A..!= NumE (Just 0)
+      <*> (t A..:? "text-color" >>= color) A..!= ColorE (Just $ black `withOpacity` 1)
 
 {-
 
@@ -86,7 +91,7 @@ text-variable-anchor-offset
 text-anchor
 text-max-angle
 text-writing-mode
-text-rotate
+
 text-padding
 text-keep-upright
 text-transform
@@ -104,7 +109,7 @@ icon-halo-blur
 icon-translate
 icon-translate-anchor
 text-opacity
-text-color
+
 text-halo-color
 text-halo-width
 text-halo-blur
