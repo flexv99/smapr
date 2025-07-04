@@ -36,7 +36,7 @@ import Style.Lang.Types
 import Text.Megaparsec
 import Util
 
-data ResultType = RNumber | RBoolean | RArray | RString | RColor deriving (Show)
+data ResultType = RNumber | RBoolean | RArray | RString | RColor | RData deriving (Show)
 
 instance A.FromJSON ResultType where
   parseJSON = A.withText "result-type" $ \case
@@ -45,6 +45,7 @@ instance A.FromJSON ResultType where
     "array" -> return RArray
     "string" -> return RString
     "color" -> return RColor
+    "value" -> return RData
     _ -> error "not supported result type"
 
 data ECompiled = ECompiled
@@ -74,7 +75,7 @@ instance A.FromJSON EExpected where
                   Nothing -> pure Nothing
                   Just v -> sequenceA $ pure $ pLiterals v
               )
-        )
+      )
         A..!= []
     return $ EExpected out comp
 
@@ -120,7 +121,11 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
     nrProps = maybe 0 (length . MP.keys) props
     k' = map (T.toStrict . T.pack) . MP.keys <$> props
     v' = map sDataToValue . MP.elems <$> props
-    t' = map fromInteger $ take (nrProps * 2) $ mconcat $ zipWith (\a b -> a : [b]) [0 ..] [0 ..]
+    t' =
+      map fromInteger $
+        take (nrProps * 2) $
+          mconcat $
+            zipWith (\a b -> a : [b]) [0 ..] [0 ..]
     dFeature = defMessage & tags .~ t'
     createLayer =
       ( \y ->
@@ -137,11 +142,16 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
             k'
       )
         =<< v'
-    defaultCtx = ExpressionContext{_ctxZoom = 14, _layer = defMessage, _feature = defMessage}
+    defaultCtx =
+      ExpressionContext
+        { _ctxZoom = 14
+        , _layer = defMessage
+        , _feature = defMessage
+        }
 
 runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
 runTestWithResult = do
-  t <- liftIO readTest >>= liftEither -- Run IO action and lift Either into MonadError
+  t <- liftIO readTest >>= liftEither
   return $ fromMaybe [] (testWithContexts t)
   where
     testWithContexts t =
@@ -166,12 +176,8 @@ runTest = do
 readTest :: IO (Either String ExpressionTestEntity)
 readTest = do
   conf <- smaprConfig
-  let testPath' = jsonTestPath conf ++ "equal/value/test.json"
+  let testPath' = jsonTestPath conf ++ "coalesce/basic/test.json"
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
-
--- >>> t <- run
--- >>> map (\x -> testCTXs <$> x) (fmap (\x -> (x !! 1)) $ view inputs t)
--- fmap (\r -> runReader r <$> (head contexts)) (eval <$> (view expression (unwap t)))
 
 -- >> runExceptT runTest
