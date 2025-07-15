@@ -7,6 +7,7 @@ module Util (
   testPath,
   dateTimeStr,
   writeSvg,
+  testSVG,
   Sconf (..),
   LocalApi (..),
   MTApi (..),
@@ -99,3 +100,8 @@ writeSvg d = do
   path <- testPath dateStr
   putStrLn path
   D.renderSVG path sz d
+
+testSVG :: D.Diagram D.B -> IO ()
+testSVG d = do
+  let sz = D.mkSizeSpec2D (Just 1024) (Just 1024)
+  D.renderSVG "/Users/felixvalentini/tmp.svg" sz d

@@ -3,6 +3,7 @@ module Decoder.Points (
   decPoint,
 ) where
 
+import Data.List
 import Decoder.Helper
 import Lens.Micro
 

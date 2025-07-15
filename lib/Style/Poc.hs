@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -19,6 +20,7 @@ import Decoder.Lines
 import qualified Diagrams.Backend.SVG as D
 import qualified Diagrams.Prelude as D
 import GHC.Generics
+import Graphics.Svg.Core (renderBS)
 import Lens.Micro
 import Proto.Util
 import Proto.Vector
@@ -78,13 +80,11 @@ pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
 
 renderStyleSpec :: IO ()
 renderStyleSpec = do
-  t <- fakerTile -- fakerFromP
-  stile <- B.readFile "/Users/flex99/dev/hs/smapr/lib/Style/poc_style.json"
+  t <- fakerTile
+  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_migrated.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
-  where
-    fakerFromP = B.readFile "/Users/felixvalentini/tmp/montebelluna.pbf" >>= return . transformRawTile
 
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
@@ -97,7 +97,7 @@ renderWithCoords coord = do
 renderBIG :: Coord -> IO ()
 renderBIG coord = do
   ts <- getFiveTiles coord
-  stile <- B.readFile "/Users/flex99/tmp/gta.json"
+  stile <- B.readFile "/Users/felixvalentini/tmp/positron.json"
   let layy = uwrap $ tlayers <$> (A.decode stile :: Maybe SWrap)
   let dg = map (\t -> buildFinalDiagram' layy t) <$> ts
   either putStrLn writeSvg (renderFromList <$> dg)
@@ -119,3 +119,22 @@ drawTour tour = tourPoints <> D.strokeP tourPath
     tourPath = D.fromVertices tour
     tourPoints = D.atPoints (concat . D.pathVertices $ tourPath) (repeat dot)
     dot = D.circle 0.05 D.# D.fc D.black
+
+renderStyleSVG :: IO B.ByteString
+renderStyleSVG = do
+  t <- fakerTile
+  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> t :: Either String (D.Diagram D.B)
+  either
+    (return . B.fromStrict . B.pack)
+    ( return
+        . renderBS
+        . D.renderDia
+          D.SVG
+          (D.SVGOptions (D.mkWidth 512) Nothing "" [] True)
+    )
+    dg
+
+-- f = D.text "F" <> D.square 1 D.# D.lw D.none
+-- example = f <> D.reflectAbout (D.p2 (0.2, 0.2)) (D.rotateBy (-1 / 10) D.xDir) f

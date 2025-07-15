@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
 module Style.Lang.Eval (eval) where
