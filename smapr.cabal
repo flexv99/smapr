@@ -24,12 +24,15 @@ common warnings
 
 custom-setup
     setup-depends: base, Cabal, proto-lens-setup
-    build-tool-depends: proto-lens-protoc:proto-lens-protoc
 
 library
-    exposed-modules:  Proto.Util
+    exposed-modules:  View
                     , Proto.Vector
                     , Proto.Vector_Fields
+
+    -- Modules included in this library but not exported.
+    other-modules:    Decoder.Helper
+                    , Proto.Util
                     , Decoder.Geometry
                     , Decoder.Lines
                     , Decoder.Polygons
@@ -38,7 +41,6 @@ library
                     , Renderer.Points
                     , Renderer.Polygons
                     , Renderer.Geometry
-                    , Style.Poc
                     , Style.ExpressionsContext
                     , Style.Layers.Line
                     , Style.Layers.Fill
@@ -57,18 +59,15 @@ library
                     , Style.Test.Unit
                     , Util
                     , ApiClient
-
-    -- Modules included in this library but not exported.
-    other-modules:    Decoder.Helper
                     
     -- Auto generated modules: proto stuff
     autogen-modules:  Proto.Vector
                     , Proto.Vector_Fields
 
-    build-tool-depends: proto-lens-protoc:proto-lens-protoc
-
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
+    build-tool-depends: proto-lens-protoc:proto-lens-protoc
+    
     build-depends:    base >=4.7 && <5
                     , proto-lens
                     , proto-lens-runtime
@@ -95,6 +94,8 @@ library
                     , colour
                     , vector
                     , split
+                    , svg-builder
+                    , directory
 
     hs-source-dirs:   lib
     default-language: Haskell2010

@@ -43,7 +43,7 @@ drawPoint paint layout tour = do
         ( \tr ->
             case T.unpack <$> text of
               Just t ->
-                if not $ null t
+                if (not $ null t) && (inBounds $ D.unp2 tr)
                   then
                     ptD
                       tr
@@ -56,7 +56,8 @@ drawPoint paint layout tour = do
         )
         tour
   where
-    degreesToFloat deg = (deg `mod'` 360) / 360
+    degreesToFloat deg = (deg `mod` 360) / 360
+    inBounds (x, y) = x < 4096 && y < 4096
       where
         mod' a b = a - fromIntegral (floor (a / b)) * b
     ptD r t s c d =

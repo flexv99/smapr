@@ -44,7 +44,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 snakeCaseChar :: Parser Char
-snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’' <|> char ':'
+snakeCaseChar = alphaNumChar <|> char '_' <|> char '-' <|> char '’' <|> char ':' <|> char '.'
 
 skipComma :: Parser a -> Parser a
 skipComma = L.lexeme (skipMany (spaceChar <|> char ','))

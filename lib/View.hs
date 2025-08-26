@@ -1,12 +1,7 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-module Style.Poc where
+module View where
 
 import ApiClient
 import Control.Monad (join)
@@ -28,10 +23,8 @@ import Proto.Vector
 import Renderer.Geometry
 import Style.Lang.Util
 import Style.Layers.Wrapper
+import System.Directory
 import Util
-
--- The goal of this proof of concept is to correctly parse the style of this water way
--- and apply this style to my test vector tile unsing Render.Geomety.renderLayer.
 
 data SWrap = SWrap
   { version :: Int
@@ -76,48 +69,20 @@ buildFinalDiagram' l t =
     firstLayerByType = listToMaybe . filter (\x -> x ^. pType == "background")
     splitted = split' l
 
-pLayer :: IO (Either String SWrap)
-pLayer = B.readFile "/home/flex99/tmp/osm.json" <&> A.eitherDecode
-
-renderStyleSpec :: IO ()
-renderStyleSpec = do
-  t <- fakerTile
-  stile <- B.readFile "/Users/felixvalentini/tmp/dataviz.json"
-  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> t
-  either putStrLn writeSvg dg
-
 renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
+  fp <- getCurrentDirectory
   t <- getMTTile coord
-  stile <- B.readFile "/Users/felixvalentini/tmp/dataviz.json"
+  stile <- B.readFile $ fp <> "/poc_style.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
-  either putStrLn writeSvg dg
-
-renderBIG :: Coord -> IO ()
-renderBIG coord = do
-  ts <- getFiveTiles coord
-  stile <- B.readFile "/Users/felixvalentini/tmp/positron.json"
-  let layy = uwrap $ tlayers <$> (A.decode stile :: Maybe SWrap)
-  let dg = map (\t -> buildFinalDiagram' layy t) <$> ts
-  either putStrLn writeSvg (renderFromList <$> dg)
-  where
-    uwrap (Just x) = x
-    renderFromList (hl : hm : hr : ml : mm : mr : ll : lm : lr : []) = (hl D.||| hm D.||| hr) D.=== (ml D.||| mm D.||| mr) D.=== (ll D.||| lm D.||| lr)
-
-debugRenderer :: Coord -> IO ()
-debugRenderer c = do
-  t <- getMTTile c
-  stile <- B.readFile "/Users/felixvalentini/tmp/street1.json"
-  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
-  let dg = buildFinalDiagram' <$> layy <*> (filterLayers "transportation" <$> t)
   either putStrLn writeSvg dg
 
 renderStyleSVG :: Coord -> IO B.ByteString
 renderStyleSVG c = do
+  fp <- getCurrentDirectory
   t <- getMTTile c
-  stile <- B.readFile "/Users/felixvalentini/dev/smapr/lib/Style/poc_style.json"
+  stile <- B.readFile $ fp <> "/poc_style.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t :: Either String (D.Diagram D.B)
   either
@@ -130,5 +95,11 @@ renderStyleSVG c = do
     )
     dg
 
--- f = D.text "F" <> D.square 1 D.# D.lw D.none
--- example = f <> D.reflectAbout (D.p2 (0.2, 0.2)) (D.rotateBy (-1 / 10) D.xDir) f
+renderStyleSpec :: IO ()
+renderStyleSpec = do
+  fp <- getCurrentDirectory
+  t <- fakerTile
+  stile <- B.readFile $ fp <> "/poc_style.json"
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+  let dg = buildFinalDiagram' <$> layy <*> t
+  either putStrLn writeSvg dg
