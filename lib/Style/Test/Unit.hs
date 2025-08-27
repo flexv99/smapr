@@ -33,6 +33,7 @@ import Style.Lang.Eval
 import Style.Lang.Lex
 import Style.Lang.Parser
 import Style.Lang.Types
+import System.Directory
 import Text.Megaparsec
 import Util
 
@@ -175,8 +176,8 @@ runTest = do
 
 readTest :: IO (Either String ExpressionTestEntity)
 readTest = do
-  conf <- smaprConfig
-  let testPath' = jsonTestPath conf ++ "coalesce/basic/test.json"
+  fp <- getCurrentDirectory
+  let testPath' = fp <> "/test/json_test/coalesce/basic/test.json"
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
 

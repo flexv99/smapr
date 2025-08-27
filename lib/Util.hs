@@ -7,7 +7,6 @@ module Util (
   testPath,
   dateTimeStr,
   writeSvg,
-  testSVG,
   Sconf (..),
   LocalApi (..),
   MTApi (..),
@@ -41,7 +40,6 @@ data Sconf = Sconf
   , mtApi :: MTApi
   , testTilePath :: String
   , testDestinationPath :: String
-  , jsonTestPath :: String
   }
   deriving (Show, Generic)
 
@@ -65,14 +63,12 @@ makeSconf conf = do
   nextzenApi' <- makeNextzenApiConf conf :: IO (Maybe MTApi)
   testDestinationPath' <- C.lookup conf "test_dest_path" :: IO (Maybe String)
   testTilePath' <- C.lookup conf "test_tile_path" :: IO (Maybe String)
-  jsonTestPath' <- C.lookup conf "json_test_path" :: IO (Maybe String)
   return $
     Sconf
       <$> localApi'
       <*> nextzenApi'
       <*> testTilePath'
       <*> testDestinationPath'
-      <*> jsonTestPath'
 
 smaprConfigFromPath :: FilePath -> IO Sconf
 smaprConfigFromPath p = do
@@ -100,8 +96,3 @@ writeSvg d = do
   path <- testPath dateStr
   putStrLn path
   D.renderSVG path sz d
-
-testSVG :: D.Diagram D.B -> IO ()
-testSVG d = do
-  let sz = D.mkSizeSpec2D (Just 1024) (Just 1024)
-  D.renderSVG "/Users/felixvalentini/tmp.svg" sz d
