@@ -95,7 +95,20 @@ renderStyleSpec :: IO ()
 renderStyleSpec = do
   fp <- getCurrentDirectory
   t <- fakerTile
-  stile <- B.readFile $ fp <> "/poc_style.json"
+  stile <- B.readFile "/home/flex99/styles/outdoor.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
+  either putStrLn writeSvg dg
+
+renderWithMultiple :: IO ()
+renderWithMultiple = do
+  contours <- getFromUrl "https://api.maptiler.com/tiles/contours-v2/14/8732/5788.pbf?key=1x4mQ1VBiPXKbmnR1S8p"
+  outdoor <- getFromUrl "https://api.maptiler.com/tiles/outdoor/14/8732/5788.pbf?key=1x4mQ1VBiPXKbmnR1S8p"
+  base <- getFromUrl "https://api.maptiler.com/tiles/v3-openmaptiles/14/8732/5788.pbf?key=1x4mQ1VBiPXKbmnR1S8p"
+  stile <- B.readFile "/home/flex99/styles/outdoor.json"
+  let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
+  let dcontour = buildFinalDiagram' <$> layy <*> contours
+  let doutdoor = buildFinalDiagram' <$> layy <*> outdoor
+  let dbase = buildFinalDiagram' <$> layy <*> base
+  let dg = foldl1 (\x y -> D.atop <$> x <*> y) [dcontour, dbase, doutdoor]
   either putStrLn writeSvg dg
