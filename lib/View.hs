@@ -60,11 +60,7 @@ buildFinalDiagram' l t =
     )
   where
     background =
-      fromMaybe
-        (sRGB24 232 229 216)
-        ( pureColor
-            <$> join (fmap (\x -> renderBg x t) (firstLayerByType l))
-        )
+      maybe (sRGB24 232 229 216) pureColor ((`renderBg` t) =<< firstLayerByType l)
     renderLayers' ls = mconcat (map (renderTile t) ls)
     firstLayerByType = listToMaybe . filter (\x -> x ^. pType == "background")
     splitted = split' l

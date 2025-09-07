@@ -259,9 +259,12 @@ polyOpParser Match = do
         pairUp (x : y : rest) = (x, y) : pairUp rest
         pairUp _ = []
 polyOpParser Case = do
-  choices <- many choicesP
-  CaseE choices <$> polyExprP
+  c1 <- choicesP
+  choices <- many $ try choicesP
+  CaseE (insert c1 choices) <$> polyExprP
   where
+    insert :: a -> [a] -> [a]
+    insert f rest = f : rest
     choicesP = do
       arg1 <- boolExprP
       _ <- char ',' >> space
