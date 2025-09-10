@@ -38,6 +38,7 @@ drawPolygon style tour = do
   let color = maybe black pureColor mColor
   mOpacity <- eval (style ^. fillOpacity)
   let opacity = maybe 1.0 toRealFloat mOpacity
+  -- TODO check extend
   return $
     mconcat $
       map

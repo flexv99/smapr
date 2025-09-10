@@ -34,6 +34,7 @@ drawLine style tour = do
   let color = fromMaybe (black `withOpacity` 1.0) mColor
   mStroke <- eval (style ^. lineWidth)
   let stroke = maybe 1.0 toRealFloat mStroke
+  -- TODO check extend
   return $
     D.moveTo
       (head tour)
