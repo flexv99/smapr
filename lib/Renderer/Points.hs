@@ -57,7 +57,7 @@ drawPoint paint layout tour = do
         tour
   where
     degreesToFloat deg = (deg `mod` 360) / 360
-    inBounds (x, y) = x < 4096 && y < 4096
+    inBounds (x, y) = x >= 0 && x <= 4096 && y >= 0 && y <= 4096
       where
         mod' a b = a - fromIntegral (floor (a / b)) * b
     ptD r t s c d =
@@ -66,3 +66,5 @@ drawPoint paint layout tour = do
         D.# D.moveTo r
         D.# D.fc c
         D.# D.reflectAbout r (D.rotateBy (0.5 + d) D.xDir)
+
+-- 477, 699
