@@ -216,6 +216,7 @@ numSymbol =
     , Minus <$ char '-'
     , Div <$ char '/'
     , Multi <$ char '*'
+    , Mod <$ char '%'
     , NInterpolate <$ string "interpolate"
     , Zoom <$ string "zoom"
     , IndexOf <$ string "index-of"

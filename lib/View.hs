@@ -69,7 +69,7 @@ renderWithCoords :: Coord -> IO ()
 renderWithCoords coord = do
   fp <- getCurrentDirectory
   t <- getMTTile coord
-  stile <- B.readFile $ fp <> "/poc_style.json"
+  stile <- B.readFile  "/Users/flex99/map/styles/dataviz.json" -- $ fp <> "/poc_style.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg
@@ -95,7 +95,7 @@ renderStyleSpec :: IO ()
 renderStyleSpec = do
   fp <- getCurrentDirectory
   t <- fakerTile
-  stile <- B.readFile "/home/flex99/styles/outdoor.json"
+  stile <- B.readFile "/Users/flex99/map/styles/dataviz.json"
   let layy = tlayers <$> (A.eitherDecode stile :: Either String SWrap)
   let dg = buildFinalDiagram' <$> layy <*> t
   either putStrLn writeSvg dg

@@ -7,7 +7,7 @@
 
 module Style.Test.Unit where
 
-import Control.Monad.Except (MonadError, liftEither, runExceptT, throwError)
+import Control.Monad.Except (MonadError, liftEither, runExceptT)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Text as A
@@ -150,9 +150,9 @@ testCTXs p = maybe defaultCtx (\x -> ExpressionContext{_ctxZoom = 14, _layer = x
         , _feature = defMessage
         }
 
-runTestWithResult :: (MonadError String m, MonadIO m) => m [Maybe SData]
-runTestWithResult = do
-  t <- liftIO readTest >>= liftEither
+runTestWithResult :: (MonadError String m, MonadIO m) => Either String ExpressionTestEntity -> m [Maybe SData]
+runTestWithResult test = do
+  t <- liftEither test
   return $ fromMaybe [] (testWithContexts t)
   where
     testWithContexts t =
@@ -161,9 +161,9 @@ runTestWithResult = do
         (eval <$> t ^. expression)
     tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
 
-runTest :: (MonadError String m, MonadIO m) => m [Maybe Bool]
-runTest = do
-  t <- liftIO readTest >>= liftEither -- Run IO action and lift Either into MonadError
+runTest :: (MonadError String m, MonadIO m) => String -> m [Maybe Bool]
+runTest testPath = do
+  t <- liftIO (readTest testPath) >>= liftEither -- Run IO action and lift Either into MonadError
   let results = fromMaybe [] (testWithContexts t)
   return $ zipWith (\a b -> (==) <$> a <*> b) results (expectedRes t)
   where
@@ -174,11 +174,16 @@ runTest = do
     tContexts t = map (testCTXs <$>) ((!! 1) <$> t ^. inputs)
     expectedRes t = t ^. (expected . outputs)
 
-readTest :: IO (Either String ExpressionTestEntity)
-readTest = do
+readTest :: String -> IO (Either String ExpressionTestEntity)
+readTest testPath = do
   fp <- getCurrentDirectory
-  let testPath' = fp <> "/test/json_test/coalesce/basic/test.json"
+  let testPath' = fp <> testPath
   tf <- B.readFile testPath'
   return $ A.eitherDecode tf
+
+rT :: String -> IO (Either String ExpressionTestEntity)
+rT testPaht =
+  getCurrentDirectory
+    >>= (\fp -> B.readFile (fp <> testPaht) >>= (\tf -> return $ A.eitherDecode tf))
 
 -- >> runExceptT runTest

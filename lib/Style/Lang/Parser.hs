@@ -54,6 +54,10 @@ numOpParser Div = do
   arg <- numExprP
   _ <- char ',' >> space
   DivE arg <$> numExprP
+numOpParser Mod = do
+  arg <- numExprP
+  _ <- char ',' >> space
+  ModE arg <$> numExprP
 numOpParser NInterpolate = do
   interType <- interpolationTypeP
   _ <- char ',' >> space

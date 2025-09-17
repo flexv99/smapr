@@ -28,6 +28,8 @@ data SExpr a where
   SubE :: SExpr SNum -> SExpr SNum -> SExpr SNum
   -- | division
   DivE :: SExpr SNum -> SExpr SNum -> SExpr SNum
+  -- | modulo
+  ModE :: SExpr SNum -> SExpr SNum -> SExpr SNum
   -- | numeric interpolate expr
   InterpolateNumE
     :: InterpolationType

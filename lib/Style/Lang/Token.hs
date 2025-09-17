@@ -16,6 +16,7 @@ data NumToken
   | Plus
   | Minus
   | Div
+  | Mod
   | Multi
   | NInterpolate
   | Zoom
